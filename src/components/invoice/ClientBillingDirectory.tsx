@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, CheckCircle2, AlertCircle, FileText, ArrowRight, X } from 'lucide-react';
+import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, CheckCircle2, AlertCircle, FileText, ArrowRight, X, Save } from 'lucide-react';
 import { ClientBrand } from '../../types';
 
 interface ClientBillingDirectoryProps {
@@ -169,9 +169,144 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
           </div>
         ) : (
           filteredBrands.map((brand) => {
+            const isEditing = editingBrand?.id === brand.id;
             const complete = isBillingComplete(brand);
             const invoiceCount = brand.invoices?.length || 0;
-            const totalInvoiceAmount = brand.invoices?.reduce((sum, i) => sum + (i.totalAmount || 0), 0) || 0;
+
+            if (isEditing) {
+              return (
+                <form
+                  key={brand.id}
+                  onSubmit={handleSaveBillingData}
+                  className="bg-white rounded-2xl border-2 border-indigo-500 ring-4 ring-indigo-50/70 shadow-lg p-5 flex flex-col justify-between transition-all duration-200 animate-fadeIn"
+                >
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-indigo-100">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
+                          {brand.name}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-800">Edit Data Penagihan</h4>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <Edit3 className="w-3 h-3 text-indigo-600" />
+                        Mode Edit
+                      </span>
+                    </div>
+
+                    {/* Nama PT */}
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                        Nama PT / Badan Usaha <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: PT Creative Stylemandiri"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* PIC & Tanggal Tagihan */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                          PIC / Kontak <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Nama PIC"
+                          value={picName}
+                          onChange={(e) => setPicName(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                          Tgl Tagihan (1-31)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="29"
+                          value={invoiceDate}
+                          onChange={(e) => setInvoiceDate(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* WA & Email */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                          WA / Telp <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="0812-..."
+                          value={picPhone}
+                          onChange={(e) => setPicPhone(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                          Email <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="email@pt.com"
+                          value={picEmail}
+                          onChange={(e) => setPicEmail(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Alamat */}
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                        Alamat Kantor / Tagihan <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="Alamat lengkap PT..."
+                        value={companyAddress}
+                        onChange={(e) => setCompanyAddress(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingBrand(null)}
+                      className="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      Simpan
+                    </button>
+                  </div>
+                </form>
+              );
+            }
 
             return (
               <div
@@ -307,161 +442,6 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
           })
         )}
       </div>
-
-      {/* Edit Client Billing Drawer (Sidebar) */}
-      {editingBrand && (
-        <div className="fixed inset-0 z-[120] overflow-hidden flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
-            onClick={() => setEditingBrand(null)}
-          />
-
-          {/* Right Drawer Panel */}
-          <div className="relative w-full max-w-xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">
-                    Edit Data Penagihan: {editingBrand.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
-                    Data ini akan otomatis tercantum pada bagian DITUJUKAN KEPADA (BILL TO) invoice
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setEditingBrand(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                title="Tutup (Esc)"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBillingData} className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar flex flex-col justify-between">
-              <div className="space-y-4">
-                {/* Nama PT */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Nama Badan Usaha / PT <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: PT Creative Stylemandiri"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Nama resmi entitas perusahaan yang ditagih (muncul di baris pertama Bill To)</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* PIC Name */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                      Nama PIC / Kontak <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Sari Ayu Marthatilaar"
-                      value={picName}
-                      onChange={(e) => setPicName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                    />
-                  </div>
-
-                  {/* Tanggal Penagihan */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                      Siklus Tanggal Invoice
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      placeholder="29"
-                      value={invoiceDate}
-                      onChange={(e) => setInvoiceDate(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">Tanggal pembuatan tagihan rutin tiap bulan (1-31)</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Phone / WA */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                      Nomor WhatsApp / Telp <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: +62812-3974-5911"
-                      value={picPhone}
-                      onChange={(e) => setPicPhone(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                      Email Penagihan <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="Contoh: viancaxalyssa@gmail.com"
-                      value={picEmail}
-                      onChange={(e) => setPicEmail(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Address */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Alamat Lengkap Perusahaan <span className="text-rose-500">*</span>
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
-                    value={companyAddress}
-                    onChange={(e) => setCompanyAddress(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setEditingBrand(null)}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
-                >
-                  Simpan Data Penagihan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
