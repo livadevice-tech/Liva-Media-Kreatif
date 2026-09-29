@@ -306,144 +306,154 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
         )}
       </div>
 
-      {/* Modal Add / Edit Bank Account */}
+      {/* Drawer Add / Edit Bank Account (Sidebar) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[120] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden my-8">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+        <div className="fixed inset-0 z-[120] overflow-hidden flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+            onClick={() => setIsModalOpen(false)}
+          />
+
+          {/* Right Drawer Panel */}
+          <div className="relative w-full max-w-lg h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
                   <Landmark className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-800">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">
                     {editingAccount ? 'Edit Rekening Bank' : 'Tambah Rekening Bank PT Liva'}
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
                     Digunakan untuk menerima pembayaran transfer dari klien
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-xl transition-all cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                title="Tutup (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              {/* Select Bank */}
-              <div>
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                  Nama Bank <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
-                >
-                  {POPULAR_BANKS.map(b => (
-                    <option key={b.name} value={b.name}>{b.name}</option>
-                  ))}
-                  <option value="Lainnya">Lainnya (Tulis Manual)...</option>
-                </select>
-              </div>
-
-              {bankName === 'Lainnya' && (
+            <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 flex-1 custom-scrollbar flex flex-col justify-between">
+              <div className="space-y-4">
+                {/* Select Bank */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Ketik Nama Bank
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                    Nama Bank <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
+                  >
+                    {POPULAR_BANKS.map(b => (
+                      <option key={b.name} value={b.name}>{b.name}</option>
+                    ))}
+                    <option value="Lainnya">Lainnya (Tulis Manual)...</option>
+                  </select>
+                </div>
+
+                {bankName === 'Lainnya' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">
+                      Ketik Nama Bank
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Bank Danamon"
+                      value={customBankName}
+                      onChange={(e) => setCustomBankName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                    />
+                  </div>
+                )}
+
+                {/* Account Number */}
+                <div>
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                    Nomor Rekening <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Bank Danamon"
-                    value={customBankName}
-                    onChange={(e) => setCustomBankName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
+                    placeholder="Contoh: 2721002897"
+                    value={accountNo}
+                    onChange={(e) => setAccountNo(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-mono font-black bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
                   />
                 </div>
-              )}
 
-              {/* Account Number */}
-              <div>
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                  Nomor Rekening <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: 2721002897"
-                  value={accountNo}
-                  onChange={(e) => setAccountNo(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-mono font-black bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
-              </div>
-
-              {/* Account Name */}
-              <div>
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                  Atas Nama (A/N) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: PT. Liva Media Kreatif"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
-              </div>
-
-              {/* Branch */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">
-                  Cabang / KCU (Opsional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: KC Bandar Lampung / KCU Kedaton"
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">
-                  Catatan Tambahan (Opsional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Rekening utama penerimaan invoice"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Default checkbox */}
-              <div className="pt-2">
-                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
+                {/* Account Name */}
+                <div>
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                    Atas Nama (A/N) <span className="text-rose-500">*</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={isDefault}
-                    onChange={(e) => setIsDefault(e.target.checked)}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    type="text"
+                    required
+                    placeholder="Contoh: PT. Liva Media Kreatif"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
                   />
-                  <div className="text-xs">
-                    <span className="font-black text-slate-800 block">Jadikan Rekening Utama</span>
-                    <span className="text-slate-400 font-medium text-[11px]">
-                      Otomatis terpilih saat membuat invoice baru
-                    </span>
-                  </div>
-                </label>
+                </div>
+
+                {/* Branch */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Cabang / KCU (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: KC Bandar Lampung / KCU Kedaton"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Catatan Tambahan (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Rekening utama penerimaan invoice"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                  />
+                </div>
+
+                {/* Default checkbox */}
+                <div className="pt-2">
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isDefault}
+                      onChange={(e) => setIsDefault(e.target.checked)}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <div className="text-xs">
+                      <span className="font-black text-slate-800 block">Jadikan Rekening Utama</span>
+                      <span className="text-slate-400 font-medium text-[11px]">
+                        Otomatis terpilih saat membuat invoice baru
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

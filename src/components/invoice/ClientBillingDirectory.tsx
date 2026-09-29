@@ -308,132 +308,142 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
         )}
       </div>
 
-      {/* Edit Client Billing Modal */}
+      {/* Edit Client Billing Drawer (Sidebar) */}
       {editingBrand && (
-        <div className="fixed inset-0 z-[120] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-slate-200 overflow-hidden my-8">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+        <div className="fixed inset-0 z-[120] overflow-hidden flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+            onClick={() => setEditingBrand(null)}
+          />
+
+          {/* Right Drawer Panel */}
+          <div className="relative w-full max-w-xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-800">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">
                     Edit Data Penagihan: {editingBrand.name}
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
                     Data ini akan otomatis tercantum pada bagian DITUJUKAN KEPADA (BILL TO) invoice
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingBrand(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-xl transition-all cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                title="Tutup (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBillingData} className="p-6 space-y-4">
-              {/* Nama PT */}
-              <div>
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                  Nama Badan Usaha / PT <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: PT Creative Stylemandiri"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Nama resmi entitas perusahaan yang ditagih (muncul di baris pertama Bill To)</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* PIC Name */}
+            <form onSubmit={handleSaveBillingData} className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar flex flex-col justify-between">
+              <div className="space-y-4">
+                {/* Nama PT */}
                 <div>
                   <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Nama PIC / Kontak <span className="text-rose-500">*</span>
+                    Nama Badan Usaha / PT <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Sari Ayu Marthatilaar"
-                    value={picName}
-                    onChange={(e) => setPicName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Contoh: PT Creative Stylemandiri"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1">Nama resmi entitas perusahaan yang ditagih (muncul di baris pertama Bill To)</p>
                 </div>
 
-                {/* Tanggal Penagihan */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Siklus Tanggal Invoice
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    placeholder="29"
-                    value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Tanggal pembuatan tagihan rutin tiap bulan (1-31)</p>
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* PIC Name */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Nama PIC / Kontak <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Sari Ayu Marthatilaar"
+                      value={picName}
+                      onChange={(e) => setPicName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Phone / WA */}
+                  {/* Tanggal Penagihan */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Siklus Tanggal Invoice
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="29"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Tanggal pembuatan tagihan rutin tiap bulan (1-31)</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Phone / WA */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Nomor WhatsApp / Telp <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: +62812-3974-5911"
+                      value={picPhone}
+                      onChange={(e) => setPicPhone(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Email Penagihan <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="Contoh: viancaxalyssa@gmail.com"
+                      value={picEmail}
+                      onChange={(e) => setPicEmail(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
                 <div>
                   <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Nomor WhatsApp / Telp <span className="text-rose-500">*</span>
+                    Alamat Lengkap Perusahaan <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={4}
                     required
-                    placeholder="Contoh: +62812-3974-5911"
-                    value={picPhone}
-                    onChange={(e) => setPicPhone(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
+                    value={companyAddress}
+                    onChange={(e) => setCompanyAddress(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
                   />
                 </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Email Penagihan <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="Contoh: viancaxalyssa@gmail.com"
-                    value={picEmail}
-                    onChange={(e) => setPicEmail(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  />
-                </div>
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                  Alamat Lengkap Perusahaan <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
-                  value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setEditingBrand(null)}
