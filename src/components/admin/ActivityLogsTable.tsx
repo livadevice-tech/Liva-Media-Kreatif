@@ -103,12 +103,17 @@ export const ActivityLogsTable: React.FC<ActivityLogsTableProps> = ({ hosts = []
   const getLogDateKey = (dateStr?: string): string => {
     if (!dateStr) return "";
     try {
-      const d = new Date(dateStr);
+      const normalized = dateStr.includes("T")
+        ? dateStr
+        : dateStr.replace(" ", "T") + (dateStr.length === 19 ? "+07:00" : "");
+      const d = new Date(normalized);
       if (isNaN(d.getTime())) return "";
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Jakarta",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(d);
     } catch {
       return "";
     }
@@ -169,15 +174,25 @@ export const ActivityLogsTable: React.FC<ActivityLogsTableProps> = ({ hosts = []
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    return date.toLocaleString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
+    try {
+      const normalized = dateStr.includes("T")
+        ? dateStr
+        : dateStr.replace(" ", "T") + (dateStr.length === 19 ? "+07:00" : "");
+      const date = new Date(normalized);
+      if (isNaN(date.getTime())) return dateStr;
+      return date.toLocaleString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatDetails = (detailsStr?: string) => {

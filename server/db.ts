@@ -29,6 +29,10 @@ export function getPool(): mysql.Pool {
       dateStrings: true,
     });
 
+    (pool as any).pool.on("connection", (conn: any) => {
+      conn.query("SET time_zone = '+07:00'");
+    });
+
     console.log(`✅ MySQL pool terhubung ke ${host}/${database}`);
   }
   return pool;

@@ -28,7 +28,13 @@ export function registerHostRoutes(app: Express) {
   app.get("/api/host-activity-logs", asyncHandler(async (req, res) => {
     const { hostId, date, search, limit } = req.query as any;
     let sql = `
-      SELECT l.*, h.name as host_name 
+      SELECT 
+        l.id,
+        l.host_id,
+        l.action,
+        l.details,
+        CONVERT_TZ(l.created_at, @@session.time_zone, '+07:00') as created_at,
+        h.name as host_name 
       FROM host_activity_logs l 
       LEFT JOIN hosts h ON l.host_id = h.id 
       WHERE 1=1
@@ -39,7 +45,7 @@ export function registerHostRoutes(app: Express) {
       params.push(hostId, hostId);
     }
     if (date && date !== 'all') {
-      sql += ` AND DATE(l.created_at) = ?`;
+      sql += ` AND DATE(CONVERT_TZ(l.created_at, @@session.time_zone, '+07:00')) = ?`;
       params.push(date);
     }
     if (search) {
@@ -50,7 +56,17 @@ export function registerHostRoutes(app: Express) {
     params.push(limit ? Math.min(Math.max(parseInt(limit, 10), 1), 5000) : 1000);
 
     const logs = await queryMany(sql, params);
-    res.json(logs);
+    const mappedLogs = logs.map((l: any) => {
+      let createdAt = l.created_at;
+      if (typeof createdAt === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(createdAt)) {
+        createdAt = createdAt.replace(' ', 'T') + '+07:00';
+      }
+      return {
+        ...l,
+        created_at: createdAt
+      };
+    });
+    res.json(mappedLogs);
   }));
 
   app.post("/api/host-activity-logs", asyncHandler(async (req, res) => {
