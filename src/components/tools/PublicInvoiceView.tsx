@@ -82,7 +82,7 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
             @page {
               size: A4 portrait;
-              margin: 10mm 12mm 12mm 12mm;
+              margin: 0;
             }
             * {
               box-sizing: border-box;
@@ -90,18 +90,19 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
             body {
               font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
               margin: 0;
-              padding: 0;
+              padding: 10mm 12mm 12mm 12mm;
               background-color: #ffffff;
               color: #1e293b;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
               font-size: 11.5px;
               line-height: 1.5;
+              box-sizing: border-box;
             }
 
             .invoice-wrapper {
               width: 100%;
-              max-width: 190mm;
+              max-width: 186mm;
               margin: 0 auto;
             }
 
@@ -552,9 +553,12 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
     doc.close();
 
     setTimeout(() => {
+      const originalTitle = document.title;
+      document.title = printDocTitle;
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
       setTimeout(() => {
+        document.title = originalTitle;
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }

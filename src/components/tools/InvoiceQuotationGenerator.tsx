@@ -850,9 +850,9 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
   // Isolated Printing / PDF Download
   const handlePrint = (customDoc?: InvoiceDocumentData) => {
-    const targetDoc = customDoc || docData;
-    saveInvoiceToHistory(targetDoc, false);
-    recordUsedDocNumber(targetDoc.documentNumber);
+    const activeDoc = customDoc || docData;
+    saveInvoiceToHistory(activeDoc, false);
+    recordUsedDocNumber(activeDoc.documentNumber);
 
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -866,13 +866,14 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (!doc) return;
 
-    const isInvoice = docData.type === 'invoice';
-    const titleType = isInvoice ? 'INVOICE' : 'QUOTATION';
-    const cleanClient = docData.clientCompany.trim() || docData.clientName.trim() || 'Client';
-    const cleanNumber = docData.documentNumber.replace(/[\/\\]/g, '-');
-    const printDocTitle = `${titleType} - ${cleanNumber} - ${cleanClient}`;
+    ((docData: InvoiceDocumentData) => {
+      const isInvoice = docData.type === 'invoice';
+      const titleType = isInvoice ? 'INVOICE' : 'QUOTATION';
+      const cleanClient = docData.clientCompany.trim() || docData.clientName.trim() || 'Client';
+      const cleanNumber = docData.documentNumber.replace(/[\/\\]/g, '-');
+      const printDocTitle = `${titleType} - ${cleanNumber} - ${cleanClient}`;
 
-    doc.write(`
+      doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -882,7 +883,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
             @page {
               size: A4 portrait;
-              margin: 10mm 12mm 12mm 12mm;
+              margin: 0;
             }
             * {
               box-sizing: border-box;
@@ -890,18 +891,19 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
             body {
               font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
               margin: 0;
-              padding: 0;
+              padding: 10mm 12mm 12mm 12mm;
               background-color: #ffffff;
               color: #1e293b;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
               font-size: 11.5px;
               line-height: 1.5;
+              box-sizing: border-box;
             }
 
             .invoice-wrapper {
               width: 100%;
-              max-width: 190mm;
+              max-width: 186mm;
               margin: 0 auto;
             }
 
@@ -1377,6 +1379,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
         }
       }, 3000);
     }, 400);
+    })(activeDoc);
   };
 
   // Handler: Update status dokumen langsung dari tab riwayat
@@ -1417,6 +1420,45 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updated));
     } catch {}
     appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updated).catch(() => {});
+  };
+
+  const handleNewDocument = () => {
+    const today = new Date();
+    const nextTwoWeeks = new Date();
+    nextTwoWeeks.setDate(today.getDate() + 14);
+    const currentYear = today.getFullYear();
+    const romanMonth = toRomanMonth(today.getMonth() + 1);
+
+    setDocData(prev => ({
+      ...prev,
+      documentNumber: getNextDocNumber(prev.type, currentYear, romanMonth),
+      date: today.toISOString().slice(0, 10),
+      dueDate: nextTwoWeeks.toISOString().slice(0, 10),
+      status: 'draft',
+      clientName: '',
+      clientCompany: '',
+      clientAddress: '',
+      clientEmail: '',
+      clientPhone: '',
+      items: [
+        {
+          id: '1',
+          description: '',
+          quantity: 1,
+          unit: 'pcs',
+          price: 0,
+          discountPercent: 0,
+          amount: 0,
+        }
+      ],
+      subtotal: 0,
+      total: 0,
+      discountRate: 0,
+      taxRate: 0,
+      shippingFee: 0,
+      terbilang: '',
+      publicToken: undefined,
+    }));
   };
 
   return (
