@@ -180,17 +180,19 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   }, [clientBrands]);
 
   // Brand selection for creating a new invoice
-  const handleBrandSelectForDraft = (brandId: string) => {
-    setSelectedBrandId(brandId);
-    if (!brandId) return;
-    const brand = clientBrands.find((b) => b.id === brandId);
-    if (!brand) return;
+  const handleBrandSelectForDraft = (brandId?: string) => {
+    const brand = brandId
+      ? clientBrands.find((b) => b.id === brandId)
+      : clientBrands.find((b) => b.isActive !== false) || clientBrands[0];
+
+    const actualBrandId = brand ? brand.id : "";
+    setSelectedBrandId(actualBrandId);
 
     const today = new Date();
     const dueDate = new Date();
     dueDate.setDate(today.getDate() + 14); // 14-day terms matching the PDF
 
-    const shiftCount = brand.sessions?.length || 2;
+    const shiftCount = brand?.sessions?.length || 2;
     const invoiceNumber = buildNextInvoiceNumber(clientBrands, today);
     const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
 
@@ -201,12 +203,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       issueDate: today.toISOString().substring(0, 10),
       dueDate: dueDate.toISOString().substring(0, 10),
       status: "Draft",
-      recipientName: brand.picName || brand.name,
-      ptName: brand.companyName || brand.name,
-      picName: brand.picName || "",
-      picPhone: brand.picPhone || "",
-      email: brand.picEmail || "",
-      address: brand.companyAddress || "",
+      recipientName: brand?.picName || brand?.name || "",
+      ptName: brand?.companyName || brand?.name || "",
+      picName: brand?.picName || "",
+      picPhone: brand?.picPhone || "",
+      email: brand?.picEmail || "",
+      address: brand?.companyAddress || "",
       bankInfo: {
         bankName: defaultBank.bankName,
         accountNo: defaultBank.accountNo,

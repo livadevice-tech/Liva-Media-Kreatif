@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar } from "lucide-react";
+import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar, Maximize2, Minimize2 } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
 
@@ -51,7 +51,7 @@ const SearchableBrandSelect: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full border border-slate-200 bg-slate-50 hover:bg-white rounded-xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer flex justify-between items-center text-left min-h-[48px] shadow-2xs"
+        className="w-full border border-slate-200 bg-slate-50/80 hover:bg-white rounded-xl px-4 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer flex justify-between items-center text-left min-h-[44px] shadow-2xs"
       >
         <span className="truncate">
           {selectedBrand 
@@ -74,7 +74,7 @@ const SearchableBrandSelect: React.FC<{
               autoFocus
             />
           </div>
-          <div className="max-h-[260px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+          <div className="max-h-[240px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
             {filteredBrands.length > 0 ? (
               filteredBrands.map((b) => {
                 const isSelected = b.id === value;
@@ -86,7 +86,7 @@ const SearchableBrandSelect: React.FC<{
                       onChange(b.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer flex flex-col gap-0.5 ${
+                    className={`w-full px-3 py-2 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer flex flex-col gap-0.5 ${
                       isSelected ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "text-slate-700 hover:bg-slate-50 border-transparent"
                     } border`}
                   >
@@ -127,363 +127,454 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
   onSaveDraft,
   onCancel,
 }) => {
-  const totalAmount = (draftInvoice.sessionItems || []).reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
-  const totalQty = (draftInvoice.sessionItems || []).reduce((acc, curr) => acc + (curr.qty || 0), 0);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Auto-select brand if none selected yet so the entire form is always ready immediately
+  useEffect(() => {
+    if (!selectedBrandId && clientBrands.length > 0) {
+      const activeBrand = clientBrands.find(b => b.isActive !== false) || clientBrands[0];
+      if (activeBrand) {
+        setSelectedBrandId(activeBrand.id);
+        onSelectBrand(activeBrand.id);
+      }
+    }
+  }, [selectedBrandId, clientBrands, onSelectBrand, setSelectedBrandId]);
+
+  const totalAmount = (draftInvoice?.sessionItems || []).reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
+  const totalQty = (draftInvoice?.sessionItems || []).reduce((acc, curr) => acc + (curr.qty || 0), 0);
   const terbilangStr = terbilang(totalAmount);
 
   return (
     <div className="fixed inset-0 z-[110] overflow-hidden flex justify-end">
-      {/* Backdrop */}
+      {/* Transparent backdrop - Left side is completely visible and NOT blacked out */}
       <div 
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+        className="fixed inset-0 bg-transparent transition-opacity cursor-pointer"
         onClick={onCancel}
       />
 
-      {/* Right Drawer Panel */}
-      <div className="relative w-full max-w-3xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
-        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+      {/* Right Drawer Panel with flexible width and clean shadow */}
+      <div 
+        className={`relative w-full ${
+          isExpanded 
+            ? 'max-w-[95vw] lg:max-w-6xl' 
+            : 'max-w-3xl xl:max-w-4xl'
+        } h-full bg-slate-50 flex flex-col z-10 animate-slideInRight border-l border-slate-200 shadow-2xl transition-all duration-300`}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-white shrink-0 shadow-2xs">
           <div>
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">Buat Invoice Baru</h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Pilih brand klien dan atur rincian tagihan resmi</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
+                Nota Tagihan Resmi
+              </span>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">Buat Invoice Baru</h3>
+            <p className="text-xs text-slate-400 font-medium">Atur rincian tagihan resmi PT. Liva Media Kreatif untuk klien</p>
           </div>
-          <button 
-            onClick={onCancel} 
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-            title="Tutup (Esc)"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
+              title={isExpanded ? "Perkecil Ukuran Sidebar" : "Perlebar Ukuran Sidebar"}
+            >
+              {isExpanded ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Standar</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Perlebar</span>
+                </>
+              )}
+            </button>
+            <button 
+              type="button"
+              onClick={onCancel} 
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              title="Tutup (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-          {/* Brand Selection */}
-          <div>
-            <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
-              Pilih Brand Klien (Otomatis Deteksi Data Penagihan) <span className="text-rose-500">*</span>
-            </label>
-            <SearchableBrandSelect 
-              brands={clientBrands.filter(b => b.isActive !== false)}
-              value={selectedBrandId}
-              onChange={(val) => {
-                setSelectedBrandId(val);
-                onSelectBrand(val);
-              }}
-            />
+        {/* Form Body */}
+        <div className="p-6 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
+          {/* Card 1: Brand Selection & Invoice Meta */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div>
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                Pilih Brand Klien (Bill To Otomatis Terisi) <span className="text-rose-500">*</span>
+              </label>
+              <SearchableBrandSelect 
+                brands={clientBrands.filter(b => b.isActive !== false)}
+                value={selectedBrandId}
+                onChange={(val) => {
+                  setSelectedBrandId(val);
+                  onSelectBrand(val);
+                }}
+              />
+            </div>
+
+            {/* Row 1: Invoice Meta */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2 border-t border-slate-100">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  Nomor Invoice <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.invoiceNumber || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, invoiceNumber: e.target.value})}
+                  placeholder="INV-LIVA/..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  Status Invoice
+                </label>
+                <select
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.status || "Draft"}
+                  onChange={e => setDraftInvoice({...draftInvoice, status: e.target.value as BrandInvoice["status"]})}
+                >
+                  <option value="Draft">Draft (Belum Dikirim)</option>
+                  <option value="Open Invoice">Open Invoice (Terkirim)</option>
+                  <option value="Paid">Paid (Lunas)</option>
+                  <option value="Overdue">Overdue (Jatuh Tempo)</option>
+                </select>
+              </div>
+
+              {/* Bank Account of PT Liva */}
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1 flex items-center gap-1">
+                  <Landmark className="w-3.5 h-3.5 text-indigo-600" /> Rekening PT Liva
+                </label>
+                <select
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.bankInfo?.accountNo || ""}
+                  onChange={(e) => {
+                    const selectedBank = bankAccounts.find(b => b.accountNo === e.target.value);
+                    if (selectedBank) {
+                      setDraftInvoice({
+                        ...draftInvoice,
+                        bankInfo: {
+                          bankName: selectedBank.bankName,
+                          accountNo: selectedBank.accountNo,
+                          accountName: selectedBank.accountName,
+                        }
+                      });
+                    }
+                  }}
+                >
+                  {bankAccounts.length === 0 ? (
+                    <option value="2721002897">Maybank Syariah - 2721002897</option>
+                  ) : (
+                    bankAccounts.map((b) => (
+                      <option key={b.id} value={b.accountNo}>
+                        {b.bankName} - {b.accountNo} ({b.accountName})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2 border-t border-slate-100">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" /> Tanggal Invoice
+                </label>
+                <input
+                  type="date"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.invoiceDate || draftInvoice?.issueDate || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, invoiceDate: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1">
+                  Tanggal Terbit (Issue Date)
+                </label>
+                <input
+                  type="date"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.issueDate || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, issueDate: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1">
+                  Jatuh Tempo (Due Date)
+                </label>
+                <input
+                  type="date"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  value={draftInvoice?.dueDate || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, dueDate: e.target.value})}
+                />
+              </div>
+            </div>
           </div>
 
-          {selectedBrandId && draftInvoice && (
-            <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-5 space-y-5">
-              {/* Row 1: Invoice Meta */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1">
-                    Nomor Invoice
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.invoiceNumber || ""}
-                    onChange={e => setDraftInvoice({...draftInvoice, invoiceNumber: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1">
-                    Status Invoice
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.status || "Draft"}
-                    onChange={e => setDraftInvoice({...draftInvoice, status: e.target.value as BrandInvoice["status"]})}
-                  >
-                    <option value="Draft">Draft (Belum Dikirim)</option>
-                    <option value="Open Invoice">Open Invoice (Terkirim)</option>
-                    <option value="Paid">Paid (Lunas)</option>
-                    <option value="Overdue">Overdue (Jatuh Tempo)</option>
-                  </select>
-                </div>
-
-                {/* Bank Account of PT Liva */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Landmark className="w-3.5 h-3.5 text-indigo-600" /> Rekening Pembayaran
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.bankInfo?.accountNo || ""}
-                    onChange={(e) => {
-                      const selectedBank = bankAccounts.find(b => b.accountNo === e.target.value);
-                      if (selectedBank) {
-                        setDraftInvoice({
-                          ...draftInvoice,
-                          bankInfo: {
-                            bankName: selectedBank.bankName,
-                            accountNo: selectedBank.accountNo,
-                            accountName: selectedBank.accountName,
-                          }
-                        });
-                      }
-                    }}
-                  >
-                    {bankAccounts.length === 0 ? (
-                      <option value="2721002897">Maybank Syariah - 2721002897</option>
-                    ) : (
-                      bankAccounts.map((b) => (
-                        <option key={b.id} value={b.accountNo}>
-                          {b.bankName} - {b.accountNo} ({b.accountName})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
+          {/* Card 2: Informasi Ditujukan Kepada (Bill To) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+              <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                <Building2 className="w-4 h-4" />
               </div>
-
-              {/* Row 2: Dates */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Tanggal Invoice
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.invoiceDate || draftInvoice.issueDate || ""}
-                    onChange={e => setDraftInvoice({...draftInvoice, invoiceDate: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Tanggal Dibuat (Issue Date)
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.issueDate || ""}
-                    onChange={e => setDraftInvoice({...draftInvoice, issueDate: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Jatuh Tempo (Due Date)
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                    value={draftInvoice.dueDate || ""}
-                    onChange={e => setDraftInvoice({...draftInvoice, dueDate: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              {/* Section 2: Bill To Information */}
-              <div className="border-t border-slate-200 pt-4">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-indigo-600" /> Informasi Ditujukan Kepada (Bill To)
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                  Informasi Ditujukan Kepada (Bill To)
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">
-                      Nama PT / Badan Usaha <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                      placeholder="Contoh: PT Creative Stylemandiri"
-                      value={draftInvoice.ptName || ""}
-                      onChange={e => setDraftInvoice({...draftInvoice, ptName: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">
-                      Kepada / PIC <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                      placeholder="Contoh: Sari Ayu Marthatilaar"
-                      value={draftInvoice.picName || ""}
-                      onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">
-                      No. Telepon / WhatsApp
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                      placeholder="Contoh: +62812-3974-5911"
-                      value={draftInvoice.picPhone || ""}
-                      onChange={e => setDraftInvoice({...draftInvoice, picPhone: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">
-                      Email Penagihan
-                    </label>
-                    <input
-                      type="email"
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                      placeholder="Contoh: viancaxalyssa@gmail.com"
-                      value={draftInvoice.email || ""}
-                      onChange={e => setDraftInvoice({...draftInvoice, email: e.target.value})}
-                    />
-                  </div>
-                </div>
+                <p className="text-[10px] text-slate-400">Data entitas klien penerima tagihan resmi invoice</p>
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Alamat Lengkap Perusahaan
-                  </label>
-                  <textarea
-                    rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-medium bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
-                    placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
-                    value={draftInvoice.address || ""}
-                    onChange={e => setDraftInvoice({...draftInvoice, address: e.target.value})}
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  Nama PT / Badan Usaha <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  placeholder="Contoh: PT Creative Stylemandiri"
+                  value={draftInvoice?.ptName || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, ptName: e.target.value})}
+                />
               </div>
 
-              {/* Section 3: Line Items */}
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Komponen / Rincian Layanan Tagihan
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newItems = [
-                        ...(draftInvoice.sessionItems || []),
-                        { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Sesi", cost: 0 },
-                      ];
-                      setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
-                    }}
-                    className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Tambah Baris
-                  </button>
-                </div>
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  Kepada / PIC <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  placeholder="Contoh: Sari Ayu Marthatilaar"
+                  value={draftInvoice?.picName || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})}
+                />
+              </div>
 
-                <div className="space-y-2.5">
-                  {(draftInvoice.sessionItems || []).map((item, idx) => (
-                    <div
-                      key={item.sessionId || idx}
-                      className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-2.5 items-center shadow-2xs"
-                    >
-                      <div className="flex-1 w-full">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  No. Telepon / WhatsApp
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  placeholder="Contoh: +62812-3974-5911"
+                  value={draftInvoice?.picPhone || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, picPhone: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                  Email Penagihan
+                </label>
+                <input
+                  type="email"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  placeholder="Contoh: viancaxalyssa@gmail.com"
+                  value={draftInvoice?.email || ""}
+                  onChange={e => setDraftInvoice({...draftInvoice, email: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black uppercase text-slate-600 tracking-wider mb-1">
+                Alamat Lengkap Perusahaan
+              </label>
+              <textarea
+                rows={2}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-medium bg-slate-50 focus:bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs resize-none"
+                placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
+                value={draftInvoice?.address || ""}
+                onChange={e => setDraftInvoice({...draftInvoice, address: e.target.value})}
+              />
+            </div>
+          </div>
+
+          {/* Card 3: Rincian Layanan / Komponen Tagihan */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Rincian Layanan Tagihan
+                  </h4>
+                  <p className="text-[10px] text-slate-400">Daftar item / paket jasa yang ditagihkan</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newItems = [
+                    ...(draftInvoice?.sessionItems || []),
+                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Sesi", cost: 0 },
+                  ];
+                  setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                }}
+                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> Tambah Item
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(draftInvoice?.sessionItems || []).map((item, idx) => {
+                const itemTotal = (item.cost || 0) * (item.qty || 1);
+                return (
+                  <div
+                    key={item.sessionId || idx}
+                    className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 flex flex-col md:flex-row gap-3 items-start md:items-center shadow-2xs hover:border-indigo-200 transition-colors"
+                  >
+                    <div className="flex-1 w-full">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">
+                        Deskripsi Layanan
+                      </label>
+                      <input
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 shadow-2xs"
+                        placeholder="Deskripsi Layanan / Item (Contoh: Live Streaming Package Shopee)"
+                        value={item.description}
+                        onChange={(e) => {
+                          const newItems = [...(draftInvoice?.sessionItems || [])];
+                          newItems[idx].description = e.target.value;
+                          setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto flex-wrap sm:flex-nowrap">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">Qty</label>
                         <input
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
-                          placeholder="Deskripsi Layanan / Item (Contoh: Live Streaming Package Shopee)"
-                          value={item.description}
+                          type="number"
+                          min="1"
+                          className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold text-center text-slate-800 bg-white focus:outline-none focus:border-indigo-500 shadow-2xs"
+                          placeholder="Qty"
+                          value={item.qty || ""}
                           onChange={(e) => {
-                            const newItems = [...(draftInvoice.sessionItems || [])];
-                            newItems[idx].description = e.target.value;
+                            const newItems = [...(draftInvoice?.sessionItems || [])];
+                            newItems[idx].qty = Number(e.target.value);
                             setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                           }}
                         />
                       </div>
 
-                      <div className="flex items-center gap-2 w-full md:w-auto">
-                        <input
-                          type="number"
-                          className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold text-center text-slate-800 focus:outline-none focus:border-indigo-500"
-                          placeholder="Qty"
-                          value={item.qty || ""}
-                          onChange={(e) => {
-                            const newItems = [...(draftInvoice.sessionItems || [])];
-                            newItems[idx].qty = Number(e.target.value);
-                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
-                          }}
-                        />
-
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">Satuan</label>
                         <input
                           type="text"
-                          className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-xs font-semibold text-center text-slate-700 focus:outline-none focus:border-indigo-500"
-                          placeholder="Unit (Sesi)"
+                          className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-xs font-semibold text-center text-slate-700 bg-white focus:outline-none focus:border-indigo-500 shadow-2xs"
+                          placeholder="Unit"
                           value={item.unit || "Sesi"}
                           onChange={(e) => {
-                            const newItems = [...(draftInvoice.sessionItems || [])];
+                            const newItems = [...(draftInvoice?.sessionItems || [])];
                             newItems[idx].unit = e.target.value;
                             setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                           }}
                         />
+                      </div>
 
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">Harga</label>
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
                             Rp
                           </span>
                           <input
                             type="number"
-                            className="w-32 border border-slate-200 rounded-lg pl-8 pr-2 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                            className="w-32 border border-slate-200 rounded-lg pl-8 pr-2 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 shadow-2xs"
                             placeholder="Harga"
                             value={item.cost || ""}
                             onChange={(e) => {
-                              const newItems = [...(draftInvoice.sessionItems || [])];
+                              const newItems = [...(draftInvoice?.sessionItems || [])];
                               newItems[idx].cost = Number(e.target.value);
                               setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                             }}
                           />
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newItems = draftInvoice.sessionItems?.filter((_, i) => i !== idx);
-                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
-                          }}
-                          className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* Total & Terbilang Calculation Block */}
-              <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-                  <span>Total Item / Kuantitas:</span>
-                  <span className="text-slate-900">{totalQty}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm font-black text-slate-900 border-t border-slate-100 pt-2">
-                  <span>Grand Total:</span>
-                  <span className="text-base text-indigo-700">
-                    Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Terbilang :</div>
-                  <div className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</div>
-                </div>
+                      <div className="hidden lg:block text-right min-w-[110px] px-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</div>
+                        <div className="text-xs font-black text-slate-800">
+                          Rp {new Intl.NumberFormat('id-ID').format(itemTotal)}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItems = draftInvoice?.sessionItems?.filter((_, i) => i !== idx);
+                          setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                        }}
+                        className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer shrink-0 mt-auto md:mt-0"
+                        title="Hapus baris item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Card 4: Total & Terbilang Calculation Block */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+              <div className="text-xs font-bold text-slate-500">
+                Total Kuantitas: <span className="font-black text-slate-800">{totalQty} Item</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Grand Total:</span>
+                <span className="text-xl font-black text-indigo-600">
+                  Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                </span>
               </div>
             </div>
-          )}
+
+            <div className="pt-3 border-t border-slate-100 bg-slate-50/60 p-3 rounded-xl border border-slate-100">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Terbilang Resmi:</span>
+              <span className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</span>
+            </div>
+          </div>
         </div>
 
-        {selectedBrandId && draftInvoice && (
-          <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-between gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              onClick={onSaveDraft}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer text-xs"
-            >
-              <CheckSquare className="w-4 h-4" /> Terbitkan & Simpan Invoice
-            </button>
-          </div>
-        )}
+        {/* Action Buttons Sticky Footer */}
+        <div className="p-5 border-t border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0 shadow-xs">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer text-xs"
+          >
+            <CheckSquare className="w-4 h-4" /> Terbitkan & Simpan Invoice
+          </button>
+        </div>
       </div>
     </div>
   );
