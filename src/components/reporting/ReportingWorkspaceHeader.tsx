@@ -595,7 +595,7 @@ export function ReportingWorkspaceHeader({
             )}
 
             {/* Upload Data Button (purple button) */}
-            {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
+            {(onImportRawLive || onImportRawEngagement || onOpenAddManualDuration) && (
               <div className="relative flex-shrink-0" ref={rawMenuRef}>
                 <button
                   type="button"

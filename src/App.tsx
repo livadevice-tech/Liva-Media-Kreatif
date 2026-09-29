@@ -6487,7 +6487,7 @@ export default function App() {
                             // but optimistic update is already applied.
                           } catch (err) {
                             console.error("Error mass deleting", err);
-                            await loadInitialData(); // revert on error
+                            schedulesApi.getAll().then(setSchedules).catch(console.error);
                           }
                         }
                       );
