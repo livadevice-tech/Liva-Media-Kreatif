@@ -14,7 +14,6 @@ import {
   Building2,
   Landmark,
   Settings,
-  BellRing,
   Printer,
   Eye,
   CheckCircle2,
@@ -25,7 +24,6 @@ import { ClientBrand, BrandInvoice, LivaBankAccount, InvoiceCompanyProfile } fro
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
 import { InvoiceEditorModal } from './invoice/InvoiceEditorModal';
-import { InvoiceRemindersPanel } from './invoice/InvoiceRemindersPanel';
 import { InvoiceSettingsPanel, type InvoiceSettings } from './invoice/InvoiceSettingsPanel';
 import { ClientBillingDirectory } from './invoice/ClientBillingDirectory';
 import { LivaBankManager } from './invoice/LivaBankManager';
@@ -42,34 +40,6 @@ interface InvoiceDashboardProps {
   onUpdateBrands: (brands: ClientBrand[]) => void;
   onBack?: () => void;
 }
-
-type InvoiceReminderPayload = {
-  brandName: string;
-  invoiceDate: string;
-  toEmails: string;
-  amount: number;
-  invoiceNumber: string;
-};
-
-type InvoiceReminderResponse = {
-  success?: boolean;
-  details?: string;
-  error?: string;
-  messageId?: string;
-  simulated?: boolean;
-};
-
-const sendInvoiceReminder = async (
-  payload: InvoiceReminderPayload,
-): Promise<InvoiceReminderResponse> => {
-  const res = await fetch('/api/invoice/send-reminder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  return (await res.json()) as InvoiceReminderResponse;
-};
 
 const DEFAULT_LIVA_BANKS: LivaBankAccount[] = [
   {
@@ -90,11 +60,9 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   onBack,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "billing_directory" | "bank_accounts" | "create" | "settings" | "reminders"
+    "overview" | "billing_directory" | "bank_accounts" | "create" | "settings"
   >("overview");
 
-  const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
-  const [emailTestStatus, setEmailTestStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [generatedEmail, setGeneratedEmail] = useState<{ to: string; subject: string; body: string; } | null>(null);
 
@@ -139,22 +107,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         setInvoiceSettings((prev) => ({ ...prev, ...saved }));
       }
     }).catch(console.error);
-
-    settingsApi.get<any>("mcn_global_pic_email").then((storedEmail) => {
-      let val = storedEmail;
-      while (typeof val === "string" && val.startsWith("{")) {
-        try {
-          val = JSON.parse(val);
-        } catch (e) {
-          break;
-        }
-      }
-      if (val && typeof val === "object" && "value" in val) {
-        setGlobalPicEmail(val.value || "");
-      } else if (typeof val === "string") {
-        setGlobalPicEmail(val);
-      }
-    }).catch(console.error);
   }, []);
 
   const handleSaveBankAccounts = async (newAccounts: LivaBankAccount[]) => {
@@ -165,10 +117,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   const saveSettings = async (newSettings: InvoiceSettings) => {
     setInvoiceSettings(newSettings);
     await settingsApi.save("mcn_invoice_settings", newSettings).catch(console.error);
-  };
-
-  const handleSaveGlobalPicEmail = async () => {
-    await settingsApi.save("mcn_global_pic_email", { value: globalPicEmail }).catch(console.error);
   };
 
   const handleUpdateBrands = (updatedBrands: ClientBrand[]) => {
@@ -558,18 +506,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
             <Settings className="w-4 h-4" />
             <span>Pengaturan Nota</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab("reminders")}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === "reminders"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <BellRing className="w-4 h-4" />
-            <span>Pengingat Otomatis</span>
-          </button>
         </div>
 
         {/* ═══════════════════════════════════════════
@@ -620,19 +556,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
               onInvoiceSettingsChange={setInvoiceSettings}
               onSaveSettings={saveSettings}
               onImageUpload={handleImageUpload}
-            />
-          )}
-
-          {/* TAB 5: REMINDERS */}
-          {activeTab === "reminders" && (
-            <InvoiceRemindersPanel
-              upcomingBillings={upcomingBillings}
-              globalPicEmail={globalPicEmail}
-              emailTestStatus={emailTestStatus}
-              onGlobalPicEmailChange={setGlobalPicEmail}
-              onEmailTestStatusChange={setEmailTestStatus}
-              onSaveGlobalPicEmail={handleSaveGlobalPicEmail}
-              onSendReminder={sendInvoiceReminder}
             />
           )}
         </div>

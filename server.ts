@@ -825,45 +825,7 @@ app.post("/api/ai/evaluate-host", async (req, res) => {
   }
 });
 
-// ==================================================================
-// INVOICE EMAIL REMINDER (tidak berubah)
-// ==================================================================
-app.post('/api/invoice/send-reminder', async (req, res) => {
-  try {
-    const { brandName, invoiceDate, toEmails, amount, invoiceNumber } = req.body;
 
-    const cleanEmails = typeof toEmails === 'string'
-      ? toEmails.split(',').map((e: string) => e.trim()).filter((e: string) => !!e).join(', ')
-      : toEmails;
-
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return res.json({ success: true, message: 'Mock email terkirim. Konfigurasi SMTP di .env untuk mengirim secara nyata.', simulated: true });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    });
-
-    const mailOptions = {
-      from: process.env.SMTP_FROM || '"Liva Agency" <no-reply@liva-agency.com>',
-      to: cleanEmails,
-      subject: "PEMBERITAHUAN PENAGIHAN INVOICE: " + brandName + " (Ref: " + new Date().getTime().toString().slice(-6) + ")",
-      html: `<div style='font-family: sans-serif; padding: 20px; line-height: 1.5; color: #333; max-width: 600px; border: 1px solid #eee; border-radius: 8px;'><h2 style='color: #4f46e5;'>🔔 Reminder Penagihan Invoice</h2><p>Halo Tim Admin PIC,</p><p>Ini adalah pengingat dari sistem otomatis bahwa sebuah invoice telah mencapai tanggal penagihan hari ini.</p><div style='background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0;'><strong>Brand / Klien:</strong> ${brandName}<br/><strong>No. Invoice:</strong> ${invoiceNumber || 'N/A'}<br/><strong>Tanggal Tagih:</strong> ${invoiceDate}<br/><strong>Total Tagihan:</strong> ${amount ? 'Rp ' + amount.toLocaleString('id-ID') : 'N/A'}<br/></div><p>Mohon segera memeriksa dan memproses penagihan ke klien tersebut.</p><br/><p>Terima kasih,<br/><strong>Sistem Liva Agency</strong></p></div>`
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    return res.json({ success: true, message: 'Email berhasil dikirim.', simulated: false, messageId: info.messageId });
-  } catch (err: any) {
-    console.error('Invoice Email Error:', err);
-    return res.status(500).json({ error: 'Gagal memproses request pengiriman', details: err.message || 'Timeout' });
-  }
-});
 
 // ==================================================================
 // Error Handler Global
