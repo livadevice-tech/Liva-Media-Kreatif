@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Landmark, Plus, Check, Copy, Edit3, Trash2, Star, ShieldCheck, CreditCard, Building2, X } from 'lucide-react';
+import { Landmark, Plus, Check, Copy, Edit3, Trash2, Star, ShieldCheck, CreditCard, Building2, X, Save } from 'lucide-react';
 import { LivaBankAccount } from '../../types';
 
 interface LivaBankManagerProps {
@@ -19,7 +19,7 @@ const POPULAR_BANKS = [
 ];
 
 export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, onSaveBankAccounts }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [editingAccount, setEditingAccount] = useState<LivaBankAccount | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -41,10 +41,11 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
     setBranch('');
     setNotes('');
     setIsDefault(bankAccounts.length === 0);
-    setIsModalOpen(true);
+    setIsAdding(true);
   };
 
   const handleOpenEdit = (acc: LivaBankAccount) => {
+    setIsAdding(false);
     setEditingAccount(acc);
     const isPopular = POPULAR_BANKS.some(b => b.name === acc.bankName);
     if (isPopular) {
@@ -59,7 +60,6 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
     setBranch(acc.branch || '');
     setNotes(acc.notes || '');
     setIsDefault(acc.isDefault);
-    setIsModalOpen(true);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -112,7 +112,8 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
     }
 
     onSaveBankAccounts(updated);
-    setIsModalOpen(false);
+    setEditingAccount(null);
+    setIsAdding(false);
   };
 
   const handleSetDefault = (id: string) => {
@@ -138,6 +139,163 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const renderBankForm = (isNew: boolean, onCancel: () => void) => (
+    <form
+      key={isNew ? 'new-bank-form' : editingAccount?.id}
+      onSubmit={handleSave}
+      className="bg-white rounded-2xl border-2 border-indigo-500 ring-4 ring-indigo-50/70 shadow-lg p-5 flex flex-col justify-between transition-all duration-200 animate-fadeIn"
+    >
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-indigo-100">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+              <Landmark className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
+                {isNew ? 'Rekening Baru' : 'Rekening Bank'}
+              </span>
+              <h4 className="text-xs font-bold text-slate-800">
+                {isNew ? 'Tambah Rekening Bank' : 'Edit Rekening Bank'}
+              </h4>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <Edit3 className="w-3 h-3 text-indigo-600" />
+            {isNew ? 'Tambah' : 'Mode Edit'}
+          </span>
+        </div>
+
+        {/* Nama Bank */}
+        <div>
+          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+            Nama Bank <span className="text-rose-500">*</span>
+          </label>
+          <select
+            value={bankName}
+            onChange={(e) => setBankName(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold bg-slate-50/50 focus:bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
+          >
+            {POPULAR_BANKS.map((b) => (
+              <option key={b.name} value={b.name}>
+                {b.name}
+              </option>
+            ))}
+            <option value="Lainnya">Lainnya (Tulis Manual)...</option>
+          </select>
+        </div>
+
+        {bankName === 'Lainnya' && (
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1">
+              Ketik Nama Bank
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Contoh: Bank Danamon"
+              value={customBankName}
+              onChange={(e) => setCustomBankName(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+            />
+          </div>
+        )}
+
+        {/* Nomor Rekening */}
+        <div>
+          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+            Nomor Rekening <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="Contoh: 2721002897"
+            value={accountNo}
+            onChange={(e) => setAccountNo(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono font-black text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+          />
+        </div>
+
+        {/* Atas Nama & Cabang */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+              Atas Nama (A/N) <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="PT. Liva Media Kreatif"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+              Cabang / KCU
+            </label>
+            <input
+              type="text"
+              placeholder="KC Bandar Lampung"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+            />
+          </div>
+        </div>
+
+        {/* Catatan Tambahan */}
+        <div>
+          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+            Catatan Tambahan (Opsional)
+          </label>
+          <input
+            type="text"
+            placeholder="Contoh: Rekening utama penerimaan invoice"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+          />
+        </div>
+
+        {/* Jadikan Utama Checkbox */}
+        <div className="pt-1">
+          <label className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={isDefault}
+              onChange={(e) => setIsDefault(e.target.checked)}
+              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <div className="text-xs">
+              <span className="font-bold text-slate-800 block text-[11px]">Jadikan Rekening Utama</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+        >
+          <Save className="w-3.5 h-3.5" />
+          {isNew ? 'Tambah Rekening' : 'Simpan'}
+        </button>
+      </div>
+    </form>
+  );
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -166,7 +324,10 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
 
       {/* Bank Account Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {bankAccounts.length === 0 ? (
+        {/* If adding new account, show form card first */}
+        {isAdding && renderBankForm(true, () => setIsAdding(false))}
+
+        {bankAccounts.length === 0 && !isAdding ? (
           <div className="col-span-full py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center p-6">
             <CreditCard className="w-12 h-12 text-slate-300 mb-3" />
             <h4 className="font-bold text-slate-700 text-base">Belum Ada Rekening Bank</h4>
@@ -182,6 +343,10 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
           </div>
         ) : (
           bankAccounts.map((acc) => {
+            if (editingAccount?.id === acc.id) {
+              return renderBankForm(false, () => setEditingAccount(null));
+            }
+
             const isCopied = copiedId === acc.id;
             return (
               <div
@@ -305,173 +470,6 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
           })
         )}
       </div>
-
-      {/* Drawer Add / Edit Bank Account (Sidebar) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[120] overflow-hidden flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
-            onClick={() => setIsModalOpen(false)}
-          />
-
-          {/* Right Drawer Panel */}
-          <div className="relative w-full max-w-lg h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
-                  <Landmark className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">
-                    {editingAccount ? 'Edit Rekening Bank' : 'Tambah Rekening Bank PT Liva'}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
-                    Digunakan untuk menerima pembayaran transfer dari klien
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                title="Tutup (Esc)"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 flex-1 custom-scrollbar flex flex-col justify-between">
-              <div className="space-y-4">
-                {/* Select Bank */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Nama Bank <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
-                  >
-                    {POPULAR_BANKS.map(b => (
-                      <option key={b.name} value={b.name}>{b.name}</option>
-                    ))}
-                    <option value="Lainnya">Lainnya (Tulis Manual)...</option>
-                  </select>
-                </div>
-
-                {bankName === 'Lainnya' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">
-                      Ketik Nama Bank
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Bank Danamon"
-                      value={customBankName}
-                      onChange={(e) => setCustomBankName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
-                    />
-                  </div>
-                )}
-
-                {/* Account Number */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Nomor Rekening <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: 2721002897"
-                    value={accountNo}
-                    onChange={(e) => setAccountNo(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-mono font-black bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                  />
-                </div>
-
-                {/* Account Name */}
-                <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
-                    Atas Nama (A/N) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: PT. Liva Media Kreatif"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold bg-white text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
-                  />
-                </div>
-
-                {/* Branch */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Cabang / KCU (Opsional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: KC Bandar Lampung / KCU Kedaton"
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
-                  />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Catatan Tambahan (Opsional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Rekening utama penerimaan invoice"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-medium bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
-                  />
-                </div>
-
-                {/* Default checkbox */}
-                <div className="pt-2">
-                  <label className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={isDefault}
-                      onChange={(e) => setIsDefault(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
-                    <div className="text-xs">
-                      <span className="font-black text-slate-800 block">Jadikan Rekening Utama</span>
-                      <span className="text-slate-400 font-medium text-[11px]">
-                        Otomatis terpilih saat membuat invoice baru
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
-                >
-                  {editingAccount ? 'Simpan Perubahan' : 'Simpan Rekening'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
