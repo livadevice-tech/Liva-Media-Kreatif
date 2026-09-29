@@ -91,51 +91,51 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
   const incompleteClients = totalClients - completeClients;
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-3.5 animate-fadeIn">
       {/* Header Info Banner */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Building2 className="w-5 h-5" />
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Building2 className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+            <h3 className="text-base font-black text-slate-900 tracking-tight">
               Direktori Data Penagihan Klien (Bill To)
             </h3>
           </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
             Data identitas legal klien (Nama PT, Nama Brand, PIC, No. WA, Email, dan Alamat Resmi) seperti pada bagian <span className="font-semibold text-slate-700">DITUJUKAN KEPADA (BILL TO)</span> di PDF tagihan invoice resmi.
           </p>
         </div>
 
         {/* Stats Pill */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-xl shrink-0">
-          <div className="px-3 py-1.5 rounded-lg text-center bg-white border border-slate-100 shadow-xs">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Total Klien</div>
-            <div className="text-sm font-black text-slate-800">{totalClients}</div>
+        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 p-1 rounded-xl shrink-0">
+          <div className="px-2.5 py-1 rounded-lg text-center bg-white border border-slate-100 shadow-2xs">
+            <div className="text-[9px] uppercase font-bold text-slate-400">Total Klien</div>
+            <div className="text-xs font-black text-slate-800">{totalClients}</div>
           </div>
-          <div className="px-3 py-1.5 rounded-lg text-center bg-emerald-50 border border-emerald-100">
-            <div className="text-[10px] uppercase font-bold text-emerald-600">Lengkap</div>
-            <div className="text-sm font-black text-emerald-700">{completeClients}</div>
+          <div className="px-2.5 py-1 rounded-lg text-center bg-emerald-50 border border-emerald-100">
+            <div className="text-[9px] uppercase font-bold text-emerald-600">Lengkap</div>
+            <div className="text-xs font-black text-emerald-700">{completeClients}</div>
           </div>
-          <div className="px-3 py-1.5 rounded-lg text-center bg-amber-50 border border-amber-100">
-            <div className="text-[10px] uppercase font-bold text-amber-600">Perlu Dilengkapi</div>
-            <div className="text-sm font-black text-amber-700">{incompleteClients}</div>
+          <div className="px-2.5 py-1 rounded-lg text-center bg-amber-50 border border-amber-100">
+            <div className="text-[9px] uppercase font-bold text-amber-600">Perlu Dilengkapi</div>
+            <div className="text-xs font-black text-amber-700">{incompleteClients}</div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+      <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row justify-between items-center gap-2.5">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
           {(['all', 'complete', 'incomplete'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setFilterCompleteness(filter)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filterCompleteness === filter
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
               }`}
             >
               {filter === 'all' && `Semua Klien (${totalClients})`}
@@ -145,20 +145,20 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
           ))}
         </div>
 
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="relative w-full sm:w-72">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Cari PT, Brand, PIC, Alamat..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+            className="w-full bg-slate-50/80 border border-slate-200/80 rounded-lg pl-8 pr-3 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
           />
         </div>
       </div>
 
       {/* Client List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {filteredBrands.length === 0 ? (
           <div className="col-span-full py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center p-6">
             <Building2 className="w-12 h-12 text-slate-300 mb-3" />
@@ -311,7 +311,7 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
             return (
               <div
                 key={brand.id}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm p-5 flex flex-col justify-between transition-all duration-200 group"
+                className="bg-white rounded-xl border border-slate-200/80 hover:border-slate-300 shadow-2xs p-4 flex flex-col justify-between transition-all duration-200 group"
               >
                 <div>
                   {/* Top Bar: Brand & PT Name + Completeness Badge */}
@@ -421,17 +421,17 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                 </div>
 
                 {/* Actions Footer */}
-                <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="pt-3 mt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
                     onClick={() => handleOpenEdit(brand)}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200/80 text-xs font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Edit Data
                   </button>
 
                   <button
                     onClick={() => onCreateInvoiceForBrand(brand.id)}
-                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                   >
                     <span>Buat Invoice</span>
                     <ArrowRight className="w-3.5 h-3.5" />

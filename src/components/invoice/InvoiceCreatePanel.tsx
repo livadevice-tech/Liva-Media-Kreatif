@@ -161,21 +161,21 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
         } h-full bg-slate-50 flex flex-col z-10 animate-slideInRight border-l border-slate-200 shadow-2xl transition-all duration-300`}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-white shrink-0 shadow-2xs">
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-200 flex justify-between items-center bg-white shrink-0 shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
                 Nota Tagihan Resmi
               </span>
             </div>
-            <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">Buat Invoice Baru</h3>
-            <p className="text-xs text-slate-400 font-medium">Atur rincian tagihan resmi PT. Liva Media Kreatif untuk klien</p>
+            <h3 className="text-base font-black text-slate-900 tracking-tight mt-0.5">Buat Invoice Baru</h3>
+            <p className="text-[11px] text-slate-400 font-medium">Atur rincian tagihan resmi PT. Liva Media Kreatif untuk klien</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
+              className="px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
               title={isExpanded ? "Perkecil Ukuran Sidebar" : "Perlebar Ukuran Sidebar"}
             >
               {isExpanded ? (
@@ -193,20 +193,20 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
             <button 
               type="button"
               onClick={onCancel} 
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
               title="Tutup (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Form Body */}
-        <div className="p-6 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
+        <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
           {/* Card 1: Brand Selection & Invoice Meta */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-3">
             <div>
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
                 Pilih Brand Klien (Bill To Otomatis Terisi) <span className="text-rose-500">*</span>
               </label>
               <SearchableBrandSelect 
@@ -326,7 +326,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
           </div>
 
           {/* Card 2: Informasi Ditujukan Kepada (Bill To) */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
                 <Building2 className="w-4 h-4" />
@@ -408,7 +408,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
           </div>
 
           {/* Card 3: Rincian Layanan / Komponen Tagihan */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -430,7 +430,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   ];
                   setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                 }}
-                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
+                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" /> Tambah Item
               </button>
@@ -538,39 +538,39 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
           </div>
 
           {/* Card 4: Total & Terbilang Calculation Block */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-2.5">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <div className="text-xs font-bold text-slate-500">
                 Total Kuantitas: <span className="font-black text-slate-800">{totalQty} Item</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Grand Total:</span>
-                <span className="text-xl font-black text-indigo-600">
+                <span className="text-lg sm:text-xl font-black text-indigo-600">
                   Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
                 </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 bg-slate-50/60 p-3 rounded-xl border border-slate-100">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Terbilang Resmi:</span>
+            <div className="pt-2 border-t border-slate-100 bg-slate-50/60 p-2.5 rounded-lg border border-slate-100">
+              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Terbilang Resmi:</span>
               <span className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</span>
             </div>
           </div>
         </div>
 
         {/* Action Buttons Sticky Footer */}
-        <div className="p-5 border-t border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0 shadow-xs">
+        <div className="px-4 sm:px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0 shadow-2xs">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={onSaveDraft}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer text-xs"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-xs transition-all active:scale-95 flex items-center gap-2 cursor-pointer text-xs"
           >
             <CheckSquare className="w-4 h-4" /> Terbitkan & Simpan Invoice
           </button>

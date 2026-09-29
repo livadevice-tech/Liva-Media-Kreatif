@@ -35,19 +35,19 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
   onImageUpload,
 }) => {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 max-w-4xl mx-auto animate-fadeIn">
-      <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+    <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 max-w-4xl mx-auto animate-fadeIn">
+      <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
         <div>
-          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-            <Settings className="w-6 h-6 text-indigo-600" /> Pengaturan Identitas & Format Nota Invoice
+          <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-indigo-600" /> Pengaturan Identitas & Format Nota Invoice
           </h3>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-400 font-medium mt-0.5">
             Sesuaikan data penerbit, logo, tanda tangan, dan syarat ketentuan standar PT. Liva Media Kreatif
           </p>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Section 1: Logo & Signature Images */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -217,11 +217,11 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
         </div>
 
         {/* Section 4: Syarat & Ketentuan */}
-        <div className="border-t border-slate-100 pt-6">
-          <h4 className="text-sm font-black text-slate-800 mb-3">Syarat & Ketentuan Default (Term of Payment)</h4>
-          <p className="text-xs text-slate-400 mb-2">Teks ini dicantumkan pada kotak catatan di invoice resmi</p>
+        <div className="border-t border-slate-100 pt-4">
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-1">Syarat & Ketentuan Default (Term of Payment)</h4>
+          <p className="text-[11px] text-slate-400 mb-2">Teks ini dicantumkan pada kotak catatan di invoice resmi</p>
           <textarea
-            className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 font-medium text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 resize-y"
+            className="w-full border border-slate-200/80 rounded-lg px-3 py-2 font-medium text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 resize-y shadow-2xs"
             rows={3}
             value={invoiceSettings.termsAndConditions || "1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.\n2. Pembayaran dilakukan sesuai Due Date invoice.\n3. Harap konfirmasi bukti transfer via WhatsApp ke +62 821-7788-9900."}
             onChange={(e) => onInvoiceSettingsChange({ ...invoiceSettings, termsAndConditions: e.target.value })}
@@ -229,10 +229,10 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
           />
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div className="pt-2 flex justify-end">
           <button
             onClick={() => onSaveSettings(invoiceSettings)}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             Simpan Pengaturan Nota
           </button>

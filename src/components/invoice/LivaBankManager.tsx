@@ -298,37 +298,37 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
   );
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-3.5 animate-fadeIn">
       {/* Header Info */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Landmark className="w-5 h-5" />
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Landmark className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+            <h3 className="text-base font-black text-slate-900 tracking-tight">
               Manajemen Data Bank PT Liva Media Kreatif
             </h3>
           </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
             Kelola daftar rekening bank resmi PT. Liva Media Kreatif. Rekening utama (default) akan otomatis terpasang pada bagian <span className="font-semibold text-slate-700">INFORMASI PEMBAYARAN</span> di setiap invoice yang diterbitkan.
           </p>
         </div>
         <button
           onClick={handleOpenAdd}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
+          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4" /> Tambah Rekening Bank
+          <Plus className="w-3.5 h-3.5" /> Tambah Rekening Bank
         </button>
       </div>
 
       {/* Bank Account Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {/* If adding new account, show form card first */}
         {isAdding && renderBankForm(true, () => setIsAdding(false))}
 
         {bankAccounts.length === 0 && !isAdding ? (
-          <div className="col-span-full py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center p-6">
+          <div className="col-span-full py-16 bg-white rounded-xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center p-6">
             <CreditCard className="w-12 h-12 text-slate-300 mb-3" />
             <h4 className="font-bold text-slate-700 text-base">Belum Ada Rekening Bank</h4>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mb-4">
@@ -336,7 +336,7 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
             </p>
             <button
               onClick={handleOpenAdd}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer hover:bg-indigo-700 transition-colors"
             >
               Tambah Rekening Sekarang
             </button>
@@ -351,10 +351,10 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
             return (
               <div
                 key={acc.id}
-                className={`relative bg-white rounded-2xl border transition-all duration-200 p-5 flex flex-col justify-between shadow-sm overflow-hidden ${
+                className={`relative bg-white rounded-xl border transition-all duration-200 p-4 flex flex-col justify-between shadow-2xs overflow-hidden ${
                   acc.isDefault
                     ? 'border-indigo-400/80 ring-2 ring-indigo-500/10 shadow-indigo-500/5'
-                    : 'border-slate-200 hover:border-slate-300'
+                    : 'border-slate-200/80 hover:border-slate-300'
                 }`}
               >
                 {/* Top Badge & Bank Name */}
@@ -434,7 +434,7 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                   <div>
                     {!acc.isDefault && (
                       <button

@@ -412,28 +412,29 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       {/* ═══════════════════════════════════════════
           DESKTOP & RESPONSIVE MAIN CONTAINER
       ════════════════════════════════════════════ */}
-      <div className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div className="space-y-3.5 pb-8 w-full max-w-[1550px] mx-auto px-3 sm:px-4 lg:px-6 pt-2">
         {/* Top Header Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
           <div className="flex items-center gap-3">
             {onBack && (
               <button
                 onClick={onBack}
-                className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
-                  Billing & Accounts Receivable
+                <FileText className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Manajemen Invoice & Penagihan
+                </h2>
+                <span className="hidden md:inline-block text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                  Billing
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
-                <FileText className="w-6 h-6 text-indigo-600" /> Manajemen Invoice & Penagihan
-              </h2>
-              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 Kelola data penagihan klien (Bill To), rekening transfer resmi PT. Liva Media Kreatif, terbitkan nota penagihan resmi, dan pantau status pelunasan invoice.
               </p>
             </div>
@@ -442,70 +443,74 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
           <button
             onClick={() => {
               setActiveTab("create");
-              handleBrandSelectForDraft("");
+              handleBrandSelectForDraft();
             }}
-            className="px-5 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-lg shadow-2xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <Plus className="w-4 h-4" /> Buat Invoice Baru
+            <Plus className="w-3.5 h-3.5" /> Buat Invoice Baru
           </button>
         </div>
 
         {/* Navigation Tabs Bar */}
-        <div className="flex gap-2 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === "overview" || activeTab === "create"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                ? "bg-slate-900 text-white shadow-2xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
             }`}
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3.5 h-3.5" />
             <span>Semua Invoice</span>
-            <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 text-slate-200">
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+              activeTab === "overview" || activeTab === "create"
+                ? "bg-slate-800 text-slate-200"
+                : "bg-slate-100 text-slate-600"
+            }`}>
               {allInvoices.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab("billing_directory")}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === "billing_directory"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                ? "bg-slate-900 text-white shadow-2xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
             }`}
           >
-            <Building2 className="w-4 h-4" />
+            <Building2 className="w-3.5 h-3.5" />
             <span>Data Penagihan Client (Bill To)</span>
-            <span className="px-2 py-0.5 rounded-md text-[10px] bg-indigo-50 text-indigo-700 font-black">
+            <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-indigo-50 text-indigo-700 font-black">
               {clientBrands.filter(b => b.isActive !== false).length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab("bank_accounts")}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === "bank_accounts"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                ? "bg-slate-900 text-white shadow-2xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
             }`}
           >
-            <Landmark className="w-4 h-4" />
+            <Landmark className="w-3.5 h-3.5" />
             <span>Rekening Bank PT Liva</span>
-            <span className="px-2 py-0.5 rounded-md text-[10px] bg-amber-50 text-amber-800 font-black">
+            <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-amber-50 text-amber-800 font-black">
               {bankAccounts.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === "settings"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                ? "bg-slate-900 text-white shadow-2xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
             }`}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-3.5 h-3.5" />
             <span>Pengaturan Nota</span>
           </button>
         </div>

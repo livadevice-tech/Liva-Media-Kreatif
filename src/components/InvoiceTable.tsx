@@ -139,155 +139,156 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   }, [allInvoices, statusFilter, searchQuery, sortOrder, todayStr]);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Upcoming Billings Banner */}
+    <div className="space-y-3.5 animate-fadeIn">
+      {/* Upcoming Billings Banner (Compact & Clean) */}
       {upcomingBillings.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-start gap-4">
-            <div className="bg-amber-100 text-amber-600 p-3 rounded-xl shrink-0 mt-0.5">
-              <Calendar className="w-5 h-5" />
+        <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="bg-amber-100 text-amber-700 p-1.5 rounded-lg shrink-0">
+              <Calendar className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-black text-amber-900">
-                Jadwal Penagihan Rutin Tiba ({upcomingBillings.length} Klien)
-              </h3>
-              <p className="text-xs text-amber-700 font-medium mt-0.5 mb-3">
-                Terdapat brand klien yang telah memasuki jadwal siklus penagihan invoice bulan ini.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {upcomingBillings.map((b) => (
-                  <div
-                    key={b.id}
-                    className="bg-white border border-amber-200 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-xs"
-                  >
-                    <span className="font-bold text-slate-800 text-xs">
-                      {b.companyName || b.name}
-                    </span>
-                    <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md">
-                      Tgl {b.invoiceDate || '29'}
-                    </span>
-                  </div>
-                ))}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-amber-950">
+                  Jadwal Tagihan Rutin Tiba ({upcomingBillings.length} Klien)
+                </span>
+                <span className="text-[10px] text-amber-700 font-medium hidden sm:inline">
+                  — Siklus invoice bulan ini
+                </span>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {upcomingBillings.map((b) => (
+              <span
+                key={b.id}
+                className="bg-white/95 border border-amber-200/80 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0"
+              >
+                <span className="truncate max-w-[140px]">{b.companyName || b.name}</span>
+                <span className="bg-amber-100/90 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded">
+                  Tgl {b.invoiceDate || '29'}
+                </span>
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      {/* KPI Metrics Cards (4 Columns) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Metrics Cards (4 Columns - Clean & Compact) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Invoices */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-slate-400" /> Total Tagihan
             </div>
-            <div className="text-2xl font-black text-slate-900 leading-tight">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
               {counts.total}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-slate-100 text-xs font-bold text-slate-500 truncate">
+          <div className="mt-2 pt-1.5 border-t border-slate-100 text-xs font-bold text-slate-500 truncate">
             Rp {new Intl.NumberFormat('id-ID').format(summary.totalAmount)}
           </div>
         </div>
 
         {/* Paid / Lunas */}
-        <div className="bg-white p-5 rounded-2xl border border-emerald-200/80 shadow-xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/30">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/20">
           <div>
             <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sudah Dibayar (Lunas)
             </div>
-            <div className="text-2xl font-black text-emerald-700 leading-tight">
+            <div className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight">
               {counts.paid}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-emerald-100 text-xs font-black text-emerald-800 truncate">
+          <div className="mt-2 pt-1.5 border-t border-emerald-100 text-xs font-black text-emerald-800 truncate">
             Rp {new Intl.NumberFormat('id-ID').format(summary.paidAmount)}
           </div>
         </div>
 
         {/* Open / Terkirim */}
-        <div className="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/30">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-blue-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/20">
           <div>
             <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-blue-600" /> Menunggu Pembayaran
             </div>
-            <div className="text-2xl font-black text-blue-700 leading-tight">
+            <div className="text-xl sm:text-2xl font-black text-blue-700 leading-tight">
               {counts.open}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-blue-100 text-xs font-black text-blue-800 truncate">
+          <div className="mt-2 pt-1.5 border-t border-blue-100 text-xs font-black text-blue-800 truncate">
             Rp {new Intl.NumberFormat('id-ID').format(summary.pendingAmount)}
           </div>
         </div>
 
         {/* Overdue / Jatuh Tempo */}
-        <div className="bg-white p-5 rounded-2xl border border-rose-200/80 shadow-xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/30">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/20">
           <div>
             <div className="text-[10px] font-black text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 text-rose-600" /> Jatuh Tempo (Overdue)
             </div>
-            <div className="text-2xl font-black text-rose-700 leading-tight">
+            <div className="text-xl sm:text-2xl font-black text-rose-700 leading-tight">
               {counts.overdue}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-rose-100 text-xs font-black text-rose-800 truncate">
+          <div className="mt-2 pt-1.5 border-t border-rose-100 text-xs font-black text-rose-800 truncate">
             Rp {new Intl.NumberFormat('id-ID').format(summary.overdueAmount)}
           </div>
         </div>
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
         {/* Status Filter Tabs */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
             <button
               onClick={() => setStatusFilter('ALL')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
               }`}
             >
               Semua ({counts.total})
             </button>
             <button
               onClick={() => setStatusFilter('Draft')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === 'Draft'
-                  ? 'bg-slate-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                  ? 'bg-slate-700 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
               }`}
             >
               Draft ({counts.draft})
             </button>
             <button
               onClick={() => setStatusFilter('Open Invoice')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === 'Open Invoice'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white text-blue-700 hover:bg-blue-50 border border-blue-200'
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'bg-white text-blue-700 hover:bg-blue-50 border border-blue-200/80'
               }`}
             >
               Terkirim ({counts.open})
             </button>
             <button
               onClick={() => setStatusFilter('Paid')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === 'Paid'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200/80'
               }`}
             >
               Lunas ({counts.paid})
             </button>
             <button
               onClick={() => setStatusFilter('Overdue')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === 'Overdue'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
+                  ? 'bg-rose-600 text-white shadow-2xs'
+                  : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200/80'
               }`}
             >
               Jatuh Tempo ({counts.overdue})
@@ -295,21 +296,21 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           </div>
 
           {/* Period and Search */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <input
               type="month"
               value={filterMonth}
               onChange={(e) => setFilterMonth(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-indigo-400 font-bold text-slate-700 cursor-pointer"
+              className="px-2.5 py-1.5 border border-slate-200/80 rounded-lg text-xs bg-white focus:outline-none focus:border-indigo-400 font-bold text-slate-700 cursor-pointer shadow-2xs"
             />
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative flex-1 sm:w-60">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Cari no invoice / brand / PT..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-indigo-400 font-medium text-slate-700 placeholder-slate-400"
+                className="w-full pl-7 pr-3 py-1.5 border border-slate-200/80 rounded-lg text-xs bg-white focus:outline-none focus:border-indigo-400 font-medium text-slate-700 placeholder-slate-400 shadow-2xs"
               />
             </div>
           </div>
@@ -329,7 +330,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3.5 px-5">
+                  <th className="py-2.5 px-4">
                     <button
                       onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
                       className="flex items-center gap-1.5 hover:text-slate-800 cursor-pointer transition-colors outline-none"
@@ -338,11 +339,11 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <ArrowUpDown className={`w-3.5 h-3.5 ${sortOrder === 'asc' ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </button>
                   </th>
-                  <th className="py-3.5 px-5">Klien / Bill To</th>
-                  <th className="py-3.5 px-5">Tanggal & Jatuh Tempo</th>
-                  <th className="py-3.5 px-5 text-right">Nominal Tagihan</th>
-                  <th className="py-3.5 px-5 text-center">Status Invoice</th>
-                  <th className="py-3.5 px-5 text-center">Aksi Dokumen</th>
+                  <th className="py-2.5 px-4">Klien / Bill To</th>
+                  <th className="py-2.5 px-4">Tanggal & Jatuh Tempo</th>
+                  <th className="py-2.5 px-4 text-right">Nominal Tagihan</th>
+                  <th className="py-2.5 px-4 text-center">Status Invoice</th>
+                  <th className="py-2.5 px-4 text-center">Aksi Dokumen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -353,7 +354,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors group">
                       {/* Invoice Number */}
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 sm:py-3 px-4">
                         <div className="font-mono font-black text-indigo-700 text-xs">
                           {inv.invoiceNumber}
                         </div>
@@ -363,7 +364,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       </td>
 
                       {/* Client / Bill To */}
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 sm:py-3 px-4">
                         <div className="font-black text-slate-900 text-xs leading-snug">
                           {inv.ptName || brand?.companyName || brand?.name}
                         </div>
@@ -373,7 +374,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       </td>
 
                       {/* Dates */}
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 sm:py-3 px-4">
                         <div className="text-[11px] font-semibold text-slate-700">
                           {formatDateUI(inv.invoiceDate || inv.issueDate)}
                         </div>
@@ -386,14 +387,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       </td>
 
                       {/* Amount */}
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-2.5 sm:py-3 px-4 text-right">
                         <div className="font-black text-slate-900 text-xs whitespace-nowrap">
                           Rp {new Intl.NumberFormat('id-ID').format(inv.totalAmount || 0)}
                         </div>
                       </td>
 
                       {/* Status Dropdown */}
-                      <td className="py-4 px-5 text-center">
+                      <td className="py-2.5 sm:py-3 px-4 text-center">
                         <div className="inline-flex items-center justify-center">
                           <select
                             value={inv.status}
@@ -424,7 +425,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       </td>
 
                       {/* Action Buttons */}
-                      <td className="py-4 px-5 text-center">
+                      <td className="py-2.5 sm:py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {/* Preview PDF */}
                           {onPreviewInvoice && (
