@@ -116,7 +116,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
   availableShifts = [],
   uploadHistory = [],
   isLoadingUploadHistory = false,
-  onDeleteUploadBatch = () => {},
+  onDeleteUploadBatch = () => { },
 }) => {
   const [activePlatform, setActivePlatform] = useState<'shopee' | 'tiktok'>('shopee');
 
@@ -125,7 +125,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     const newMetrics = hiddenMetrics.includes(metricId)
       ? hiddenMetrics.filter((id) => id !== metricId)
       : [...hiddenMetrics, metricId];
-    
+
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
@@ -140,7 +140,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     const newMetrics = hiddenChartMetrics.includes(metricId)
       ? hiddenChartMetrics.filter((id) => id !== metricId)
       : [...hiddenChartMetrics, metricId];
-    
+
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
@@ -155,7 +155,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     const newCols = hiddenCols.includes(colId)
       ? hiddenCols.filter((id) => id !== colId)
       : [...hiddenCols, colId];
-    
+
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
@@ -170,7 +170,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     const newCats = hiddenCats.includes(categoryId)
       ? hiddenCats.filter((id) => id !== categoryId)
       : [...hiddenCats, categoryId];
-    
+
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
@@ -218,21 +218,19 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
         <div className="flex border-b border-slate-200">
           <button
             onClick={() => setActivePlatform('shopee')}
-            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${
-              activePlatform === 'shopee'
+            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${activePlatform === 'shopee'
                 ? 'bg-orange-50 text-orange-600 border-b-2 border-orange-500'
                 : 'text-slate-500 hover:bg-slate-50'
-            }`}
+              }`}
           >
             Shopee
           </button>
           <button
             onClick={() => setActivePlatform('tiktok')}
-            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${
-              activePlatform === 'tiktok'
+            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${activePlatform === 'tiktok'
                 ? 'bg-slate-900 text-white border-b-2 border-black'
                 : 'text-slate-500 hover:bg-slate-50'
-            }`}
+              }`}
           >
             TikTok
           </button>
@@ -251,24 +249,24 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                     Tampilkan Metrik (Summary)
                   </label>
                   <div className="space-y-3">
-                    {((category.id === 'live' 
-                        ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`] 
-                        : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
-                      const id = `${activePlatform}_${category.id}_${metric.id}`;
-                      return (
-                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={!(brand.dashboardSettings?.hiddenMetrics || []).includes(id)}
-                            onChange={() => toggleMetric(id)}
-                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                            {metric.label}
-                          </span>
-                        </label>
-                      );
-                    })}
+                    {((category.id === 'live'
+                      ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`]
+                      : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
+                        const id = `${activePlatform}_${category.id}_${metric.id}`;
+                        return (
+                          <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={!(brand.dashboardSettings?.hiddenMetrics || []).includes(id)}
+                              onChange={() => toggleMetric(id)}
+                              className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                              {metric.label}
+                            </span>
+                          </label>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -278,24 +276,24 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                     Tampilkan Metrik (Grafik)
                   </label>
                   <div className="space-y-3">
-                    {((category.id === 'live' 
-                        ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`] 
-                        : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
-                      const id = `${activePlatform}_${category.id}_${metric.id}`;
-                      return (
-                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={!(brand.dashboardSettings?.hiddenChartMetrics || []).includes(id)}
-                            onChange={() => toggleChartMetric(id)}
-                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                            {metric.label}
-                          </span>
-                        </label>
-                      );
-                    })}
+                    {((category.id === 'live'
+                      ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`]
+                      : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
+                        const id = `${activePlatform}_${category.id}_${metric.id}`;
+                        return (
+                          <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={!(brand.dashboardSettings?.hiddenChartMetrics || []).includes(id)}
+                              onChange={() => toggleChartMetric(id)}
+                              className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                              {metric.label}
+                            </span>
+                          </label>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -305,24 +303,24 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                     Tampilkan Kolom (Tabel)
                   </label>
                   <div className="space-y-3">
-                    {((category.id === 'live' 
-                        ? (COLUMNS_BY_CATEGORY as any)[`live_${activePlatform}`] 
-                        : (COLUMNS_BY_CATEGORY as any)[category.id]) || []).map((col: any) => {
-                      const id = `${activePlatform}_${category.id}_${col.id}`;
-                      return (
-                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={!(brand.dashboardSettings?.hiddenColumns || []).includes(id)}
-                            onChange={() => toggleColumn(id)}
-                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                            {col.label}
-                          </span>
-                        </label>
-                      );
-                    })}
+                    {((category.id === 'live'
+                      ? (COLUMNS_BY_CATEGORY as any)[`live_${activePlatform}`]
+                      : (COLUMNS_BY_CATEGORY as any)[category.id]) || []).map((col: any) => {
+                        const id = `${activePlatform}_${category.id}_${col.id}`;
+                        return (
+                          <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={!(brand.dashboardSettings?.hiddenColumns || []).includes(id)}
+                              onChange={() => toggleColumn(id)}
+                              className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                              {col.label}
+                            </span>
+                          </label>
+                        );
+                      })}
                   </div>
                 </div>
               </div>

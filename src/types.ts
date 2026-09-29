@@ -179,7 +179,7 @@ export interface BrandInvoice {
   invoiceDate?: string;
   issueDate: string;
   dueDate: string;
-  status: "Draft" | "Open Invoice" | "Paid" | "Overdue";
+  status: "Draft" | "Open Invoice" | "Paid" | "Overdue" | "Cancelled";
   recipientName: string; // legacy
   ptName?: string;
   picName?: string;
@@ -191,8 +191,42 @@ export interface BrandInvoice {
     sessionId: string;
     description: string;
     qty?: number;
+    unit?: string;
     cost: number;
   }[];
+  bankInfo?: {
+    bankName: string;
+    accountNo: string;
+    accountName: string;
+  };
+  notes?: string;
+  paidDate?: string;
+  paymentNotes?: string;
+}
+
+export interface LivaBankAccount {
+  id: string;
+  bankName: string;
+  accountNo: string;
+  accountName: string;
+  isDefault: boolean;
+  isActive: boolean;
+  branch?: string;
+  notes?: string;
+}
+
+export interface InvoiceCompanyProfile {
+  companyName: string;
+  address: string;
+  email: string;
+  phone: string;
+  website: string;
+  city: string;
+  directorName: string;
+  directorTitle: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  termsAndConditions?: string;
 }
 
 export interface BrandDashboardSettings {

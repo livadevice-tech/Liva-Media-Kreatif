@@ -1,16 +1,41 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft, Calendar, ChevronDown, Search } from 'lucide-react';
-import { ClientBrand, BrandInvoice } from '../types';
+import {
+  FileText,
+  Plus,
+  Trash2,
+  X,
+  Edit2,
+  Download,
+  Mail,
+  ChevronLeft,
+  Calendar,
+  ChevronDown,
+  Search,
+  Building2,
+  Landmark,
+  Settings,
+  BellRing,
+  Printer,
+  Eye,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+} from 'lucide-react';
+import { ClientBrand, BrandInvoice, LivaBankAccount, InvoiceCompanyProfile } from '../types';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
 import { InvoiceEditorModal } from './invoice/InvoiceEditorModal';
 import { InvoiceRemindersPanel } from './invoice/InvoiceRemindersPanel';
 import { InvoiceSettingsPanel, type InvoiceSettings } from './invoice/InvoiceSettingsPanel';
+import { ClientBillingDirectory } from './invoice/ClientBillingDirectory';
+import { LivaBankManager } from './invoice/LivaBankManager';
+import { InvoicePreviewModal } from './invoice/InvoicePreviewModal';
 
 import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
 import { buildInvoiceQuotationEmail } from '../shared/utils/invoiceEmail';
 import { buildNextInvoiceNumber } from '../shared/utils/invoiceNumber';
+import { generateInvoicePrintHtml } from '../shared/utils/invoicePrintHtml';
 
 interface InvoiceDashboardProps {
   clientBrands: ClientBrand[];
@@ -18,7 +43,6 @@ interface InvoiceDashboardProps {
   onBack?: () => void;
 }
 
-type GlobalPicEmailSetting = string | { value?: string } | null;
 type InvoiceReminderPayload = {
   brandName: string;
   invoiceDate: string;
@@ -35,9 +59,6 @@ type InvoiceReminderResponse = {
   simulated?: boolean;
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
-
 const sendInvoiceReminder = async (
   payload: InvoiceReminderPayload,
 ): Promise<InvoiceReminderResponse> => {
@@ -50,46 +71,96 @@ const sendInvoiceReminder = async (
   return (await res.json()) as InvoiceReminderResponse;
 };
 
-export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands, onUpdateBrands, onBack }) => {
-  const [activeTab, setActiveTab] = useState<"overview" | "create" | "settings" | "berkas" | "reminders">("overview");
+const DEFAULT_LIVA_BANKS: LivaBankAccount[] = [
+  {
+    id: "bank_maybank_default",
+    bankName: "Maybank Syariah",
+    accountNo: "2721002897",
+    accountName: "PT. Liva Media Kreatif",
+    isDefault: true,
+    isActive: true,
+    branch: "KC Bandar Lampung",
+    notes: "Rekening utama penerimaan invoice PT. Liva Media Kreatif",
+  },
+];
+
+export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
+  clientBrands,
+  onUpdateBrands,
+  onBack,
+}) => {
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "billing_directory" | "bank_accounts" | "create" | "settings" | "reminders"
+  >("overview");
+
   const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
   const [emailTestStatus, setEmailTestStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [generatedEmail, setGeneratedEmail] = useState<{ to: string; subject: string; body: string; } | null>(null);
 
-  const handleUpdateBrands = (updatedBrands: ClientBrand[]) => {
-    // Optimistically update UI state
-    onUpdateBrands(updatedBrands);
-    
-    // Check which brands changed and save to API
-    updatedBrands.forEach(newBrand => {
-      const oldBrand = clientBrands.find(b => b.id === newBrand.id);
-      if (!oldBrand || JSON.stringify(oldBrand) !== JSON.stringify(newBrand)) {
-        if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {
-          clientBrandsApi.update(newBrand.id, newBrand).catch(err => {
-             console.error("Failed to update brand in DB", err);
-          });
-        }
-      }
-    });
-  };
-  
+  // Bank accounts of PT Liva
+  const [bankAccounts, setBankAccounts] = useState<LivaBankAccount[]>(DEFAULT_LIVA_BANKS);
+
+  // Preview modal state
+  const [previewInvoiceData, setPreviewInvoiceData] = useState<{
+    invoice: BrandInvoice;
+    brand: ClientBrand;
+  } | null>(null);
+
+  // Settings
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({
     logoUrl: "",
     signatureUrl: "",
-    signatureName: "MUFTHI ALI W",
-    accountNo: "8905461245",
-    accountName: "MUFTHI ALI W",
-    bankName: "BCA KEDATON"
+    signatureName: "Mufthi Ali",
+    signatureTitle: "Direktur Utama PT Liva Media Kreatif",
+    companyName: "PT. Liva Media Kreatif",
+    companyAddress: "Villa Bukit Tirtayasa Blok G2 No.1, Kelurahaan Campang Raya, Kecamatan Sukabumi, Kota Bandar Lampung, Provinsi Lampung",
+    companyEmail: "livamediakreatif@gmail.com",
+    companyPhone: "+62 821-7788-9900",
+    companyWebsite: "https://project.livaagency.com",
+    signeeCity: "Bandar Lampung",
+    accountNo: "2721002897",
+    accountName: "PT. Liva Media Kreatif",
+    bankName: "Maybank Syariah",
+    termsAndConditions:
+      "1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.\n2. Pembayaran dilakukan sesuai Due Date invoice.\n3. Harap konfirmasi bukti transfer via WhatsApp ke +62 821-7788-9900.",
   });
 
+  // Load bank accounts & settings from MySQL
   useEffect(() => {
-    settingsApi.get<InvoiceSettings | null>("mcn_invoice_settings").then(saved => {
+    settingsApi.get<LivaBankAccount[] | null>("mcn_liva_bank_accounts").then((saved) => {
+      if (saved && Array.isArray(saved) && saved.length > 0) {
+        setBankAccounts(saved);
+      }
+    }).catch(console.error);
+
+    settingsApi.get<InvoiceSettings | null>("mcn_invoice_settings").then((saved) => {
       if (saved && Object.keys(saved).length > 0) {
-        setInvoiceSettings(saved);
+        setInvoiceSettings((prev) => ({ ...prev, ...saved }));
+      }
+    }).catch(console.error);
+
+    settingsApi.get<any>("mcn_global_pic_email").then((storedEmail) => {
+      let val = storedEmail;
+      while (typeof val === "string" && val.startsWith("{")) {
+        try {
+          val = JSON.parse(val);
+        } catch (e) {
+          break;
+        }
+      }
+      if (val && typeof val === "object" && "value" in val) {
+        setGlobalPicEmail(val.value || "");
+      } else if (typeof val === "string") {
+        setGlobalPicEmail(val);
       }
     }).catch(console.error);
   }, []);
+
+  const handleSaveBankAccounts = async (newAccounts: LivaBankAccount[]) => {
+    setBankAccounts(newAccounts);
+    await settingsApi.save("mcn_liva_bank_accounts", newAccounts).catch(console.error);
+  };
 
   const saveSettings = async (newSettings: InvoiceSettings) => {
     setInvoiceSettings(newSettings);
@@ -99,13 +170,26 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   const handleSaveGlobalPicEmail = async () => {
     await settingsApi.save("mcn_global_pic_email", { value: globalPicEmail }).catch(console.error);
   };
-  
-  // For creation
+
+  const handleUpdateBrands = (updatedBrands: ClientBrand[]) => {
+    onUpdateBrands(updatedBrands);
+    updatedBrands.forEach((newBrand) => {
+      const oldBrand = clientBrands.find((b) => b.id === newBrand.id);
+      if (!oldBrand || JSON.stringify(oldBrand) !== JSON.stringify(newBrand)) {
+        if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {
+          clientBrandsApi.update(newBrand.id, newBrand).catch((err) => {
+            console.error("Failed to update brand in DB", err);
+          });
+        }
+      }
+    });
+  };
+
+  // Creation & Editing states
   const [selectedBrandId, setSelectedBrandId] = useState<string>("");
   const [draftInvoice, setDraftInvoice] = useState<Partial<BrandInvoice>>({});
-  
   const [invoiceEditor, setInvoiceEditor] = useState<(BrandInvoice & { brandId: string }) | null>(null);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<{brandId: string, id: string} | null>(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<{ brandId: string; id: string } | null>(null);
 
   const currentYearMonth = new Date().toISOString().substring(0, 7);
   const [filterMonth, setFilterMonth] = useState<string>(currentYearMonth);
@@ -116,128 +200,52 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
 
   const allInvoices = useMemo(() => {
     let list: (BrandInvoice & { brandId: string; brandName: string })[] = [];
-    clientBrands.forEach(brand => {
+    clientBrands.forEach((brand) => {
       if (brand.invoices) {
-        brand.invoices.forEach(inv => {
+        brand.invoices.forEach((inv) => {
           list.push({ ...inv, brandId: brand.id, brandName: brand.name });
         });
       }
     });
-    
+
     if (filterMonth) {
-      list = list.filter(inv => {
+      list = list.filter((inv) => {
         const dateToUse = inv.invoiceDate || inv.issueDate;
         return dateToUse.startsWith(filterMonth);
       });
     }
-    
+
     return list.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
   }, [clientBrands, filterMonth]);
-
-  useEffect(() => {
-    settingsApi.get<any>("mcn_global_pic_email").then(storedEmail => {
-      let val = storedEmail;
-      
-      // Unwrap any accidentally nested JSON strings
-      while (typeof val === "string" && val.startsWith("{")) {
-        try {
-          val = JSON.parse(val);
-        } catch (e) {
-          break;
-        }
-      }
-
-      if (val && typeof val === "object" && "value" in val) {
-        setGlobalPicEmail(val.value || "");
-      } else if (typeof val === "string") {
-        setGlobalPicEmail(val);
-      }
-    }).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    // Use local timezone offset to get the correct YYYY-MM-DD string
-    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-
-    // Trigger based on actual invoices that are due or issued today
-    clientBrands.forEach(b => {
-      // 1. Trigger using specific invoices (Issue Date or Due Date)
-      if (b.invoices && b.invoices.length > 0) {
-        b.invoices.forEach(inv => {
-          if (inv.issueDate === todayStr || inv.dueDate === todayStr) {
-            // Include invoice specific ID to prevent spamming
-            const invCacheKey = `mcn_invoice_rem_${todayStr}_inv_${inv.id}`;
-            if (!localStorage.getItem(invCacheKey)) {
-              console.log('Triggering automated email reminder for ACTUAL INVOICE:', inv.invoiceNumber);
-              localStorage.setItem(invCacheKey, 'sent');
-              
-              sendInvoiceReminder({
-                brandName: b.name,
-                invoiceDate: inv.issueDate || todayStr,
-                toEmails: globalPicEmail || "admin1@liva-agency.com",
-                amount: inv.totalAmount || 0,
-                invoiceNumber: inv.invoiceNumber || "AUTO",
-              }).catch(err => console.error('Automated invoice reminder err:', err));
-            }
-          }
-        });
-      }
-
-      // 2. Trigger based on Brand Default Invoice Day (Legacy fallback/recurring tracker)
-      if (!b.invoiceDate) return;
-      const invDay = parseInt(b.invoiceDate);
-      if (isNaN(invDay)) return;
-
-      if (invDay === currentDay) {
-        const cacheKey = `mcn_invoice_rem_${todayStr}_${b.id}`;
-        if (!localStorage.getItem(cacheKey)) {
-          console.log('Triggering automated email reminder for brand base configuration', b.name);
-          localStorage.setItem(cacheKey, 'sent');
-          
-          sendInvoiceReminder({
-            brandName: b.name,
-            invoiceDate: b.invoiceDate,
-            toEmails: globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
-            amount: b.amount || 0,
-            invoiceNumber: "AUTO-" + new Date().getTime().toString().slice(-6),
-          }).then(data => {
-            console.log('Automated reminder response:', data);
-          }).catch(err => console.error('Automated reminder err:', err));
-        }
-      }
-    });
-  }, [clientBrands, globalPicEmail]);
 
   const upcomingBillings = useMemo(() => {
     const today = new Date();
     const currentDay = today.getDate();
-    return clientBrands.filter(b => {
+    return clientBrands.filter((b) => {
       if (!b.invoiceDate) return false;
       const invDay = parseInt(b.invoiceDate);
       if (isNaN(invDay)) return false;
-      // if invoice day is within 3 days (before or after, or just upcoming in next 3 days)
       let diff = invDay - currentDay;
-      if (diff < 0) diff += 30; // loop around month
+      if (diff < 0) diff += 30;
       return diff >= 0 && diff <= 3;
     });
   }, [clientBrands]);
 
+  // Brand selection for creating a new invoice
   const handleBrandSelectForDraft = (brandId: string) => {
     setSelectedBrandId(brandId);
     if (!brandId) return;
-    const brand = clientBrands.find(b => b.id === brandId);
+    const brand = clientBrands.find((b) => b.id === brandId);
     if (!brand) return;
 
     const today = new Date();
     const dueDate = new Date();
-    dueDate.setDate(today.getDate() + 7);
-    
-    // Auto detect shift counts
-    const shiftCount = brand.sessions?.length || 1;
+    dueDate.setDate(today.getDate() + 14); // 14-day terms matching the PDF
+
+    const shiftCount = brand.sessions?.length || 2;
     const invoiceNumber = buildNextInvoiceNumber(clientBrands, today);
-    
+    const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
+
     setDraftInvoice({
       id: `inv_${Date.now()}`,
       invoiceNumber: invoiceNumber,
@@ -251,29 +259,35 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       picPhone: brand.picPhone || "",
       email: brand.picEmail || "",
       address: brand.companyAddress || "",
+      bankInfo: {
+        bankName: defaultBank.bankName,
+        accountNo: defaultBank.accountNo,
+        accountName: defaultBank.accountName,
+      },
       sessionItems: [
         {
           sessionId: `sess_${Date.now()}`,
-          description: `Livestreaming Package Reguler (${shiftCount * 3} Hours) ${today.toLocaleString('id-ID', { month: 'long' })}`,
+          description: `Live Streaming Package Shopee`,
           qty: shiftCount,
-          cost: 7000000 
-        }
-      ]
+          unit: "Sesi",
+          cost: 7000000,
+        },
+      ],
     });
   };
 
   const handleSaveDraft = () => {
     if (!selectedBrandId || !draftInvoice.invoiceNumber) return;
-    
+
     const items = draftInvoice.sessionItems || [];
-    const totalAmount = items.reduce((acc, curr) => acc + (curr.cost * curr.qty), 0);
-    
+    const totalAmount = items.reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
+
     const finalInvoice = {
       ...draftInvoice,
       totalAmount,
     } as BrandInvoice;
 
-    const updatedBrands = clientBrands.map(b => {
+    const updatedBrands = clientBrands.map((b) => {
       if (b.id === selectedBrandId) {
         return {
           ...b,
@@ -282,13 +296,13 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           picPhone: draftInvoice.picPhone || b.picPhone,
           picEmail: draftInvoice.email || b.picEmail,
           companyAddress: draftInvoice.address || b.companyAddress,
-          invoices: [...(b.invoices || []), finalInvoice]
+          invoices: [...(b.invoices || []), finalInvoice],
         };
       }
       return b;
     });
 
-    const brand = clientBrands.find(b => b.id === selectedBrandId);
+    const brand = clientBrands.find((b) => b.id === selectedBrandId);
     if (brand) {
       handleShowEmailCopy(finalInvoice, brand.name, brand.picEmail);
     }
@@ -300,26 +314,28 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   };
 
   const handleShowEmailCopy = (inv: BrandInvoice, brandName: string, picEmail?: string) => {
-     const email = buildInvoiceQuotationEmail({
-       brandName,
-       issueDate: inv.issueDate,
-       dueDate: inv.dueDate,
-       totalAmount: inv.totalAmount,
-       sessionItems: inv.sessionItems,
-       picName: inv.picName,
-       recipientName: inv.recipientName,
-       ptName: inv.ptName,
-       email: inv.email,
-       picEmail,
-     });
+    const email = buildInvoiceQuotationEmail({
+      brandName,
+      issueDate: inv.issueDate,
+      dueDate: inv.dueDate,
+      totalAmount: inv.totalAmount,
+      sessionItems: inv.sessionItems,
+      picName: inv.picName,
+      recipientName: inv.recipientName,
+      ptName: inv.ptName,
+      email: inv.email,
+      picEmail,
+    });
 
-     setGeneratedEmail(email);
+    setGeneratedEmail(email);
   };
 
   const updateInvoiceStatus = (brandId: string, invId: string, newStatus: BrandInvoice["status"]) => {
-    const updatedBrands = clientBrands.map(b => {
+    const updatedBrands = clientBrands.map((b) => {
       if (b.id === brandId) {
-        const updatedInvoices = (b.invoices || []).map(inv => inv.id === invId ? { ...inv, status: newStatus } : inv);
+        const updatedInvoices = (b.invoices || []).map((inv) =>
+          inv.id === invId ? { ...inv, status: newStatus } : inv
+        );
         return { ...b, invoices: updatedInvoices };
       }
       return b;
@@ -330,11 +346,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   const confirmDeleteInvoice = () => {
     if (!invoiceToDelete) return;
     const { brandId, id: invId } = invoiceToDelete;
-    const updatedBrands = clientBrands.map(b => {
+    const updatedBrands = clientBrands.map((b) => {
       if (b.id === brandId) {
         return {
           ...b,
-          invoices: (b.invoices || []).filter(inv => inv.id !== invId)
+          invoices: (b.invoices || []).filter((inv) => inv.id !== invId),
         };
       }
       return b;
@@ -343,260 +359,60 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     setInvoiceToDelete(null);
   };
 
+  // Official A4 Print Generation matching user's PDF
   const handlePrint = (invoice: BrandInvoice, brandName: string) => {
-    const brand = clientBrands.find(b => b.invoices?.some(i => i.id === invoice.id));
-    const recipient = invoice.ptName || invoice.recipientName || brand?.name || brandName;
-    const picName = invoice.picName || invoice.recipientName || brand?.picName || "-";
-    const address = invoice.address || "-";
-    const email = invoice.email || "-";
-    const phone = invoice.picPhone || brand?.picPhone || "-";
+    const brand = clientBrands.find((b) => b.invoices?.some((i) => i.id === invoice.id) || b.name === brandName);
+    const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
 
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.top = '-9999px';
-    iframe.style.left = '-9999px';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
     document.body.appendChild(iframe);
+
     const printDoc = iframe.contentWindow?.document || iframe.contentDocument;
     if (!printDoc) return;
-    
-    const invoiceDateToUse = invoice.invoiceDate || invoice.issueDate;
-    const issueParts = new Date(invoiceDateToUse).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
-    const dueParts = new Date(invoice.dueDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
 
-    const logoHtml = invoiceSettings.logoUrl 
-      ? `<img src="${invoiceSettings.logoUrl}" style="max-height: 50px; display: inline-block;" />`
-      : `<div style="font-size: 42px; font-weight: 800; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">LIVE</div>`;
+    const htmlContent = generateInvoicePrintHtml({
+      invoice,
+      brand,
+      bankAccount: defaultBank,
+      companyProfile: {
+        companyName: invoiceSettings.companyName,
+        address: invoiceSettings.companyAddress,
+        email: invoiceSettings.companyEmail,
+        phone: invoiceSettings.companyPhone,
+        website: invoiceSettings.companyWebsite,
+        city: invoiceSettings.signeeCity,
+        directorName: invoiceSettings.signatureName,
+        directorTitle: invoiceSettings.signatureTitle,
+        logoUrl: invoiceSettings.logoUrl,
+        signatureUrl: invoiceSettings.signatureUrl,
+        termsAndConditions: invoiceSettings.termsAndConditions,
+      },
+    });
 
-    const signHtml = invoiceSettings.signatureUrl 
-      ? `<img src="${invoiceSettings.signatureUrl}" style="width: 180px; max-height: 120px; object-fit: contain; margin-bottom: -15px;" />`
-      : `<div style="height: 60px;"></div>`;
-
-    const originalTitle = document.title;
-    const safeInvoiceNumber = invoice.invoiceNumber ? invoice.invoiceNumber.replace(/\//g, '-') : 'AUTO';
-    const printTitle = `${brandName} - ${safeInvoiceNumber}`;
-    document.title = printTitle;
-
-    printDoc.write(`
-      <html>
-        <head>
-          <title>${printTitle}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
-            @page { size: A4 portrait; margin: 0; }
-            body { 
-              font-family: 'Montserrat', sans-serif; 
-              margin: 0; 
-              padding: 0; 
-              color: #1e293b; 
-              background: white; 
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-              width: 210mm;
-              height: 296mm;
-              box-sizing: border-box;
-              display: flex;
-              flex-direction: column;
-              overflow: hidden;
-            }
-            .header-banner { 
-              background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
-              padding: 35px 45px;
-              display: flex;
-              justify-content: space-between;
-              color: white;
-              height: 155px;
-              box-sizing: border-box;
-            }
-            .header-banner .title {
-              font-size: 36px;
-              font-weight: 800;
-              margin: 0 0 15px 0;
-              letter-spacing: 1px;
-            }
-            .header-details {
-              display: grid;
-              grid-template-columns: 100px 1fr;
-              font-size: 11px;
-              gap: 4px 10px;
-              font-weight: 600;
-            }
-            .header-details span { font-weight: 400; }
-            .logo-section {
-              text-align: right;
-            }
-            .content { 
-              padding: 35px 45px; 
-              flex-grow: 1; 
-              display: flex; 
-              flex-direction: column;
-              position: relative;
-              z-index: 1;
-            }
-            .watermark {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              opacity: 0.03;
-              max-width: 60%;
-              max-height: 60%;
-              z-index: -1;
-            }
-            .top-info { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 40px; }
-            .invoice-to { flex: 1; min-width: 0; }
-            .payment-method { flex-shrink: 0; width: 280px; }
-            .invoice-to h3, .payment-method h3 { font-size: 13px; font-weight: 800; margin: 0 0 10px 0; color: #000; text-transform: uppercase; }
-            .invoice-to strong { font-size: 13px; }
-            .address-block { margin-top: 10px; font-size: 11px; line-height: 1.4; color: #1e293b; }
-            .address-details { display: grid; grid-template-columns: 60px 1fr; gap: 4px 10px; margin-top: 5px; }
-            .payment-grid { display: grid; grid-template-columns: 100px 1fr; gap: 4px 10px; font-size: 11px; text-align: left; color: #1e293b; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-            th { background-color: #f97316; color: white; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 12px; }
-            th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; width: 40px; text-align: center; }
-            th:nth-child(2) { width: 45%; }
-            th:nth-child(3) { width: 130px; text-align: right; white-space: nowrap; }
-            th:nth-child(4) { width: 50px; text-align: center; }
-            th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; width: 140px; text-align: right; white-space: nowrap; }
-            td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-weight: 500; font-size: 12px; color: #1e293b;}
-            td:first-child { text-align: center; }
-            td:nth-child(3) { text-align: right; white-space: nowrap; }
-            td:nth-child(4) { text-align: center; }
-            td:last-child { text-align: right; white-space: nowrap; }
-            .total-row { 
-              display: flex; 
-              justify-content: space-between; 
-              padding: 15px 15px 5px; 
-              font-size: 14px; 
-              font-weight: 800; 
-              border-bottom: 2px solid #a855f7; 
-              margin-top: 5px; 
-              color: #000;
-            }
-            .bottom-section { display: flex; justify-content: space-between; margin-top: auto; padding-top: 20px;}
-            .terms { max-width: 300px; }
-            .terms h4 { font-size: 13px; font-weight: 800; margin: 0 0 5px 0; color: #000; text-transform: uppercase; }
-            .terms p { font-size: 11px; line-height: 1.4; color: #333; margin: 0; }
-            .signature { text-align: center; padding-right: 20px; }
-            .signature h4 { margin: 0; font-size: 14px; font-weight: 800; color: #000; }
-            .footer { 
-              background: linear-gradient(90deg, #f97316, #fb923c); 
-              color: white; 
-              padding: 0 45px; 
-              display: flex; 
-              justify-content: space-between; 
-              align-items: center; 
-              height: 60px;
-              box-sizing: border-box;
-            }
-            .footer-msg { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
-            .footer-contact { text-align: right; font-size: 11px; font-weight: 500; line-height: 1.4; }
-          </style>
-        </head>
-        <body>
-          <div class="header-banner">
-            <div>
-              <div class="title">INVOICE</div>
-              <div class="header-details">
-                <div>No:</div> <span>${invoice.invoiceNumber}</span>
-                <div>Invoice Date:</div> <span>${issueParts}</span>
-                <div>Due Date:</div> <span>${dueParts}</span>
-              </div>
-            </div>
-            <div class="logo-section">
-              ${logoHtml}
-            </div>
-          </div>
-          
-          <div class="content">
-            ${invoiceSettings.logoUrl ? `<img src="${invoiceSettings.logoUrl}" class="watermark" />` : ''}
-            
-            <div class="top-info">
-              <div class="invoice-to">
-                <h3>INVOICE TO:</h3>
-                <strong>${recipient}</strong><br/>
-                ${picName && picName !== "-" ? `<span style="font-size: 11px; font-weight: 500;">${picName}</span>` : ''}
-                <div class="address-block">
-                  <div class="address-details">
-                    <strong>Phone:</strong> <span>${phone}</span>
-                    <strong>Email:</strong> <span>${email}</span>
-                    <strong>Address:</strong> <span style="white-space: pre-wrap;">${address}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="payment-method">
-                <h3>PAYMENT METHOD</h3>
-                <div class="payment-grid">
-                  <span>Account No:</span> <strong>${invoiceSettings.accountNo || "-"}</strong>
-                  <span>Account Name:</span> <strong>${invoiceSettings.accountName || "-"}</strong>
-                  <span>Branch Name:</span> <strong>${invoiceSettings.bankName || "-"}</strong>
-                </div>
-              </div>
-            </div>
-            
-            <table>
-              <thead>
-                <tr>
-                  <th>NO</th>
-                  <th>ITEM</th>
-                  <th>PRICE</th>
-                  <th style="text-align: center; width: 60px;">QTY</th>
-                  <th>SUB TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoice.sessionItems.map((item, index) => `
-                  <tr>
-                    <td>${index + 1}</td>
-                    <td>${item.description}</td>
-                    <td>Rp.${new Intl.NumberFormat('id-ID').format(item.cost)},-</td>
-                    <td style="text-align: center;">${item.qty}</td>
-                    <td>Rp.${new Intl.NumberFormat('id-ID').format(item.cost * item.qty)},-</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            
-            <div class="total-row">
-              <div>TOTAL</div>
-              <div>Rp.${new Intl.NumberFormat('id-ID').format(invoice.totalAmount)},-</div>
-            </div>
-            
-            <div class="bottom-section">
-              <div class="terms">
-                <h4>TERMS AND CONDITIONS</h4>
-                <p>${invoiceSettings.termsAndConditions || 'Please send payment within 7 days of receiving this invoice.'}</p>
-              </div>
-              
-              <div class="signature">
-                ${signHtml}
-                <h4>${invoiceSettings.signatureName || "ADMINISTRATOR"}</h4>
-              </div>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <div class="footer-msg">THANK YOU FOR YOUR BUSINESS</div>
-            <div class="footer-contact">
-              livamediakreatif@gmail.com<br/>
-              +62-811 30 16161
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
+    printDoc.write(htmlContent);
     printDoc.close();
+
+    iframe.contentWindow?.focus();
     setTimeout(() => {
-      iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
       setTimeout(() => {
-        document.body.removeChild(iframe);
-        document.title = originalTitle;
-      }, 3000);
-    }, 500);
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 2000);
+    }, 400);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'signatureUrl') => {
+  const handleImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "logoUrl" | "signatureUrl",
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
@@ -605,504 +421,394 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setInvoiceSettings(prev => ({
+        setInvoiceSettings((prev) => ({
           ...prev,
-          [field]: reader.result as string
+          [field]: reader.result as string,
         }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // ── Mobile helpers ─────────────────────────────────────────────
-  const [mobileInvoiceTab, setMobileInvoiceTab] = useState<'invoice' | 'settings'>('invoice');
+  const handleOpenPreview = (inv: BrandInvoice & { brandId: string; brandName: string }) => {
+    const brand = clientBrands.find((b) => b.id === inv.brandId) || {
+      id: inv.brandId,
+      name: inv.brandName,
+      companyName: inv.ptName,
+      picName: inv.picName,
+      picPhone: inv.picPhone,
+      picEmail: inv.email,
+      companyAddress: inv.address,
+      sessions: [],
+      contractEndDate: "",
+      invoiceDate: "29",
+      accounts: [],
+      monthlyMeetingDate: "",
+    };
 
-  const formatCurrencyShort = (n: number) =>
-    'Rp ' + new Intl.NumberFormat('id-ID').format(n);
-
-  const getMonthLabel = (ym: string) => {
-    if (!ym) return '';
-    const [y, m] = ym.split('-');
-    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-    return `${months[parseInt(m) - 1]} ${y}`;
+    setPreviewInvoiceData({
+      invoice: inv,
+      brand,
+    });
   };
 
-  const mobileInvoices = useMemo(() => {
-    let filtered = allInvoices;
-    if (searchQuery) {
-      const lower = searchQuery.toLowerCase();
-      filtered = filtered.filter(i => 
-        (i.invoiceNumber?.toLowerCase().includes(lower)) ||
-        (i.ptName?.toLowerCase().includes(lower)) ||
-        (i.brandName?.toLowerCase().includes(lower)) ||
-        (i.picName?.toLowerCase().includes(lower))
-      );
-    }
-    return filtered;
-  }, [allInvoices, searchQuery]);
-
-  const totalInvoice  = mobileInvoices.length;
-  const terkirim      = mobileInvoices.filter(i => i.status === 'Terkirim' || i.status === 'Open Invoice').length;
-  const draft         = mobileInvoices.filter(i => i.status === 'Draft').length;
-  const bayar         = mobileInvoices.filter(i => i.status === 'Paid' || i.status === 'Terbayar').length;
-  const belumBayar    = mobileInvoices.filter(i => i.status !== 'Paid' && i.status !== 'Terbayar').length;
-  const nominalTerbayar  = mobileInvoices.filter(i => i.status === 'Paid' || i.status === 'Terbayar').reduce((s, i) => s + (i.totalAmount || 0), 0);
-  const nominalBelumBayar = mobileInvoices.filter(i => i.status !== 'Paid' && i.status !== 'Terbayar').reduce((s, i) => s + (i.totalAmount || 0), 0);
-
-  const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-    'Paid':         { label: 'Terbayar', bg: 'bg-emerald-500', text: 'text-white' },
-    'Terbayar':     { label: 'Terbayar', bg: 'bg-emerald-500', text: 'text-white' },
-    'Terkirim':     { label: 'Terkirim', bg: 'bg-blue-500',    text: 'text-white' },
-    'Open Invoice': { label: 'Terkirim', bg: 'bg-blue-500',    text: 'text-white' },
-    'Draft':        { label: 'Draft',    bg: 'bg-slate-400',   text: 'text-white' },
+  const handleStartCreateForBrand = (brandId: string) => {
+    handleBrandSelectForDraft(brandId);
+    setActiveTab("create");
   };
-
-  const getStatusCfg = (status?: string) =>
-    statusConfig[status || ''] ?? { label: status || '-', bg: 'bg-slate-300', text: 'text-slate-700' };
 
   return (
-    <div className="animate-fadeIn min-h-screen" id="operator_invoice_dashboard">
-
+    <div className="animate-fadeIn min-h-screen font-sans" id="operator_invoice_dashboard">
       {/* ═══════════════════════════════════════════
-          MOBILE VIEW  (hidden on md and above)
+          DESKTOP & RESPONSIVE MAIN CONTAINER
       ════════════════════════════════════════════ */}
-      <div className={`md:hidden flex flex-col bg-[#f5f6fa] overflow-x-hidden max-w-[100vw] ${activeTab === 'overview' ? 'min-h-screen' : ''}`}>
-      
-        {activeTab === 'overview' && (
-          <>
-            {/* Mobile Header */}
-            <div className="bg-white px-5 pt-7 pb-4 flex items-center justify-between sticky top-0 z-30">
-              <div className="flex items-center gap-3">
-                {onBack && (
-                  <button onClick={onBack} className="p-1.5 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors">
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                )}
-                <h1 className="text-[20px] font-black text-slate-900 tracking-tight">Invoice Client</h1>
-              </div>
+      <div className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        {/* Top Header Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-3">
+            {onBack && (
               <button
-                onClick={() => { setActiveTab('create'); handleBrandSelectForDraft(''); }}
-                className="flex items-center gap-1.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm active:scale-95 transition-all"
-              >
-                <Plus className="w-4 h-4" /> Create
-              </button>
-            </div>
-
-            {/* Filter Bulan dan Search */}
-            <div className="px-4 py-2 bg-white flex flex-col gap-3">
-              <div className="relative flex items-center justify-between bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 w-full shadow-sm cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-slate-500" />
-                  <span className="text-[13px] font-black text-slate-700">
-                    {getMonthLabel(filterMonth)}
-                  </span>
-                </div>
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-                <select
-                  value={filterMonth}
-                  onChange={e => setFilterMonth(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                >
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const d = new Date(); d.setMonth(d.getMonth() - i);
-                    const val = d.toISOString().substring(0, 7);
-                    return <option key={val} value={val}>{getMonthLabel(val)}</option>;
-                  })}
-                </select>
-              </div>
-
-              <div className="relative w-full">
-                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Cari No Invoice, Klien, PIC..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-[13px] font-medium text-slate-700 placeholder-slate-400 shadow-sm focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 pb-24 overflow-x-hidden bg-[#f5f6fa]">
-              {/* Recap Card */}
-              <div className="px-4 pt-4">
-                <div
-                  className="rounded-[20px] p-5 text-white shadow-lg shadow-indigo-200/50 relative overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)' }}
-                >
-                  {/* Dekorasi Background */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
-                  
-                  <div className="flex items-center gap-2 mb-6 relative z-10">
-                    <FileText className="w-4 h-4 opacity-90" />
-                    <span className="text-[14px] font-bold">Recap Invoice</span>
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="flex justify-between mb-6 relative z-10 px-1">
-                    {[
-                      { val: totalInvoice, label: 'Total Invoice' },
-                      { val: terkirim,     label: 'Terkirim' },
-                      { val: draft,        label: 'Draft' },
-                      { val: bayar,        label: 'Bayar' },
-                      { val: belumBayar,   label: 'Belum Bayar' },
-                    ].map((item, i, arr) => (
-                      <React.Fragment key={item.label}>
-                        <div className="flex flex-col items-center justify-center">
-                          <span className="text-xl font-black mb-1.5">{item.val}</span>
-                          <span className="text-[8px] font-bold opacity-80 whitespace-nowrap">{item.label}</span>
-                        </div>
-                        {i < arr.length - 1 && (
-                          <div className="w-[1px] bg-white opacity-20 self-stretch my-1 mx-1" />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  {/* Nominal row */}
-                  <div className="flex gap-3 relative z-10">
-                    <div className="flex-1 bg-white/95 rounded-2xl p-3 flex flex-col justify-center shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="w-2 h-2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          </div>
-                        </div>
-                        <span className="text-[9px] font-black text-slate-500 whitespace-nowrap truncate">Nominal Sudah Terbayar</span>
-                      </div>
-                      <div className="text-[14px] font-black text-slate-800 leading-tight truncate">{formatCurrencyShort(nominalTerbayar)}</div>
-                    </div>
-                    
-                    <div className="flex-1 bg-white/95 rounded-2xl p-3 flex flex-col justify-center shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 rounded-[6px] bg-indigo-100 flex items-center justify-center shrink-0">
-                          <FileText className="w-3 h-3 text-indigo-600" />
-                        </div>
-                        <span className="text-[9px] font-black text-slate-500 whitespace-nowrap truncate">Nominal Belum Dibayar</span>
-                      </div>
-                      <div className="text-[14px] font-black text-[#4f46e5] leading-tight truncate">{formatCurrencyShort(nominalBelumBayar)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tab Invoice | Pengaturan */}
-              <div className="px-4 mt-5">
-                <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1">
-                  {(['invoice', 'settings'] as const).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setMobileInvoiceTab(t)}
-                      className={`flex-1 py-2.5 text-[13px] font-bold transition-all rounded-lg ${
-                        mobileInvoiceTab === t
-                          ? 'bg-white text-[#4f46e5] border-b-[3px] border-[#4f46e5] rounded-b-none shadow-[0_1px_0_0_#4f46e5]'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      {t === 'invoice' ? 'Invoice' : 'Pengaturan'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Invoice List */}
-              <div className="px-4 mt-4">
-                {mobileInvoiceTab === 'invoice' && (
-                  <div className="space-y-4">
-                    {mobileInvoices.length === 0 ? (
-                      <div className="py-12 bg-white rounded-2xl text-center flex flex-col items-center gap-2 border border-slate-100 shadow-sm">
-                        <FileText className="w-10 h-10 text-slate-300" />
-                        <p className="text-sm font-bold text-slate-500">Belum ada invoice bulan ini</p>
-                      </div>
-                    ) : (
-                      mobileInvoices.map((inv) => {
-                        const brand = clientBrands.find(b => b.id === inv.brandId);
-                        
-                        // Status styling based on design
-                        let statusColor = "bg-slate-200 text-slate-600"; // Draft
-                        let statusText = "Draft";
-                        if (inv.status === 'TERKIRIM') {
-                           statusColor = "bg-blue-200 text-blue-700";
-                           statusText = "Terkirim";
-                        } else if (inv.status === 'DIBAYAR' || inv.status === 'SELESAI') {
-                           statusColor = "bg-emerald-200 text-emerald-700";
-                           statusText = "Selesai";
-                        }
-                        
-                        return (
-                          <div key={inv.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                            {/* Invoice number + amount */}
-                            <div className="flex items-start justify-between mb-2">
-                              <span className="text-[14px] font-black text-[#4f46e5] truncate pr-2 leading-tight tracking-tight">{inv.invoiceNumber || '-'}</span>
-                              <span className="text-[14px] font-black text-[#4f46e5] shrink-0">{formatCurrencyShort(inv.totalAmount || 0)}</span>
-                            </div>
-                            {/* Brand name */}
-                            <div className="text-[13px] font-black text-slate-800 truncate mb-1">{inv.ptName || inv.brandName}</div>
-                            {/* PIC */}
-                            <div className="text-[12px] font-semibold text-slate-400 mb-5">{inv.picName || brand?.picName || '-'}</div>
-                            
-                            {/* Action row */}
-                            <div className="flex items-center gap-3 mb-5">
-                              <button onClick={() => setInvoiceEditor({ ...inv, brandId: inv.brandId })} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-[#4f46e5] hover:bg-indigo-50 hover:border-indigo-200 transition-colors bg-white shadow-sm active:scale-95">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => setInvoiceToDelete({ brandId: inv.brandId, id: inv.id })} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors bg-white shadow-sm active:scale-95">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handlePrint(inv, inv.brandName)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-colors bg-white shadow-sm active:scale-95">
-                                <Download className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleShowEmailCopy(inv, inv.brandName, brand?.picEmail)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors bg-white shadow-sm active:scale-95">
-                                <Mail className="w-4 h-4" />
-                              </button>
-                            </div>
-                            
-                            {/* Footer strip */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                              <div className="flex items-center gap-3 text-[9px] font-bold text-slate-500">
-                                <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> <span>Invoice Date: {formatDateUI(inv.invoiceDate || inv.issueDate)}</span></div>
-                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> <span>Due Date: {formatDateUI(inv.dueDate)}</span></div>
-                              </div>
-                              <select
-                                value={inv.status || 'Draft'}
-                                onChange={(e) => updateInvoiceStatus(inv.brandId, inv.id, e.target.value as BrandInvoice["status"])}
-                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-wide appearance-none cursor-pointer outline-none border border-transparent text-center transition-all ${statusColor}`}
-                              >
-                                <option value="Draft">DRAFT</option>
-                                <option value="Open Invoice">SENT (OPEN)</option>
-                                <option value="Paid">LUNAS</option>
-                                <option value="Overdue">OVERDUE</option>
-                              </select>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                {/* Pengaturan Tab (mobile) */}
-                {mobileInvoiceTab === 'settings' && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-1 mb-4">
-                    <InvoiceSettingsPanel
-                      invoiceSettings={invoiceSettings}
-                      onInvoiceSettingsChange={setInvoiceSettings}
-                      onSaveSettings={saveSettings}
-                      onImageUpload={handleImageUpload}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'create' && (
-          <>
-            <div className="bg-white px-4 pt-6 pb-3 flex items-center gap-3 sticky top-0 z-30 border-b border-slate-100 shadow-sm">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+                onClick={onBack}
+                className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-[17px] font-bold text-slate-800 tracking-tight">Buat Invoice Baru</h1>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
+                  Billing & Accounts Receivable
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
+                <FileText className="w-6 h-6 text-indigo-600" /> Manajemen Invoice & Penagihan
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                Kelola data penagihan klien (Bill To), rekening transfer resmi PT. Liva Media Kreatif, terbitkan nota penagihan resmi, dan pantau status pelunasan invoice.
+              </p>
             </div>
-          </>
+          </div>
+
+          <button
+            onClick={() => {
+              setActiveTab("create");
+              handleBrandSelectForDraft("");
+            }}
+            className="px-5 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Buat Invoice Baru
+          </button>
+        </div>
+
+        {/* Navigation Tabs Bar */}
+        <div className="flex gap-2 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === "overview" || activeTab === "create"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Semua Invoice</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 text-slate-200">
+              {allInvoices.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("billing_directory")}
+            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === "billing_directory"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Data Penagihan Client (Bill To)</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] bg-indigo-50 text-indigo-700 font-black">
+              {clientBrands.filter(b => b.isActive !== false).length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("bank_accounts")}
+            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === "bank_accounts"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <Landmark className="w-4 h-4" />
+            <span>Rekening Bank PT Liva</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] bg-amber-50 text-amber-800 font-black">
+              {bankAccounts.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === "settings"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Pengaturan Nota</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("reminders")}
+            className={`px-4 py-2.5 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === "reminders"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <BellRing className="w-4 h-4" />
+            <span>Pengingat Otomatis</span>
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            TAB CONTENTS
+        ════════════════════════════════════════════ */}
+        <div>
+          {/* TAB 1: OVERVIEW & STATUS MANAGEMENT */}
+          {(activeTab === "overview" || activeTab === "create") && (
+            <InvoiceTable
+              allInvoices={allInvoices}
+              upcomingBillings={upcomingBillings}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filterMonth={filterMonth}
+              setFilterMonth={setFilterMonth}
+              updateInvoiceStatus={updateInvoiceStatus}
+              setInvoiceEditor={setInvoiceEditor}
+              setInvoiceToDelete={setInvoiceToDelete}
+              handlePrint={handlePrint}
+              handleShowEmailCopy={handleShowEmailCopy}
+              onPreviewInvoice={handleOpenPreview}
+              clientBrands={clientBrands}
+              formatDateUI={formatDateUI}
+            />
+          )}
+
+          {/* TAB 2: CLIENT BILLING DIRECTORY (Nama PT, dll seperti PDF) */}
+          {activeTab === "billing_directory" && (
+            <ClientBillingDirectory
+              clientBrands={clientBrands}
+              onUpdateBrands={handleUpdateBrands}
+              onCreateInvoiceForBrand={handleStartCreateForBrand}
+            />
+          )}
+
+          {/* TAB 3: PT LIVA BANK ACCOUNTS */}
+          {activeTab === "bank_accounts" && (
+            <LivaBankManager
+              bankAccounts={bankAccounts}
+              onSaveBankAccounts={handleSaveBankAccounts}
+            />
+          )}
+
+          {/* TAB 4: SETTINGS */}
+          {activeTab === "settings" && (
+            <InvoiceSettingsPanel
+              invoiceSettings={invoiceSettings}
+              onInvoiceSettingsChange={setInvoiceSettings}
+              onSaveSettings={saveSettings}
+              onImageUpload={handleImageUpload}
+            />
+          )}
+
+          {/* TAB 5: REMINDERS */}
+          {activeTab === "reminders" && (
+            <InvoiceRemindersPanel
+              upcomingBillings={upcomingBillings}
+              globalPicEmail={globalPicEmail}
+              emailTestStatus={emailTestStatus}
+              onGlobalPicEmailChange={setGlobalPicEmail}
+              onEmailTestStatusChange={setEmailTestStatus}
+              onSaveGlobalPicEmail={handleSaveGlobalPicEmail}
+              onSendReminder={sendInvoiceReminder}
+            />
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            MODALS & DRAWERS
+        ════════════════════════════════════════════ */}
+        {/* Create Invoice Drawer */}
+        {activeTab === "create" && (
+          <InvoiceCreatePanel
+            clientBrands={clientBrands}
+            bankAccounts={bankAccounts}
+            selectedBrandId={selectedBrandId}
+            draftInvoice={draftInvoice}
+            setSelectedBrandId={setSelectedBrandId}
+            setDraftInvoice={setDraftInvoice}
+            onSelectBrand={handleBrandSelectForDraft}
+            onSaveDraft={handleSaveDraft}
+            onCancel={() => setActiveTab("overview")}
+          />
+        )}
+
+        {/* Edit Invoice Drawer */}
+        {invoiceEditor && (
+          <InvoiceEditorModal
+            invoiceEditor={invoiceEditor}
+            clientBrands={clientBrands}
+            bankAccounts={bankAccounts}
+            setInvoiceEditor={setInvoiceEditor}
+            onClose={() => setInvoiceEditor(null)}
+            onUpdateBrands={handleUpdateBrands}
+          />
+        )}
+
+        {/* Official Document Preview Modal */}
+        {previewInvoiceData && (
+          <InvoicePreviewModal
+            invoice={previewInvoiceData.invoice}
+            brand={previewInvoiceData.brand}
+            bankAccount={bankAccounts.find((b) => b.isDefault) || bankAccounts[0]}
+            companyProfile={{
+              companyName: invoiceSettings.companyName,
+              address: invoiceSettings.companyAddress,
+              email: invoiceSettings.companyEmail,
+              phone: invoiceSettings.companyPhone,
+              website: invoiceSettings.companyWebsite,
+              city: invoiceSettings.signeeCity,
+              directorName: invoiceSettings.signatureName,
+              directorTitle: invoiceSettings.signatureTitle,
+              logoUrl: invoiceSettings.logoUrl,
+              signatureUrl: invoiceSettings.signatureUrl,
+              termsAndConditions: invoiceSettings.termsAndConditions,
+            }}
+            onClose={() => setPreviewInvoiceData(null)}
+            onPrint={() => handlePrint(previewInvoiceData.invoice, previewInvoiceData.brand.name)}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {invoiceToDelete && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[140] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center animate-fadeIn border border-slate-200">
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 mb-2">Hapus Invoice?</h3>
+              <p className="text-xs font-semibold text-slate-500 mb-6 leading-relaxed">
+                Tindakan ini tidak dapat dibatalkan. Tagihan invoice akan dihapus secara permanen dari sistem.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setInvoiceToDelete(null)}
+                  className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all flex-1 text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDeleteInvoice}
+                  className="px-5 py-2.5 rounded-xl font-black bg-rose-600 text-white hover:bg-rose-700 shadow-lg shadow-rose-600/20 cursor-pointer transition-all active:scale-95 flex-1 text-xs"
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Copy Notification Modal */}
+        {generatedEmail && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[140] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn border border-slate-200">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-base font-black text-slate-800">
+                  Email Notifikasi Invoice Siap Dikirim
+                </h3>
+                <button
+                  onClick={() => setGeneratedEmail(null)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                <div className="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span>Invoice berhasil disimpan. Gunakan template berikut untuk mempermudah penagihan ke klien.</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (To)</label>
+                  <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-2 items-center">
+                    <span className="font-mono text-xs text-slate-700 flex-1">{generatedEmail.to}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedEmail.to);
+                        alert('Alamat email berhasil disalin!');
+                      }}
+                      className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      Salin Email
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Subjek Email</label>
+                  <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-2 items-center gap-2">
+                    <span className="font-semibold text-xs text-slate-700 flex-1 break-all">
+                      {generatedEmail.subject}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedEmail.subject);
+                        alert('Subjek berhasil disalin!');
+                      }}
+                      className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                    >
+                      Salin Subjek
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-h-[220px] flex flex-col">
+                  <label className="block text-xs font-bold text-slate-500 mb-1 flex justify-between items-end">
+                    <span>Isi Pesan Email</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedEmail.body);
+                        alert('Isi pesan berhasil disalin!');
+                      }}
+                      className="text-[10px] uppercase font-black tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-md hover:bg-indigo-100 cursor-pointer transition-colors"
+                    >
+                      Salin Pesan
+                    </button>
+                  </label>
+                  <textarea
+                    readOnly
+                    value={generatedEmail.body}
+                    className="w-full h-full min-h-[200px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs font-medium font-mono text-slate-700 focus:outline-none resize-none leading-relaxed"
+                  />
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setGeneratedEmail(null)}
+                  className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  Selesai
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
-
-      {/* ═══════════════════════════════════════════
-          DESKTOP VIEW & OTHER TABS
-      ════════════════════════════════════════════ */}
-      <div className="hidden md:block space-y-6 pb-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-slate-700" /> Manajemen Invoice & Tagihan
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">Lacak pembayaran client, generate invoice PDF, dan kelola tagihan MCN terpusat.</p>
-        </div>
-        <button 
-          onClick={() => { setActiveTab("create"); handleBrandSelectForDraft(""); }}
-          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Buat Invoice Baru
-        </button>
-      </div>
-
-      <div className="flex gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap ${
-            activeTab === "overview" || activeTab === "create" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Semua Invoice
-        </button>
-
-        <button
-          onClick={() => setActiveTab("reminders")}
-          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "reminders" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Pengingat Otomatis
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "settings" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Pengaturan Nota
-        </button>
-      </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
-          TAB CONTENTS
-      ════════════════════════════════════════════ */}
-      <div className="pb-12">
-      {(activeTab === "overview" || activeTab === "create") && (
-        <div className="hidden md:block space-y-6">
-          <InvoiceTable 
-            allInvoices={allInvoices}
-            upcomingBillings={upcomingBillings}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filterMonth={filterMonth}
-            setFilterMonth={setFilterMonth}
-            updateInvoiceStatus={updateInvoiceStatus}
-            setInvoiceEditor={setInvoiceEditor}
-            setInvoiceToDelete={setInvoiceToDelete}
-            handlePrint={handlePrint}
-            handleShowEmailCopy={handleShowEmailCopy}
-            clientBrands={clientBrands}
-            formatDateUI={formatDateUI}
-          />
-        </div>
-      )}
-
-      {activeTab === "create" && (
-        <div className="mt-4 md:mt-0 w-full">
-          <InvoiceCreatePanel
-          clientBrands={clientBrands}
-          selectedBrandId={selectedBrandId}
-          draftInvoice={draftInvoice}
-          setSelectedBrandId={setSelectedBrandId}
-          setDraftInvoice={setDraftInvoice}
-          onSelectBrand={handleBrandSelectForDraft}
-          onSaveDraft={handleSaveDraft}
-          onCancel={() => setActiveTab("overview")}
-        />
-        </div>
-      )}
-
-      {activeTab === "reminders" && (
-        <InvoiceRemindersPanel
-          upcomingBillings={upcomingBillings}
-          globalPicEmail={globalPicEmail}
-          emailTestStatus={emailTestStatus}
-          onGlobalPicEmailChange={setGlobalPicEmail}
-          onEmailTestStatusChange={setEmailTestStatus}
-          onSaveGlobalPicEmail={handleSaveGlobalPicEmail}
-          onSendReminder={sendInvoiceReminder}
-        />
-      )}
-
-      {activeTab === "settings" && (
-        <div className="space-y-8 max-w-3xl mx-auto">
-          <InvoiceSettingsPanel
-            invoiceSettings={invoiceSettings}
-            onInvoiceSettingsChange={setInvoiceSettings}
-            onSaveSettings={saveSettings}
-            onImageUpload={handleImageUpload}
-          />
-        </div>
-      )}
-
-      </div>
-
-
-      {invoiceEditor && (
-        <InvoiceEditorModal
-          invoiceEditor={invoiceEditor}
-          clientBrands={clientBrands}
-          setInvoiceEditor={setInvoiceEditor}
-          onClose={() => setInvoiceEditor(null)}
-          onUpdateBrands={handleUpdateBrands}
-        />
-      )}
-
-      {invoiceToDelete && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center animate-fadeIn">
-            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black text-slate-800 mb-2">Hapus Invoice?</h3>
-            <p className="text-sm font-semibold text-slate-500 mb-6">Tindakan ini tidak dapat dibatalkan. Invoice akan dihapus secara permanen dari sistem.</p>
-            <div className="flex justify-center gap-3">
-              <button onClick={() => setInvoiceToDelete(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all flex-1">Batal</button>
-              <button 
-                onClick={confirmDeleteInvoice}
-                className="px-5 py-2.5 rounded-xl font-black bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20 cursor-pointer transition-all active:scale-95 flex-1"
-              >
-                Ya, Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
-      {generatedEmail && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn">
-             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-               <h3 className="text-xl font-black text-slate-800">Email Template Berhasil Dibuat</h3>
-               <button onClick={() => setGeneratedEmail(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-6 h-6" /></button>
-             </div>
-             
-             <div className="p-6 overflow-y-auto flex-1 space-y-4">
-               <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-emerald-800 text-sm font-bold flex items-center gap-2">
-                 ✅ Invoice berhasil disimpan. Gunakan template berikut untuk mempermudah penagihan.
-               </div>
-               
-               <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (To)</label>
-                  <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-2 items-center">
-                    <span className="font-mono text-sm text-slate-700 flex-1">{generatedEmail.to}</span>
-                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.to); alert('Berhasil dicopy!'); }} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm">Copy To</button>
-                  </div>
-               </div>
-
-               <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Subjek Email (Subject)</label>
-                  <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-2 items-center gap-2">
-                    <span className="font-semibold text-sm text-slate-700 flex-1 break-all">{generatedEmail.subject}</span>
-                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.subject); alert('Berhasil dicopy!'); }} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm whitespace-nowrap">Copy Subject</button>
-                  </div>
-               </div>
-
-               <div className="flex-1 min-h-[300px] flex flex-col">
-                  <label className="block text-xs font-bold text-slate-500 mb-1 flex justify-between items-end">
-                    <span>Isi Pesan (Body)</span>
-                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.body); alert('Berhasil dicopy!'); }} className="text-[10px] uppercase font-black tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1.5 rounded hover:bg-indigo-100 cursor-pointer transition-colors">Copy Isi Pesan</button>
-                  </label>
-                  <textarea readOnly value={generatedEmail.body} className="w-full h-full min-h-[250px] bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs font-medium font-mono text-slate-700 focus:outline-none resize-none leading-relaxed" />
-               </div>
-             </div>
-             
-             <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                <button onClick={() => setGeneratedEmail(null)} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all active:scale-95 cursor-pointer shadow-md">Tutup Panel</button>
-             </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

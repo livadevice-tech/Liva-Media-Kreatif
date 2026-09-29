@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Building2, CheckSquare, Plus, Trash2, Search, X } from "lucide-react";
-import { ClientBrand, BrandInvoice } from "../../types";
+import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar } from "lucide-react";
+import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
+import { terbilang } from "../../shared/utils/terbilang";
 
 type DraftInvoice = Partial<BrandInvoice>;
 
 type InvoiceCreatePanelProps = {
   clientBrands: ClientBrand[];
+  bankAccounts?: LivaBankAccount[];
   selectedBrandId: string;
   draftInvoice: DraftInvoice;
   setSelectedBrandId: React.Dispatch<React.SetStateAction<string>>;
@@ -49,12 +51,12 @@ const SearchableBrandSelect: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer flex justify-between items-center text-left min-h-[46px]"
+        className="w-full border border-slate-200 bg-slate-50 hover:bg-white rounded-xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer flex justify-between items-center text-left min-h-[48px] shadow-2xs"
       >
         <span className="truncate">
           {selectedBrand 
-            ? `${selectedBrand.name} ${selectedBrand.companyName ? `- ${selectedBrand.companyName}` : ''} (${selectedBrand.sessions?.length || 0} Shift)`
-            : "-- Klik untuk Pilih Brand --"}
+            ? `${selectedBrand.name} ${selectedBrand.companyName ? `(${selectedBrand.companyName})` : ''}`
+            : "-- Klik untuk Pilih Brand Klien --"}
         </span>
         <span className="text-[10px] text-slate-400 select-none ml-2 shrink-0">▼</span>
       </button>
@@ -68,11 +70,11 @@ const SearchableBrandSelect: React.FC<{
               placeholder="Cari nama brand atau nama PT..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
               autoFocus
             />
           </div>
-          <div className="max-h-[250px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+          <div className="max-h-[260px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
             {filteredBrands.length > 0 ? (
               filteredBrands.map((b) => {
                 const isSelected = b.id === value;
@@ -84,23 +86,26 @@ const SearchableBrandSelect: React.FC<{
                       onChange(b.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-colors cursor-pointer flex flex-col gap-0.5 ${
-                      isSelected ? "bg-indigo-50 border-indigo-100" : "text-slate-700 hover:bg-slate-50 border-transparent"
+                    className={`w-full px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer flex flex-col gap-0.5 ${
+                      isSelected ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "text-slate-700 hover:bg-slate-50 border-transparent"
                     } border`}
                   >
                     <div className="flex justify-between items-center w-full">
-                       <span className={isSelected ? "text-indigo-700" : ""}>
-                         {b.name} {b.companyName ? `- ${b.companyName}` : ''}
-                       </span>
-                       <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md ${isSelected ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"}`}>
+                       <span className="truncate font-black">{b.name}</span>
+                       <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold shrink-0">
                          {b.sessions?.length || 0} Shift
                        </span>
                     </div>
+                    {b.companyName && (
+                      <span className="text-[11px] font-semibold text-slate-500 truncate">
+                        {b.companyName}
+                      </span>
+                    )}
                   </button>
                 );
               })
             ) : (
-              <div className="px-3 py-4 text-center text-sm font-bold text-slate-400">
+              <div className="px-3 py-4 text-center text-xs font-bold text-slate-400">
                 Brand tidak ditemukan
               </div>
             )}
@@ -111,9 +116,9 @@ const SearchableBrandSelect: React.FC<{
   );
 };
 
-
 export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
   clientBrands,
+  bankAccounts = [],
   selectedBrandId,
   draftInvoice,
   setSelectedBrandId,
@@ -122,8 +127,12 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
   onSaveDraft,
   onCancel,
 }) => {
+  const totalAmount = (draftInvoice.sessionItems || []).reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
+  const totalQty = (draftInvoice.sessionItems || []).reduce((acc, curr) => acc + (curr.qty || 0), 0);
+  const terbilangStr = terbilang(totalAmount);
+
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
+    <div className="fixed inset-0 z-[110] overflow-hidden flex justify-end">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
@@ -131,11 +140,11 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
       />
 
       {/* Right Drawer Panel */}
-      <div className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
+      <div className="relative w-full max-w-3xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
         <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Buat Invoice Baru</h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Pilih brand klien dan konfirmasi rincian tagihan</p>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">Buat Invoice Baru</h3>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Pilih brand klien dan atur rincian tagihan resmi</p>
           </div>
           <button 
             onClick={onCancel} 
@@ -147,8 +156,11 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
+          {/* Brand Selection */}
           <div>
-            <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Pilih Brand Klien (Otomatis Deteksi Shift)</label>
+            <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
+              Pilih Brand Klien (Otomatis Deteksi Data Penagihan) <span className="text-rose-500">*</span>
+            </label>
             <SearchableBrandSelect 
               brands={clientBrands.filter(b => b.isActive !== false)}
               value={selectedBrandId}
@@ -160,119 +172,270 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
           </div>
 
           {selectedBrandId && draftInvoice && (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-5 space-y-5">
+              {/* Row 1: Invoice Meta */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Nomor Invoice</label>
-                  <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.invoiceNumber || ""} onChange={e => setDraftInvoice({...draftInvoice, invoiceNumber: e.target.value})} />
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1">
+                    Nomor Invoice
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.invoiceNumber || ""}
+                    onChange={e => setDraftInvoice({...draftInvoice, invoiceNumber: e.target.value})}
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Status Draft</label>
-                  <select className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white cursor-pointer" value={draftInvoice.status || "Draft"} onChange={e => setDraftInvoice({...draftInvoice, status: e.target.value as BrandInvoice["status"]})}>
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1">
+                    Status Invoice
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.status || "Draft"}
+                    onChange={e => setDraftInvoice({...draftInvoice, status: e.target.value as BrandInvoice["status"]})}
+                  >
                     <option value="Draft">Draft (Belum Dikirim)</option>
-                    <option value="Open Invoice">Open Invoice (Sudah Dikirim)</option>
+                    <option value="Open Invoice">Open Invoice (Terkirim)</option>
                     <option value="Paid">Paid (Lunas)</option>
+                    <option value="Overdue">Overdue (Jatuh Tempo)</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Invoice (Invoice Date)</label>
-                  <input type="date" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.invoiceDate || draftInvoice.issueDate || ""} onChange={e => setDraftInvoice({...draftInvoice, invoiceDate: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Dibuat (Issue Date)</label>
-                  <input type="date" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.issueDate || ""} onChange={e => setDraftInvoice({...draftInvoice, issueDate: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Tenggat Waktu (Due Date)</label>
-                  <input type="date" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.dueDate || ""} onChange={e => setDraftInvoice({...draftInvoice, dueDate: e.target.value})} />
-                </div>
-              </div>
 
-              <div className="border-t border-slate-200 pt-4 mt-2">
-                <h4 className="text-sm font-black text-slate-800 mb-3">Informasi Kepada (Recipient)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Nama PT</label>
-                    <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.ptName || ""} onChange={e => setDraftInvoice({...draftInvoice, ptName: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (PIC)</label>
-                    <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.picName || ""} onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">No. Telp PIC</label>
-                    <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.picPhone || ""} onChange={e => setDraftInvoice({...draftInvoice, picPhone: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Email Pengirim (opsional)</label>
-                    <input type="email" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.email || ""} onChange={e => setDraftInvoice({...draftInvoice, email: e.target.value})} />
-                  </div>
-                </div>
+                {/* Bank Account of PT Liva */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Detail Alamat Lengkap</label>
-                  <textarea rows={3} className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.address || ""} onChange={e => setDraftInvoice({...draftInvoice, address: e.target.value})} />
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-4 mt-2">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-sm font-black text-slate-800">Komponen Penagihan</h4>
-                  <button
-                    onClick={() => {
-                      const newItems = [...(draftInvoice.sessionItems || []), { sessionId: `custom_${Date.now()}`, description: "", qty: 1, cost: 0 }];
-                      setDraftInvoice({...draftInvoice, sessionItems: newItems});
+                  <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Landmark className="w-3.5 h-3.5 text-indigo-600" /> Rekening Pembayaran
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs cursor-pointer focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.bankInfo?.accountNo || ""}
+                    onChange={(e) => {
+                      const selectedBank = bankAccounts.find(b => b.accountNo === e.target.value);
+                      if (selectedBank) {
+                        setDraftInvoice({
+                          ...draftInvoice,
+                          bankInfo: {
+                            bankName: selectedBank.bankName,
+                            accountNo: selectedBank.accountNo,
+                            accountName: selectedBank.accountName,
+                          }
+                        });
+                      }
                     }}
-                    className="text-[10px] bg-white border border-slate-200 shadow-sm px-2 py-1 rounded font-black hover:bg-slate-50 flex items-center gap-1 transition-all cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" /> Tambah Baris
+                    {bankAccounts.length === 0 ? (
+                      <option value="2721002897">Maybank Syariah - 2721002897</option>
+                    ) : (
+                      bankAccounts.map((b) => (
+                        <option key={b.id} value={b.accountNo}>
+                          {b.bankName} - {b.accountNo} ({b.accountName})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Tanggal Invoice
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.invoiceDate || draftInvoice.issueDate || ""}
+                    onChange={e => setDraftInvoice({...draftInvoice, invoiceDate: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Tanggal Dibuat (Issue Date)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.issueDate || ""}
+                    onChange={e => setDraftInvoice({...draftInvoice, issueDate: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Jatuh Tempo (Due Date)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                    value={draftInvoice.dueDate || ""}
+                    onChange={e => setDraftInvoice({...draftInvoice, dueDate: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Section 2: Bill To Information */}
+              <div className="border-t border-slate-200 pt-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-indigo-600" /> Informasi Ditujukan Kepada (Bill To)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">
+                      Nama PT / Badan Usaha <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                      placeholder="Contoh: PT Creative Stylemandiri"
+                      value={draftInvoice.ptName || ""}
+                      onChange={e => setDraftInvoice({...draftInvoice, ptName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">
+                      Kepada / PIC <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                      placeholder="Contoh: Sari Ayu Marthatilaar"
+                      value={draftInvoice.picName || ""}
+                      onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">
+                      No. Telepon / WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                      placeholder="Contoh: +62812-3974-5911"
+                      value={draftInvoice.picPhone || ""}
+                      onChange={e => setDraftInvoice({...draftInvoice, picPhone: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">
+                      Email Penagihan
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-bold bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                      placeholder="Contoh: viancaxalyssa@gmail.com"
+                      value={draftInvoice.email || ""}
+                      onChange={e => setDraftInvoice({...draftInvoice, email: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">
+                    Alamat Lengkap Perusahaan
+                  </label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-medium bg-white text-slate-800 text-xs focus:outline-none focus:border-indigo-500"
+                    placeholder="Contoh: Jl. Pulo Kambing II No.1, Kawasan Industri Pulo Gadung, Jakarta Timur 13930."
+                    value={draftInvoice.address || ""}
+                    onChange={e => setDraftInvoice({...draftInvoice, address: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Section 3: Line Items */}
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Komponen / Rincian Layanan Tagihan
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newItems = [
+                        ...(draftInvoice.sessionItems || []),
+                        { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Sesi", cost: 0 },
+                      ];
+                      setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                    }}
+                    className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Tambah Baris
                   </button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {(draftInvoice.sessionItems || []).map((item, idx) => (
-                    <div key={item.sessionId} className="flex flex-col sm:flex-row gap-2 items-center bg-white p-2 rounded-xl border border-slate-200">
-                      <input
-                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold w-full"
-                        placeholder="Deskripsi Item (Misal: Paket Streaming...)"
-                        value={item.description}
-                        onChange={(e) => {
-                          const newItems = [...(draftInvoice.sessionItems || [])];
-                          newItems[idx].description = e.target.value;
-                          setDraftInvoice({...draftInvoice, sessionItems: newItems});
-                        }}
-                      />
-                      <div className="flex gap-2 w-full sm:w-auto">
+                    <div
+                      key={item.sessionId || idx}
+                      className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-2.5 items-center shadow-2xs"
+                    >
+                      <div className="flex-1 w-full">
+                        <input
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                          placeholder="Deskripsi Layanan / Item (Contoh: Live Streaming Package Shopee)"
+                          value={item.description}
+                          onChange={(e) => {
+                            const newItems = [...(draftInvoice.sessionItems || [])];
+                            newItems[idx].description = e.target.value;
+                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full md:w-auto">
                         <input
                           type="number"
-                          className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-sm font-bold text-center"
+                          className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold text-center text-slate-800 focus:outline-none focus:border-indigo-500"
                           placeholder="Qty"
                           value={item.qty || ""}
                           onChange={(e) => {
                             const newItems = [...(draftInvoice.sessionItems || [])];
                             newItems[idx].qty = Number(e.target.value);
-                            setDraftInvoice({...draftInvoice, sessionItems: newItems});
+                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                           }}
                         />
+
+                        <input
+                          type="text"
+                          className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-xs font-semibold text-center text-slate-700 focus:outline-none focus:border-indigo-500"
+                          placeholder="Unit (Sesi)"
+                          value={item.unit || "Sesi"}
+                          onChange={(e) => {
+                            const newItems = [...(draftInvoice.sessionItems || [])];
+                            newItems[idx].unit = e.target.value;
+                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                          }}
+                        />
+
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Rp</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                            Rp
+                          </span>
                           <input
                             type="number"
-                            className="w-32 border border-slate-200 rounded-lg pl-8 pr-2 py-2 text-sm font-bold"
-                            placeholder="Harga Satuan"
+                            className="w-32 border border-slate-200 rounded-lg pl-8 pr-2 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                            placeholder="Harga"
                             value={item.cost || ""}
                             onChange={(e) => {
                               const newItems = [...(draftInvoice.sessionItems || [])];
                               newItems[idx].cost = Number(e.target.value);
-                              setDraftInvoice({...draftInvoice, sessionItems: newItems});
+                              setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                             }}
                           />
                         </div>
+
                         <button
+                          type="button"
                           onClick={() => {
                             const newItems = draftInvoice.sessionItems?.filter((_, i) => i !== idx);
-                            setDraftInvoice({...draftInvoice, sessionItems: newItems});
+                            setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                           }}
-                          className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -281,36 +444,46 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Total & Terbilang Calculation Block */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
+                  <span>Total Item / Kuantitas:</span>
+                  <span className="text-slate-900">{totalQty}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm font-black text-slate-900 border-t border-slate-100 pt-2">
+                  <span>Grand Total:</span>
+                  <span className="text-base text-indigo-700">
+                    Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Terbilang :</div>
+                  <div className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</div>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {selectedBrandId && draftInvoice && (
-          <div className="mt-6 flex justify-end">
+          <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-between gap-3 shrink-0">
             <button
-              onClick={onSaveDraft}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
             >
-              <CheckSquare className="w-5 h-5" /> Simpan Invoice
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={onSaveDraft}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer text-xs"
+            >
+              <CheckSquare className="w-4 h-4" /> Terbitkan & Simpan Invoice
             </button>
           </div>
         )}
-      </div>
-
-      <div className="hidden xl:block w-80 bg-slate-50 border border-slate-200 rounded-2xl p-5 sticky top-5 h-fit">
-        <h4 className="font-black text-slate-800 mb-4 flex items-center gap-2 text-sm">
-          <Building2 className="w-4 h-4 text-indigo-500" /> Ringkasan Draft
-        </h4>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
-          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-            <span className="text-xs font-semibold text-slate-500">Total Item</span>
-            <span className="font-black text-slate-800">{draftInvoice.sessionItems?.reduce((a, c) => a + (c.qty || 0), 0) || 0}</span>
-          </div>
-          <div className="flex justify-between items-center text-lg">
-            <span className="text-xs font-bold text-slate-500">Grand Total</span>
-            <span className="font-black text-indigo-700">Rp{new Intl.NumberFormat('id-ID').format(draftInvoice.sessionItems?.reduce((a, c) => a + (c.cost * c.qty), 0) || 0)}</span>
-          </div>
-        </div>
       </div>
     </div>
   );

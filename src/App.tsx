@@ -9,6 +9,7 @@ import { MobileDashboardHome } from './components/admin/MobileDashboardHome';
 import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
 import { MobileWeeklySchedule } from './components/admin/MobileWeeklySchedule';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
+import { InvoiceDashboard } from './components/InvoiceDashboard';
 import React, {
   useState,
   useEffect,
@@ -4799,6 +4800,7 @@ export default function App() {
       { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
       { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
       { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
+      { tabId: "invoice", label: "Invoice", icon: FileText, category: "cat-client" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
       { type: "header", label: "Keamanan Akun", key: "cat-security" },
@@ -6139,6 +6141,9 @@ export default function App() {
                     )}
                     {operatorTab === "reporting_brand" && (
                       <span>Reporting Eksternal Brand</span>
+                    )}
+                    {operatorTab === "invoice" && (
+                      <span>Manajemen Invoice & Penagihan</span>
                     )}
                     {operatorTab === "leads" && (
                       <span>Leads & Calon Klien</span>
@@ -12795,6 +12800,13 @@ export default function App() {
                     />
                   </div>
                 )}
+                {/* ==================== SUBTAB: INVOICE & PENAGIHAN 📄 ==================== */}
+                {operatorTab === "invoice" && (
+                  <InvoiceDashboard
+                    clientBrands={clientBrands}
+                    onUpdateBrands={setClientBrands}
+                  />
+                )}
                 {/* ==================== SUBTAB: SETTINGS CONFIGURATION ⚙️ ==================== */}
                 {operatorTab === "settings" && (
                   <div
@@ -13097,6 +13109,10 @@ export default function App() {
                                     {
                                       id: "reporting_brand",
                                       label: "Reporting Brand (Upload)",
+                                    },
+                                    {
+                                      id: "invoice",
+                                      label: "Invoice & Penagihan",
                                     },
                                     {
                                       id: "settings",
