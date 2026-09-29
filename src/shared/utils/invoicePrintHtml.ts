@@ -76,7 +76,20 @@ export function generateInvoicePrintHtml(params: {
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           @page {
             size: A4 portrait;
-            margin: 14mm 16mm 14mm 16mm;
+            margin: 0mm !important;
+          }
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 0mm !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
           }
           * {
             box-sizing: border-box;
@@ -85,8 +98,8 @@ export function generateInvoicePrintHtml(params: {
           }
           body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 12mm 15mm 12mm 15mm !important;
             color: #0f172a;
             background: #ffffff;
             font-size: 11px;
