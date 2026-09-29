@@ -17,6 +17,8 @@ type CutoffPeriodSelectorProps = {
   labelClassName?: string;
   selectClassName?: string;
   noteClassName?: string;
+  icon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 };
 
 export const CutoffPeriodSelector: React.FC<CutoffPeriodSelectorProps> = ({
@@ -32,6 +34,8 @@ export const CutoffPeriodSelector: React.FC<CutoffPeriodSelectorProps> = ({
   labelClassName,
   selectClassName,
   noteClassName,
+  icon,
+  rightIcon,
 }) => {
   return (
     <div className={containerClassName}>
@@ -40,7 +44,8 @@ export const CutoffPeriodSelector: React.FC<CutoffPeriodSelectorProps> = ({
           {label}
         </label>
       )}
-      <div className="flex gap-1.5 items-center">
+      <div className="flex gap-2 items-center w-full min-w-0">
+        {icon && <div className="shrink-0 flex items-center pointer-events-none">{icon}</div>}
         <select
           id={id}
           value={value}
@@ -54,6 +59,7 @@ export const CutoffPeriodSelector: React.FC<CutoffPeriodSelectorProps> = ({
             </option>
           ))}
         </select>
+        {rightIcon && <div className="shrink-0 flex items-center pointer-events-none">{rightIcon}</div>}
       </div>
       {showNote && value !== "Semua" && (
         <span className={noteClassName}>
@@ -63,3 +69,4 @@ export const CutoffPeriodSelector: React.FC<CutoffPeriodSelectorProps> = ({
     </div>
   );
 };
+

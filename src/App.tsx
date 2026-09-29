@@ -124,6 +124,7 @@ import {
   Folder,
   Tag,
   Bookmark,
+  Wallet,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -8509,32 +8510,32 @@ export default function App() {
                     </div>
 
                     {/* PAYROLL SUBTAB NAVIGATION (TAB 1: STREAMER PAYROLL, TAB 2: THR MANAGEMENT) */}
-                    <div className="px-4 md:px-0 mb-4">
-                      <div className="flex bg-slate-100/90 p-1 w-full max-w-sm rounded-xl border border-slate-200/60 shadow-3xs">
+                    <div className="px-4 md:px-0 mb-5">
+                      <div className="inline-flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1">
                         <button
                           type="button"
                           onClick={() => setPayrollSubTab("streamer_payroll")}
-                          className={`flex-1 py-1.5 px-3 text-xs font-bold transition-all rounded-lg flex items-center justify-center gap-2 cursor-pointer ${
+                          className={`py-1.5 px-3.5 text-xs font-bold transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
                             payrollSubTab === "streamer_payroll"
-                              ? "bg-white text-purple-700 shadow-xs"
-                              : "text-slate-500 hover:text-slate-800"
+                              ? "bg-white text-violet-700 shadow-sm border border-slate-200/60"
+                              : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
                           }`}
                         >
-                          <Calculator className="w-3.5 h-3.5" />
+                          <Calculator className={`w-3.5 h-3.5 ${payrollSubTab === "streamer_payroll" ? "text-violet-600" : "text-slate-400"}`} />
                           <span>Payroll Streamer</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setPayrollSubTab("thr_management")}
-                          className={`flex-1 py-1.5 px-3 text-xs font-bold transition-all rounded-lg flex items-center justify-center gap-2 cursor-pointer ${
+                          className={`py-1.5 px-3.5 text-xs font-bold transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
                             payrollSubTab === "thr_management"
-                              ? "bg-white text-purple-700 shadow-xs"
-                              : "text-slate-500 hover:text-slate-800"
+                              ? "bg-white text-violet-700 shadow-sm border border-slate-200/60"
+                              : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
                           }`}
                         >
-                          <Gift className="w-3.5 h-3.5 text-purple-600" />
+                          <Gift className={`w-3.5 h-3.5 ${payrollSubTab === "thr_management" ? "text-violet-600" : "text-slate-400"}`} />
                           <span>Tab THR</span>
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/70">
                             Baru
                           </span>
                         </button>
@@ -8683,236 +8684,295 @@ export default function App() {
 
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
-                    <div className="bg-white md:rounded-2xl border-y md:border border-slate-100 md:shadow-xs max-w-5xl overflow-hidden md:mb-6">
+                    <div className="bg-white md:rounded-2xl border-y md:border border-slate-200/80 md:shadow-xs max-w-5xl overflow-hidden md:mb-6 transition-all duration-200">
                       <button
                         type="button"
                         onClick={() =>
                           setIsPayrollConfigOpen(!isPayrollConfigOpen)
                         }
-                        className="w-full hidden md:flex items-center justify-between p-4 md:p-6 bg-slate-50 hover:bg-slate-100 transition-colors text-left cursor-pointer border-0"
+                        className="w-full hidden md:flex items-center justify-between px-6 py-4.5 bg-gradient-to-r from-slate-50/90 via-white to-violet-50/30 hover:from-slate-100/70 hover:to-violet-50/50 transition-all text-left cursor-pointer border-0 group select-none"
                       >
-                        <div className="flex items-center gap-2 text-[#2563eb] font-extrabold text-sm">
-                          <Sliders className="w-4 h-4 text-[#2563eb]" />
-                          SETTING PAYROLL CONFIGURATION
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-violet-600/10 text-violet-600 flex items-center justify-center ring-1 ring-violet-500/20 group-hover:scale-105 transition-transform shrink-0">
+                            <Sliders className="w-4 h-4 text-violet-600" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-sm text-slate-800 tracking-tight">
+                                Konfigurasi Parameter Payroll
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-100/80 text-violet-700 border border-violet-200/60">
+                                Draf Gaji
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                              Kelola gaji pokok regional, bonus kehadiran, tarif shift backup, dan siklus tutup buku cut-off
+                            </p>
+                          </div>
                         </div>
-                        <ChevronDown
-                          className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${isPayrollConfigOpen ? "rotate-180" : ""}`}
-                        />
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 group-hover:text-slate-800 transition-colors">
+                          <span>{isPayrollConfigOpen ? "Tutup Pengaturan" : "Buka Pengaturan"}</span>
+                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-slate-200/80 flex items-center justify-center transition-colors">
+                            <ChevronDown
+                              className={`w-4 h-4 text-slate-600 transition-transform duration-300 ${
+                                isPayrollConfigOpen ? "rotate-180" : ""
+                              }`}
+                            />
+                          </div>
+                        </div>
                       </button>
 
                       {isPayrollConfigOpen && (
                         <div
-                          className="p-4 md:p-6 border-t border-slate-100"
+                          className="p-5 md:p-6 border-t border-slate-100 bg-white"
                           id="salary_parameter_grid_panel"
                         >
-                          <div className="text-slate-500 font-bold text-xs mb-4">
-                            PENGATURAN PARAMETER GAJI STREAMER AGENCY
-                            (DIFERENSIASI REGULER & BACKUP)
+                          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                              <Settings className="w-4 h-4 text-violet-600" />
+                              <span>Pengaturan Parameter Gaji Streamer Agency</span>
+                              <span className="text-[10px] font-normal text-slate-400">
+                                (Diferensiasi Reguler &amp; Backup per Studio)
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              Tersimpan otomatis ke sistem
+                            </span>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs mb-2 items-start">
-                            <div className="flex flex-col gap-6">
+                            {/* Column 1: Studio Parameters */}
+                            <div className="flex flex-col gap-5">
                               {/* Bandar Lampung Pay Config Card */}
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                                <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5">
-                                  Studio Bandar Lampung
-                                </span>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-bold">
-                                    Gaji Pokok Host Reguler (Bulanan):
+                              <div className="p-4.5 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-3.5 shadow-2xs">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
+                                  <div className="flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-blue-600" />
+                                    <span className="font-bold text-slate-800 text-xs">
+                                      Studio Bandar Lampung
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                                    Studio Utama
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Gaji Pokok Host Reguler:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">Bulanan</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_pay_bandar_lampung_reguler"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_pay_bandar_lampung_reguler"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.bandarLampungRegulerBase ??
                                           4000000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        bandarLampungRegulerBase: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          bandarLampungRegulerBase: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-semibold">
-                                    Nominal Bonus 100% Hadir (&le; 3x
-                                    Terlambat):
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Nominal Bonus 100% Hadir:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">&le; 3x Terlambat</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_bonus_bandar_lampung_reguler"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_bonus_bandar_lampung_reguler"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.bandarLampungRegulerBonus ??
                                           300000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        bandarLampungRegulerBonus: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          bandarLampungRegulerBonus: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-bold">
-                                    Tarif per Shift Host Backup:
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Tarif per Shift Host Backup:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">Per Shift</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_pay_bandar_lampung_backup"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_pay_bandar_lampung_backup"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.bandarLampungBackupPay ??
                                           175000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        bandarLampungBackupPay: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          bandarLampungBackupPay: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
                               </div>
 
                               {/* Tanggamus Pay Config Card */}
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                                <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5">
-                                  ⛰️ Studio Tanggamus
-                                </span>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-bold">
-                                    Gaji Pokok Host Reguler (Bulanan):
+                              <div className="p-4.5 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-3.5 shadow-2xs">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-emerald-600" />
+                                    <span className="font-bold text-slate-800 text-xs">
+                                      Studio Tanggamus
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                    Studio Cabang
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Gaji Pokok Host Reguler:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">Bulanan</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_pay_tanggamus_reguler"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_pay_tanggamus_reguler"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.tanggamusRegulerBase ??
                                           3500000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        tanggamusRegulerBase: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          tanggamusRegulerBase: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-semibold">
-                                    Nominal Bonus 100% Hadir (&le; 3x
-                                    Terlambat):
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Nominal Bonus 100% Hadir:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">&le; 3x Terlambat</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_bonus_tanggamus_reguler"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_bonus_tanggamus_reguler"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.tanggamusRegulerBonus ??
                                           250000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        tanggamusRegulerBonus: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          tanggamusRegulerBonus: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-slate-600 block font-bold">
-                                    Tarif per Shift Host Backup:
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                    <span>Tarif per Shift Host Backup:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">Per Shift</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    id="input_pay_tanggamus_backup"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      id="input_pay_tanggamus_backup"
+                                      value={new Intl.NumberFormat("id-ID").format(
                                         salarySettings.tanggamusBackupPay ??
                                           150000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        tanggamusBackupPay: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb]"
-                                  />
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          tanggamusBackupPay: val
+                                            ? parseInt(val, 10)
+                                            : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex flex-col gap-6">
-                              {/* Proportional Cycle Sliders Card */}
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-start space-y-3">
-                                <div className="space-y-2">
-                                  <label className="text-slate-800 font-extrabold block">
-                                    Target Hari Kerja Sebulan:{" "}
-                                    <span className="font-mono text-[#2563eb] font-black">
+                            {/* Column 2: Work Days, Overtime & Cut-off Period */}
+                            <div className="flex flex-col gap-5">
+                              {/* Target Work Days & Overtime Card */}
+                              <div className="p-4.5 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-4 shadow-2xs">
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-bold text-slate-700">
+                                      Target Hari Kerja Sebulan:
+                                    </label>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-800 font-extrabold text-xs border border-violet-200 shadow-3xs">
                                       {salarySettings.workingDays} Hari
                                     </span>
-                                  </label>
+                                  </div>
                                   <input
                                     type="range"
                                     min="1"
@@ -8924,155 +8984,164 @@ export default function App() {
                                         workingDays: Number(e.target.value),
                                       }))
                                     }
-                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
+                                    style={{
+                                      background: `linear-gradient(to right, #7c3aed ${((salarySettings.workingDays - 1) / 30) * 100}%, #e2e8f0 ${((salarySettings.workingDays - 1) / 30) * 100}%)`,
+                                    }}
+                                    className="custom-range-slider"
                                   />
-                                  <span className="text-[10px] text-slate-500 font-semibold block leading-normal">
-                                    Digunakan untuk proporsi performa kehadiran
-                                    Host Reguler bulanan (Hari Kehadiran /
-                                    Target Hari Kerja).
+                                  <div className="flex justify-between text-[10px] font-semibold text-slate-400 mt-1.5">
+                                    <span>1 Hari</span>
+                                    <span>Standar: 26 Hari</span>
+                                    <span>31 Hari</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 font-medium block mt-2 leading-relaxed">
+                                    Digunakan untuk proporsi kehadiran Host Reguler bulanan (Hari Kehadiran / Target Hari Kerja).
                                   </span>
                                 </div>
-                                <div className="space-y-2 border-t border-slate-200 mt-2 pt-3">
-                                  <label className="text-slate-800 font-extrabold block text-xs">
-                                    Tarif Lembur per Jam:
+
+                                <div className="space-y-1.5 border-t border-slate-200/70 pt-3.5">
+                                  <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                                    <span>Tarif Lembur per Jam:</span>
+                                    <span className="text-[10px] font-medium text-slate-400">Per Jam</span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    value={
-                                      "Rp " +
-                                      new Intl.NumberFormat("id-ID").format(
-                                        salarySettings.overtimePayPerHour ??
-                                          20000,
-                                      )
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      setSalarySettings((prev) => ({
-                                        ...prev,
-                                        overtimePayPerHour: val
-                                          ? parseInt(val, 10)
-                                          : 0,
-                                      }));
-                                    }}
-                                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb] text-sm"
-                                  />
-                                  <span className="text-[10px] text-slate-500 font-semibold block leading-normal">
-                                    Digunakan untuk menghitung total nominal jam
-                                    lembur yang ditambahkan ke gaji bersih.
+                                  <div className="flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all shadow-2xs overflow-hidden">
+                                    <span className="px-3 py-2 text-xs font-bold text-slate-400 bg-slate-50 border-r border-slate-200/80 select-none shrink-0">
+                                      Rp
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={new Intl.NumberFormat("id-ID").format(
+                                        salarySettings.overtimePayPerHour ?? 20000,
+                                      )}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        setSalarySettings((prev) => ({
+                                          ...prev,
+                                          overtimePayPerHour: val ? parseInt(val, 10) : 0,
+                                        }));
+                                      }}
+                                      className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 font-medium block mt-1 leading-relaxed">
+                                    Dikalikan dengan total jam lembur yang valid dan ditambahkan langsung ke draf gaji bersih.
                                   </span>
                                 </div>
                               </div>
 
-                              {/* Cut-Off/Tutup Buku Period Card */}
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between space-y-3">
-                                <div>
-                                  <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5 mb-2">
-                                    Cut-Off (Tutup Buku) Bulanan
+                              {/* Cut-Off (Tutup Buku) Bulanan Card */}
+                              <div className="p-4.5 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-3.5 shadow-2xs">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-violet-600" />
+                                    <span className="font-bold text-slate-800 text-xs">
+                                      Cut-Off (Tutup Buku) Bulanan
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200/60">
+                                    Siklus Tanggal
                                   </span>
+                                </div>
 
-                                  <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-150 mb-2 hover:border-slate-300 transition-all shadow-2xs">
+                                <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 shadow-3xs">
+                                      <Clock className="w-4 h-4" />
+                                    </div>
                                     <div>
-                                      <span className="text-slate-800 font-extrabold block text-[10px]">
+                                      <span className="text-slate-800 font-bold block text-xs">
                                         Batas Cut-Off Aktif
                                       </span>
-                                      <span className="text-[9px] text-slate-450 font-normal">
-                                        Gunakan siklus tanggal khusus
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        Gunakan siklus tanggal khusus bulanan
                                       </span>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setSalarySettings((prev) => ({
-                                          ...prev,
-                                          useCutOff: !prev.useCutOff,
-                                        }))
-                                      }
-                                      className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 outline-none focus:ring-1 focus:ring-blue-150 ${
-                                        salarySettings.useCutOff
-                                          ? "bg-blue-600"
-                                          : "bg-slate-300"
-                                      }`}
-                                    >
-                                      <div
-                                        className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-xs ${
-                                          salarySettings.useCutOff
-                                            ? "translate-x-4"
-                                            : "translate-x-0"
-                                        }`}
-                                      />
-                                    </button>
                                   </div>
 
-                                  {salarySettings.useCutOff && (
-                                    <div className="space-y-1.5 animate-fadeIn">
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-0.5">
-                                          <label className="text-slate-600 font-bold block text-[9.5px]">
-                                            Tgl Mulai:
-                                          </label>
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={salarySettings.useCutOff}
+                                    onClick={() =>
+                                      setSalarySettings((prev) => ({
+                                        ...prev,
+                                        useCutOff: !prev.useCutOff,
+                                      }))
+                                    }
+                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+                                      salarySettings.useCutOff
+                                        ? "bg-violet-600"
+                                        : "bg-slate-300"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                        salarySettings.useCutOff
+                                          ? "translate-x-5"
+                                          : "translate-x-0"
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+
+                                {salarySettings.useCutOff && (
+                                  <div className="space-y-3 pt-1 animate-fadeIn">
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-600 block">
+                                          Tanggal Mulai
+                                        </label>
+                                        <div className="flex items-center rounded-xl border border-slate-200 bg-white focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all overflow-hidden shadow-2xs">
+                                          <span className="px-2.5 py-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 border-r border-slate-200">
+                                            Tgl
+                                          </span>
                                           <input
                                             type="number"
                                             min="1"
                                             max="31"
-                                            value={
-                                              salarySettings.cutOffStartDay ??
-                                              16
-                                            }
+                                            value={salarySettings.cutOffStartDay ?? 16}
                                             onChange={(e) => {
-                                              const val = Math.max(
-                                                1,
-                                                Math.min(
-                                                  31,
-                                                  Number(e.target.value),
-                                                ),
-                                              );
-                                              setSalarySettings((prev) => ({
-                                                ...prev,
-                                                cutOffStartDay: val,
-                                              }));
+                                              const val = Math.max(1, Math.min(31, Number(e.target.value)));
+                                              setSalarySettings((prev) => ({ ...prev, cutOffStartDay: val }));
                                             }}
-                                            className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 font-extrabold font-mono text-center text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-100"
-                                          />
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          <label className="text-slate-600 font-bold block text-[9.5px]">
-                                            Tgl Akhir:
-                                          </label>
-                                          <input
-                                            type="number"
-                                            min="1"
-                                            max="31"
-                                            value={
-                                              salarySettings.cutOffEndDay ?? 15
-                                            }
-                                            onChange={(e) => {
-                                              const val = Math.max(
-                                                1,
-                                                Math.min(
-                                                  31,
-                                                  Number(e.target.value),
-                                                ),
-                                              );
-                                              setSalarySettings((prev) => ({
-                                                ...prev,
-                                                cutOffEndDay: val,
-                                              }));
-                                            }}
-                                            className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 font-extrabold font-mono text-center text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-100"
+                                            className="w-full text-center font-bold text-xs text-slate-900 py-1.5 focus:outline-none no-spin bg-transparent"
                                           />
                                         </div>
                                       </div>
 
-                                      <div
-                                        className="mt-2.5 pt-2 border-t border-slate-200/65 space-y-1"
-                                        id="cut_off_month_picker_wrapper"
-                                      >
-                                        <label className="text-[10px] font-black text-slate-700 block text-left">
-                                          Pilih Range Bulan:
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-600 block">
+                                          Tanggal Akhir
                                         </label>
+                                        <div className="flex items-center rounded-xl border border-slate-200 bg-white focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all overflow-hidden shadow-2xs">
+                                          <span className="px-2.5 py-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 border-r border-slate-200">
+                                            Tgl
+                                          </span>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            max="31"
+                                            value={salarySettings.cutOffEndDay ?? 15}
+                                            onChange={(e) => {
+                                              const val = Math.max(1, Math.min(31, Number(e.target.value)));
+                                              setSalarySettings((prev) => ({ ...prev, cutOffEndDay: val }));
+                                            }}
+                                            className="w-full text-center font-bold text-xs text-slate-900 py-1.5 focus:outline-none no-spin bg-transparent"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div
+                                      className="space-y-1.5 pt-2 border-t border-slate-200/70"
+                                      id="cut_off_month_picker_wrapper"
+                                    >
+                                      <label className="text-[11px] font-bold text-slate-700 block">
+                                        Pilih Range Bulan:
+                                      </label>
+                                      <div className="relative">
+                                        <Calendar className="w-3.5 h-3.5 text-violet-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                         <select
                                           id="select_cutoff_periode"
                                           value={(() => {
@@ -9118,7 +9187,7 @@ export default function App() {
                                               cutOffEndDay: 15,
                                             }));
                                           }}
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-blue-500 shadow-3xs cursor-pointer hover:border-slate-300"
+                                          className="w-full bg-white border border-slate-200/90 rounded-xl pl-9 pr-9 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 appearance-none cursor-pointer hover:border-slate-300 shadow-2xs transition-all"
                                         >
                                           {availableCutoffMonths.map((value) => {
                                             const [yearStr, monthStr] = value.split("-");
@@ -9142,7 +9211,7 @@ export default function App() {
                                             if (prevM === 0) {
                                               prevM = 12;
                                             }
-                                            const label = ` 25 ${monthNames[m - 1]} ${yr} (16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]}) `;
+                                            const label = `25 ${monthNames[m - 1]} ${yr} (16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]})`;
                                             return (
                                               <option key={value} value={value}>
                                                 {label}
@@ -9150,34 +9219,35 @@ export default function App() {
                                             );
                                           })}
                                         </select>
+                                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                       </div>
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
 
-                                <div className="text-[10px] text-slate-550 font-semibold leading-relaxed pt-2 border-t border-slate-200 bg-white/50 p-2 rounded border border-slate-100/60 shadow-3xs">
-                                  {salarySettings.useCutOff ? (
-                                    <div className="flex flex-col gap-0.5">
-                                      <span className="text-blue-600 font-black uppercase text-[8px] tracking-wider">
-                                        Status Siklus Aktif:
-                                      </span>
-                                      <span className="font-mono text-slate-700 font-bold block">
-                                        Mulai Tanggal{" "}
-                                        {salarySettings.cutOffStartDay ?? 16}{" "}
-                                        s/d Tanggal{" "}
-                                        {salarySettings.cutOffEndDay ?? 15}{" "}
-                                        Bulan Depan.
-                                      </span>
-                                      <span className="text-[9.5px] italic text-slate-450 mt-0.5 font-normal leading-tight">
-                                        (Contoh: 16 Jan ke 15 Feb)
-                                      </span>
+                                <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 flex items-start gap-2.5">
+                                  <div className="w-6 h-6 rounded-lg bg-violet-600/10 text-violet-600 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Info className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] font-black text-violet-800 uppercase tracking-wider">
+                                      Status Siklus Aktif
                                     </div>
-                                  ) : (
-                                    <span className="text-slate-455 italic block leading-snug">
-                                      Menghitung kalender standar bulanan biasa
-                                      (Tanggal 1 s/d Akhir Bulan).
-                                    </span>
-                                  )}
+                                    {salarySettings.useCutOff ? (
+                                      <>
+                                        <div className="text-xs font-bold text-slate-800 mt-0.5">
+                                          Mulai Tanggal <span className="text-violet-700 underline underline-offset-2">{salarySettings.cutOffStartDay ?? 16}</span> s/d Tanggal <span className="text-violet-700 underline underline-offset-2">{salarySettings.cutOffEndDay ?? 15}</span> Bulan Depan
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 italic mt-0.5">
+                                          (Contoh: 16 Jan ke 15 Feb)
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="text-xs font-semibold text-slate-600 mt-0.5">
+                                        Menghitung kalender bulanan standar (Tanggal 1 s/d Akhir Bulan).
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -9186,25 +9256,36 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Search & Configuration in calculator */}
+                    {/* Search & Period Toolbar */}
                     <div
-                      className="hidden md:block space-y-3 mb-4"
+                      className="hidden md:block mb-6"
                       id="rekap_salary_toolbar_container"
                     >
                       <div
-                        className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center bg-purple-50/50 p-4 rounded-xl border border-purple-100"
+                        className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs"
                         id="rekap_salary_toolbar"
                       >
-                        <div className="relative flex-1 min-w-0">
-                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
+                        {/* Search Input */}
+                        <div className="relative flex-1 min-w-0 group">
+                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-600 transition-colors pointer-events-none" />
                           <input
                             type="text"
                             id="search_host_salary_input"
                             placeholder="Cari host untuk perhitungan gaji..."
                             value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-bold shadow-2xs truncate"
+                            className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 rounded-xl pl-10 pr-9 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all font-sans font-semibold shadow-2xs truncate"
                           />
+                          {globalSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setGlobalSearch("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+                              title="Hapus pencarian"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
 
                         {/* Month Range Cut-Off filter directly on toolbar */}
@@ -9243,10 +9324,11 @@ export default function App() {
                               cutOffEndDay: 15,
                             }));
                           }}
-                          containerClassName="flex-1 min-w-0 flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-purple-150 shadow-2xs"
-                          selectClassName="w-full min-w-0 truncate bg-transparent text-xs font-black text-purple-950 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-mono"
+                          icon={<Calendar className="w-4 h-4 text-violet-600" />}
+                          rightIcon={<ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />}
+                          containerClassName="flex-1 lg:max-w-md min-w-0 flex items-center bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 focus-within:bg-white transition-all shadow-2xs group cursor-pointer"
+                          selectClassName="w-full min-w-0 truncate bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-sans appearance-none pr-2"
                         />
-
                       </div>
                     </div>
 
@@ -9279,55 +9361,101 @@ export default function App() {
 
                       return (
                         <div className="hidden md:block mb-6">
-                          {/* Desktop View */}
+                          {/* Desktop Modern Cards */}
                           <div className="grid grid-cols-4 gap-4">
-                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                                Total Gaji Dibayarkan
-                              </span>
-                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
-                                {formatIDR(totalGaji)}
-                              </span>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                                Host Bandar Lampung
-                              </span>
-                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
-                                {totalHostBL}{" "}
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                  Orang
+                            {/* Card 1: Total Gaji Dibayarkan */}
+                            <div className="p-4.5 bg-white rounded-2xl shadow-xs border border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between group">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                                  Total Gaji Dibayarkan
                                 </span>
-                              </span>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                                Host Tanggamus
-                              </span>
-                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
-                                {totalHostTGM}{" "}
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                  Orang
+                                <div className="w-8 h-8 rounded-xl bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+                                  <Wallet className="w-4 h-4 text-violet-600" />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <span className="text-xl font-black text-slate-900 tracking-tight block">
+                                  {formatIDR(totalGaji)}
                                 </span>
-                              </span>
+                                <span className="text-[10px] text-slate-400 font-semibold mt-1 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Akumulasi gaji bersih aktif
+                                </span>
+                              </div>
                             </div>
-                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                                Total Brand Aktif
-                              </span>
-                              <div className="flex flex-col mt-2">
-                                <span className="text-xl font-black font-mono text-slate-800 leading-none">
+
+                            {/* Card 2: Host Bandar Lampung */}
+                            <div className="p-4.5 bg-white rounded-2xl shadow-xs border border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between group">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                                  Host Bandar Lampung
+                                </span>
+                                <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+                                  <Building2 className="w-4 h-4 text-blue-600" />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <div className="text-xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
+                                  {totalHostBL}{" "}
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                    Orang
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-semibold mt-1 flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-blue-500" /> Studio Kota Bandar Lampung
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card 3: Host Tanggamus */}
+                            <div className="p-4.5 bg-white rounded-2xl shadow-xs border border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between group">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                                  Host Tanggamus
+                                </span>
+                                <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+                                  <MapPin className="w-4 h-4 text-emerald-600" />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <div className="text-xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
+                                  {totalHostTGM}{" "}
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                    Orang
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-semibold mt-1 flex items-center gap-1">
+                                  ⛰️ Studio Daerah Tanggamus
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card 4: Total Brand Aktif */}
+                            <div className="p-4.5 bg-white rounded-2xl shadow-xs border border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between group">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                                  Total Brand Aktif
+                                </span>
+                                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+                                  <Sparkles className="w-4 h-4 text-amber-600" />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <div className="text-xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
                                   {totalBrandList.length}{" "}
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
                                     Brand
                                   </span>
-                                </span>
-                                {totalBrandList.length > 0 && (
+                                </div>
+                                {totalBrandList.length > 0 ? (
                                   <span
-                                    className="text-[9px] text-slate-400 font-semibold leading-tight line-clamp-1 mt-1 truncate"
+                                    className="text-[10px] text-slate-500 font-medium leading-tight line-clamp-1 mt-1 truncate block"
                                     title={totalBrandList.join(", ")}
                                   >
                                     {totalBrandList.join(", ")}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-medium mt-1 block">
+                                    Tidak ada brand aktif
                                   </span>
                                 )}
                               </div>
@@ -9338,21 +9466,40 @@ export default function App() {
                     })()}
 
                     {/* LOCATION TABS FOR SALARY TABLE */}
-                    <div className="px-4 md:px-0 mb-4">
-                      <div className="flex bg-white md:bg-slate-100 p-1 w-full max-w-none md:max-w-md rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-sm">
-                        {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
-                          <button
-                            key={tab}
-                            className={`flex-1 text-center py-2 text-[10px] sm:text-xs font-bold transition-all rounded-lg truncate px-1 ${
-                              salaryRecapLocationTab === tab
-                                ? "bg-[#6B46FF] text-white shadow-md md:bg-white md:text-purple-700 md:shadow-sm"
-                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 bg-transparent"
-                            }`}
-                            onClick={() => setSalaryRecapLocationTab(tab)}
-                          >
-                            {tab}
-                          </button>
-                        ))}
+                    <div className="px-4 md:px-0 mb-5">
+                      <div className="inline-flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1">
+                        {[
+                          { id: "Semua Host", label: "Semua Host", count: hostReportList.length, icon: Users },
+                          { id: "Bandar Lampung", label: "Bandar Lampung", count: hostReportList.filter(h => !h.studio?.includes("Tanggamus")).length, icon: Building2 },
+                          { id: "Tanggamus", label: "Tanggamus", count: hostReportList.filter(h => h.studio?.includes("Tanggamus")).length, icon: MapPin },
+                        ].map((tab) => {
+                          const isActive = salaryRecapLocationTab === tab.id;
+                          const IconComponent = tab.icon;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => setSalaryRecapLocationTab(tab.id)}
+                              className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                                isActive
+                                  ? "bg-white text-violet-700 shadow-sm border border-slate-200/60"
+                                  : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+                              }`}
+                            >
+                              <IconComponent className={`w-3.5 h-3.5 ${isActive ? "text-violet-600" : "text-slate-400"}`} />
+                              <span>{tab.label}</span>
+                              <span
+                                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                  isActive
+                                    ? "bg-violet-100 text-violet-800"
+                                    : "bg-slate-200/80 text-slate-600"
+                                }`}
+                              >
+                                {tab.count}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -9373,16 +9520,16 @@ export default function App() {
                           id="salary_recap_table"
                         >
                           <thead>
-                            <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-mono whitespace-nowrap uppercase tracking-wider text-slate-500 font-bold select-none">
+                            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-sans whitespace-nowrap uppercase tracking-wider text-slate-500 font-bold select-none">
                               {/* Nama Host & Wilayah */}
                               <th className="py-4 px-6 align-middle">
                                 <div className="flex flex-col gap-1.5">
                                   <button
                                     onClick={() => toggleSalarySort("name")}
-                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer w-full transition-colors group"
+                                    className="flex items-center gap-1.5 hover:text-violet-700 text-left uppercase text-[11px] font-bold tracking-wider cursor-pointer w-full transition-colors group"
                                   >
                                     <span>Host & Info</span>
-                                    <span className="text-purple-600">
+                                    <span className="text-violet-600">
                                       {salarySortKey === "name" ? (
                                         salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                                       ) : (
@@ -9398,10 +9545,10 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("hostType")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
+                                    className="flex items-center justify-center gap-1.5 hover:text-violet-700 uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Tipe</span>
-                                    <span className="text-purple-600">
+                                    <span className="text-violet-600">
                                       {salarySortKey === "hostType" ? (
                                         salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                                       ) : (
@@ -9419,10 +9566,10 @@ export default function App() {
                                     onClick={() =>
                                       toggleSalarySort("attendance")
                                     }
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
+                                    className="flex items-center justify-center gap-1.5 hover:text-violet-700 uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Hadir</span>
-                                    <span className="text-purple-600">
+                                    <span className="text-violet-600">
                                       {salarySortKey === "attendance" ? (
                                         salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                                       ) : (
@@ -9438,7 +9585,7 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("late")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
+                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Telat</span>
                                     <span className="text-amber-600">
@@ -9457,7 +9604,7 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("excused")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-rose-700 text-rose-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
+                                    className="flex items-center justify-center gap-1.5 hover:text-rose-700 text-rose-600 uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Tidak Hadir</span>
                                     <span className="text-rose-600">
@@ -9476,15 +9623,15 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5">
                                   <button
                                     onClick={() => toggleSalarySort("formula")}
-                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center gap-1.5 hover:text-violet-700 text-left uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Kalkulasi</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "formula"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-violet-600">
+                                      {salarySortKey === "formula" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
@@ -9497,15 +9644,15 @@ export default function App() {
                                     onClick={() =>
                                       toggleSalarySort("netSalary")
                                     }
-                                    className="flex items-center justify-end gap-1.5 hover:text-purple-700 text-right uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center justify-end gap-1.5 hover:text-violet-700 text-right uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Gaji Bersih</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "netSalary"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-violet-600">
+                                      {salarySortKey === "netSalary" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
