@@ -223,9 +223,9 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
           <textarea
             className="w-full border border-slate-200/80 rounded-lg px-3 py-2 font-medium text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 resize-y shadow-2xs"
             rows={3}
-            value={invoiceSettings.termsAndConditions || "1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.\n2. Pembayaran dilakukan sesuai Due Date invoice.\n3. Harap konfirmasi bukti transfer via WhatsApp ke +62 821-7788-9900."}
+            value={invoiceSettings.termsAndConditions || "1. Payment shall be made via bank transfer to the account listed above.\n2. Payment is due according to the invoice Due Date.\n3. Please confirm proof of payment via WhatsApp to +62 821-7788-9900."}
             onChange={(e) => onInvoiceSettingsChange({ ...invoiceSettings, termsAndConditions: e.target.value })}
-            placeholder="1. Pembayaran dilakukan via transfer bank..."
+            placeholder="1. Payment shall be made via bank transfer to the account listed above..."
           />
         </div>
 

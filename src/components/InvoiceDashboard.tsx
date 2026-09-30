@@ -91,7 +91,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     accountName: "PT. Liva Media Kreatif",
     bankName: "Maybank Syariah",
     termsAndConditions:
-      "1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.\n2. Pembayaran dilakukan sesuai Due Date invoice.\n3. Harap konfirmasi bukti transfer via WhatsApp ke +62 821-7788-9900.",
+      "1. Payment shall be made via bank transfer to the account listed above.\n2. Payment is due according to the invoice Due Date.\n3. Please confirm proof of payment via WhatsApp to +62 821-7788-9900.",
   });
 
   // Load bank accounts & settings from MySQL
@@ -219,7 +219,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
           sessionId: `sess_${Date.now()}`,
           description: `Live Streaming Package Shopee`,
           qty: shiftCount,
-          unit: "Sesi",
+          unit: "Session",
           cost: 7000000,
         },
       ],

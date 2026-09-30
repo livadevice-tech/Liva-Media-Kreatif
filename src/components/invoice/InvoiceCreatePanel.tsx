@@ -426,7 +426,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                 onClick={() => {
                   const newItems = [
                     ...(draftInvoice?.sessionItems || []),
-                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Sesi", cost: 0 },
+                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
                   ];
                   setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                 }}
@@ -487,7 +487,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                           type="text"
                           className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-xs font-semibold text-center text-slate-700 bg-white focus:outline-none focus:border-indigo-500 shadow-2xs"
                           placeholder="Unit"
-                          value={item.unit || "Sesi"}
+                          value={item.unit || "Session"}
                           onChange={(e) => {
                             const newItems = [...(draftInvoice?.sessionItems || [])];
                             newItems[idx].unit = e.target.value;
@@ -556,7 +556,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
             </div>
 
             <div className="pt-2 border-t border-slate-100 bg-slate-50/60 p-2.5 rounded-lg border border-slate-100">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Terbilang Resmi:</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Amount in Words:</span>
               <span className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</span>
             </div>
           </div>

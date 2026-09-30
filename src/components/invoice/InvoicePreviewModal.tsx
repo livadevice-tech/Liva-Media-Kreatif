@@ -47,12 +47,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   // Dates
   const invoiceDateStr = invoice.invoiceDate || invoice.issueDate;
-  const formattedInvoiceDate = new Date(invoiceDateStr).toLocaleDateString('id-ID', {
+  const formattedInvoiceDate = new Date(invoiceDateStr).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
-  const formattedDueDate = new Date(invoice.dueDate).toLocaleDateString('id-ID', {
+  const formattedDueDate = new Date(invoice.dueDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -62,22 +62,22 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   const amountTerbilang = terbilang(totalAmount);
 
   // WhatsApp reminder message template
-  const waMessage = `Halo ${recipientPic},
-Berikut kami lampirkan tagihan resmi dari PT. Liva Media Kreatif:
+  const waMessage = `Dear ${recipientPic || recipientPt},
+Here is the official invoice from PT. Liva Media Kreatif:
 
-📄 *No Invoice:* ${invoice.invoiceNumber}
-🏢 *Ditujukan:* ${recipientPt}
-📅 *Tanggal Tagihan:* ${formattedInvoiceDate}
-⏰ *Jatuh Tempo:* ${formattedDueDate}
-💰 *Total Tagihan:* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
+📄 *Invoice No:* ${invoice.invoiceNumber}
+🏢 *Billed To:* ${recipientPt}
+📅 *Invoice Date:* ${formattedInvoiceDate}
+⏰ *Due Date:* ${formattedDueDate}
+💰 *Total Amount:* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
 (${amountTerbilang})
 
-🏦 *Informasi Pembayaran (Transfer Bank):*
+🏦 *Payment Information (Bank Transfer):*
 Bank: ${bankName}
-No. Rekening: *${accountNo}*
-Atas Nama: *${accountName}*
+Account Number: *${accountNo}*
+Account Name: *${accountName}*
 
-Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih atas kerjasama dan kepercayaan Anda kepada Liva Media Kreatif. 🙏`;
+Please kindly confirm the proof of transfer once payment is completed. Thank you for your business and trust in Liva Media Kreatif. 🙏`;
 
   const handleCopyWA = () => {
     navigator.clipboard.writeText(waMessage);
@@ -196,11 +196,11 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                       <span className="font-bold text-slate-900 font-mono">{invoice.invoiceNumber}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-slate-400 mr-1.5">Tanggal:</span>
+                      <span className="font-semibold text-slate-400 mr-1.5">Date:</span>
                       <span className="font-semibold text-slate-800">{formattedInvoiceDate}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-slate-400 mr-1.5">Jatuh Tempo:</span>
+                      <span className="font-semibold text-slate-400 mr-1.5">Due Date:</span>
                       <span className="font-semibold text-slate-800">{formattedDueDate}</span>
                     </div>
                   </div>
@@ -215,7 +215,7 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                 {/* Left: Bill To */}
                 <div>
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                    DITUJUKAN KEPADA (BILL TO):
+                    BILLED TO:
                   </div>
                   <div className="text-sm font-black text-slate-900 leading-snug">
                     {recipientPt}
@@ -236,16 +236,16 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                 {/* Right: Bank Info */}
                 <div>
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                    INFORMASI PEMBAYARAN (TRANSFER BANK):
+                    PAYMENT INFORMATION (BANK TRANSFER):
                   </div>
                   <div className="text-sm font-black text-slate-900 leading-snug">
                     {bankName}
                   </div>
                   <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                    No. Rek: <span className="font-mono font-black text-[#3b4898]">{accountNo}</span>
+                    Account No: <span className="font-mono font-black text-[#3b4898]">{accountNo}</span>
                   </div>
                   <div className="text-[11px] text-slate-600 mt-0.5">
-                    A/N: <span className="font-bold text-slate-800">{accountName}</span>
+                    Account Name: <span className="font-bold text-slate-800">{accountName}</span>
                   </div>
                 </div>
               </div>
@@ -256,23 +256,28 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                   <thead>
                     <tr className="bg-[#0b132b] text-white text-[10px] uppercase font-bold tracking-wider">
                       <th className="py-2.5 px-3 text-center w-10">NO</th>
-                      <th className="py-2.5 px-3">DESKRIPSI LAYANAN / ITEM</th>
+                      <th className="py-2.5 px-3">DESCRIPTION</th>
                       <th className="py-2.5 px-3 text-center w-28">QTY</th>
-                      <th className="py-2.5 px-3 text-right w-36">HARGA SATUAN</th>
+                      <th className="py-2.5 px-3 text-right w-36">UNIT PRICE</th>
                       <th className="py-2.5 px-3 text-right w-36">TOTAL</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {(invoice.sessionItems || []).map((item, idx) => {
                       const qty = item.qty || 1;
-                      const unit = item.unit || "Sesi";
+                      const rawUnit = item.unit || "Sesi";
+                      const displayUnit = rawUnit.toLowerCase() === "sesi"
+                        ? (qty > 1 ? "Sessions" : "Session")
+                        : rawUnit.toLowerCase() === "bulan"
+                        ? (qty > 1 ? "Months" : "Month")
+                        : rawUnit;
                       const itemTotal = item.cost * qty;
                       return (
                         <tr key={item.sessionId || idx} className="hover:bg-slate-50/50">
                           <td className="py-3 px-3 text-center text-slate-500 font-semibold align-top">{idx + 1}</td>
                           <td className="py-3 px-3 font-bold text-slate-800 whitespace-pre-line leading-relaxed align-top">{item.description}</td>
                           <td className="py-3 px-3 text-center font-semibold text-slate-600 align-top">
-                            {qty} {unit}
+                            {qty} {displayUnit}
                           </td>
                           <td className="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap align-top">
                             Rp {new Intl.NumberFormat('id-ID').format(item.cost)}
@@ -292,11 +297,11 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                 {/* Left: Notes & Terms */}
                 <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-4 text-[11px] text-slate-600 space-y-1.5">
                   <div className="font-black text-slate-800 text-xs mb-1">
-                    Catatan & Syarat Ketentuan:
+                    Terms & Conditions:
                   </div>
-                  <div>1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.</div>
-                  <div>2. Pembayaran dilakukan sesuai Due Date invoice.</div>
-                  <div>3. Harap konfirmasi bukti transfer via WhatsApp ke {companyPhone}.</div>
+                  <div>1. Payment shall be made via bank transfer to the account listed above.</div>
+                  <div>2. Payment is due according to the invoice Due Date.</div>
+                  <div>3. Please confirm proof of payment via WhatsApp to {companyPhone}.</div>
                 </div>
 
                 {/* Right: Subtotal, Grand Total, Terbilang */}
@@ -318,7 +323,7 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                   {/* Terbilang Box */}
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-left">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                      Terbilang :
+                      AMOUNT IN WORDS :
                     </div>
                     <div className="text-xs font-bold text-indigo-900 italic">
                       "{amountTerbilang}"
@@ -332,7 +337,7 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
             <div className="pt-6 border-t border-slate-100">
               <div className="flex flex-col sm:flex-row justify-between items-end gap-6 mb-8">
                 <div className="text-xs text-slate-500 italic max-w-xs">
-                  Terima kasih atas kerjasama dan kepercayaan Anda kepada Liva.
+                  Thank you for your business and trust in Liva.
                 </div>
 
                 {/* Authorized Signee */}
@@ -341,7 +346,7 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                     {signeeCity}, {formattedInvoiceDate}
                   </div>
                   <div className="text-xs font-bold text-slate-800 mb-2">
-                    Hormat Kami, {companyName}
+                    Sincerely, {companyName}
                   </div>
 
                   {/* Digital Stamp / Signature */}
@@ -371,7 +376,7 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
 
               {/* Bottom Official Legal Fine Print */}
               <div className="text-center text-[9px] text-slate-400 border-t border-slate-100 pt-3">
-                Dokumen ini diterbitkan secara resmi oleh {companyName} dan berlaku sah sebagai bukti tagihan / penawaran kerjasama.
+                This document is officially issued by {companyName} and is valid as an invoice and business agreement.
               </div>
             </div>
           </div>

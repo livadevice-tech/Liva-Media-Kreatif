@@ -29,12 +29,12 @@ export function generateInvoicePrintHtml(params: {
   const recipientEmail = invoice.email || brand?.picEmail || "-";
 
   const invoiceDateStr = invoice.invoiceDate || invoice.issueDate;
-  const formattedInvoiceDate = new Date(invoiceDateStr).toLocaleDateString('id-ID', {
+  const formattedInvoiceDate = new Date(invoiceDateStr).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
-  const formattedDueDate = new Date(invoice.dueDate).toLocaleDateString('id-ID', {
+  const formattedDueDate = new Date(invoice.dueDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -339,11 +339,11 @@ export function generateInvoicePrintHtml(params: {
                 <td class="meta-val" style="font-family: monospace;">${invoice.invoiceNumber}</td>
               </tr>
               <tr>
-                <td class="meta-label">Tanggal:</td>
+                <td class="meta-label">Date:</td>
                 <td class="meta-val">${formattedInvoiceDate}</td>
               </tr>
               <tr>
-                <td class="meta-label">Jatuh Tempo:</td>
+                <td class="meta-label">Due Date:</td>
                 <td class="meta-val">${formattedDueDate}</td>
               </tr>
             </table>
@@ -355,7 +355,7 @@ export function generateInvoicePrintHtml(params: {
         <!-- Bill To & Bank Details -->
         <div class="two-col-info">
           <div class="info-box">
-            <div class="info-header">DITUJUKAN KEPADA (BILL TO):</div>
+            <div class="info-header">BILLED TO:</div>
             <div class="info-title">${recipientPt}</div>
             ${recipientPic && recipientPic !== recipientPt ? `<div class="info-sub">${recipientPic}</div>` : ''}
             <div class="info-text">${recipientAddress}</div>
@@ -365,13 +365,13 @@ export function generateInvoicePrintHtml(params: {
           </div>
 
           <div class="info-box">
-            <div class="info-header">INFORMASI PEMBAYARAN (TRANSFER BANK):</div>
+            <div class="info-header">PAYMENT INFORMATION (BANK TRANSFER):</div>
             <div class="info-title">${bankName}</div>
             <div class="info-sub">
-              No. Rek: <span style="color: #3b4898; font-weight: 900; font-family: monospace;">${accountNo}</span>
+              Account No: <span style="color: #3b4898; font-weight: 900; font-family: monospace;">${accountNo}</span>
             </div>
             <div class="info-text">
-              A/N: <strong>${accountName}</strong>
+              Account Name: <strong>${accountName}</strong>
             </div>
           </div>
         </div>
@@ -381,22 +381,27 @@ export function generateInvoicePrintHtml(params: {
           <thead>
             <tr>
               <th class="center" style="width: 40px;">NO</th>
-              <th>DESKRIPSI LAYANAN / ITEM</th>
+              <th>DESCRIPTION</th>
               <th class="center" style="width: 100px;">QTY</th>
-              <th class="right" style="width: 130px;">HARGA SATUAN</th>
+              <th class="right" style="width: 130px;">UNIT PRICE</th>
               <th class="right" style="width: 140px;">TOTAL</th>
             </tr>
           </thead>
           <tbody>
             ${(invoice.sessionItems || []).map((item, idx) => {
               const qty = item.qty || 1;
-              const unit = item.unit || "Sesi";
+              const rawUnit = item.unit || "Sesi";
+              const displayUnit = rawUnit.toLowerCase() === "sesi"
+                ? (qty > 1 ? "Sessions" : "Session")
+                : rawUnit.toLowerCase() === "bulan"
+                ? (qty > 1 ? "Months" : "Month")
+                : rawUnit;
               const lineTotal = item.cost * qty;
               return `
                 <tr>
                   <td class="center">${idx + 1}</td>
                   <td class="desc">${item.description}</td>
-                  <td class="center">${qty} ${unit}</td>
+                  <td class="center">${qty} ${displayUnit}</td>
                   <td class="right">Rp ${new Intl.NumberFormat('id-ID').format(item.cost)}</td>
                   <td class="right" style="font-weight: 700;">Rp ${new Intl.NumberFormat('id-ID').format(lineTotal)}</td>
                 </tr>
@@ -408,10 +413,10 @@ export function generateInvoicePrintHtml(params: {
         <!-- Bottom Grid: Terms & Totals -->
         <div class="bottom-grid">
           <div class="terms-card">
-            <div class="terms-title">Catatan & Syarat Ketentuan:</div>
-            <div>1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.</div>
-            <div>2. Pembayaran dilakukan sesuai Due Date invoice.</div>
-            <div>3. Harap konfirmasi bukti transfer via WhatsApp ke ${companyPhone}.</div>
+            <div class="terms-title">Terms & Conditions:</div>
+            <div>1. Payment shall be made via bank transfer to the account listed above.</div>
+            <div>2. Payment is due according to the invoice Due Date.</div>
+            <div>3. Please confirm proof of payment via WhatsApp to ${companyPhone}.</div>
           </div>
 
           <div class="calc-block">
@@ -426,7 +431,7 @@ export function generateInvoicePrintHtml(params: {
             </div>
 
             <div class="terbilang-box">
-              <div class="terbilang-label">Terbilang :</div>
+              <div class="terbilang-label">AMOUNT IN WORDS :</div>
               <div class="terbilang-val">"${amountTerbilang}"</div>
             </div>
           </div>
@@ -435,12 +440,12 @@ export function generateInvoicePrintHtml(params: {
         <!-- Signatures Section -->
         <div class="sign-section">
           <div class="sign-left">
-            Terima kasih atas kerjasama dan kepercayaan Anda kepada Liva.
+            Thank you for your business and trust in Liva.
           </div>
 
           <div class="sign-right">
             <div class="sign-date">${signeeCity}, ${formattedInvoiceDate}</div>
-            <div class="sign-company">Hormat Kami, ${companyName}</div>
+            <div class="sign-company">Sincerely, ${companyName}</div>
             <div>${stampHtml}</div>
             <div class="sign-name">${signeeName}</div>
             <div class="sign-title">${signeeTitle}</div>
@@ -448,7 +453,7 @@ export function generateInvoicePrintHtml(params: {
         </div>
 
         <div class="footer-disclaimer">
-          Dokumen ini diterbitkan secara resmi oleh ${companyName} dan berlaku sah sebagai bukti tagihan / penawaran kerjasama.
+          This document is officially issued by ${companyName} and is valid as an invoice and business agreement.
         </div>
       </body>
     </html>

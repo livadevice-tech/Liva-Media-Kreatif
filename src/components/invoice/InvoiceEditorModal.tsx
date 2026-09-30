@@ -268,7 +268,7 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                 onClick={() => {
                   const newItems = [
                     ...(invoiceEditor.sessionItems || []),
-                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Sesi", cost: 0 },
+                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
                   ];
                   setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
                 }}
@@ -319,7 +319,7 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                       type="text"
                       className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-xs font-semibold text-center text-slate-700 focus:outline-none focus:border-indigo-500"
                       placeholder="Unit"
-                      value={item.unit || "Sesi"}
+                      value={item.unit || "Session"}
                       onChange={(e) => {
                         const newItems = [...(invoiceEditor.sessionItems || [])];
                         newItems[idx].unit = e.target.value;
@@ -369,7 +369,7 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                 </span>
               </div>
               <div className="pt-2 border-t border-slate-200">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Terbilang :</div>
+                <div className="text-[10px] uppercase font-bold text-slate-400">Amount in Words :</div>
                 <div className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</div>
               </div>
             </div>

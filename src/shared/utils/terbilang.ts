@@ -1,9 +1,97 @@
 /**
  * src/shared/utils/terbilang.ts
- * Mengubah nominal angka ke format teks terbilang dalam Bahasa Indonesia.
- * Contoh: 14000000 -> "Empat Belas Juta Rupiah"
+ * Mengubah nominal angka ke format teks terbilang dalam Bahasa Inggris (default) atau Bahasa Indonesia.
+ * Contoh: 14000000 -> "Fourteen Million Rupiah"
  */
-export function terbilang(n: number): string {
+
+const ONES = [
+  "",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+  "Thirteen",
+  "Fourteen",
+  "Fifteen",
+  "Sixteen",
+  "Seventeen",
+  "Eighteen",
+  "Nineteen",
+];
+
+const TENS = [
+  "",
+  "",
+  "Twenty",
+  "Thirty",
+  "Forty",
+  "Fifty",
+  "Sixty",
+  "Seventy",
+  "Eighty",
+  "Ninety",
+];
+
+function convertBelowThousandEn(num: number): string {
+  if (num === 0) return "";
+  if (num < 20) return ONES[num];
+  if (num < 100) {
+    const rem = num % 10;
+    return TENS[Math.floor(num / 10)] + (rem > 0 ? " " + ONES[rem] : "");
+  }
+  const rem = num % 100;
+  return (
+    ONES[Math.floor(num / 100)] +
+    " Hundred" +
+    (rem > 0 ? " " + convertBelowThousandEn(rem) : "")
+  );
+}
+
+export function numberToWordsEn(n: number): string {
+  if (isNaN(n) || n === 0) return "Zero";
+  const abs = Math.floor(Math.abs(n));
+  if (abs === 0) return "Zero";
+
+  const scales = [
+    { value: 1000000000000, label: "Trillion" },
+    { value: 1000000000, label: "Billion" },
+    { value: 1000000, label: "Million" },
+    { value: 1000, label: "Thousand" },
+  ];
+
+  let remaining = abs;
+  const parts: string[] = [];
+
+  for (const scale of scales) {
+    if (remaining >= scale.value) {
+      const count = Math.floor(remaining / scale.value);
+      remaining %= scale.value;
+      parts.push(convertBelowThousandEn(count) + " " + scale.label);
+    }
+  }
+
+  if (remaining > 0) {
+    parts.push(convertBelowThousandEn(remaining));
+  }
+
+  return parts.join(" ").trim().replace(/\s+/g, " ");
+}
+
+export function terbilangEn(n: number): string {
+  if (isNaN(n) || n === 0) return "Zero Rupiah";
+  const words = numberToWordsEn(n);
+  return `${words} Rupiah`;
+}
+
+export function terbilangId(n: number): string {
   if (isNaN(n) || n === 0) return "Nol Rupiah";
 
   const satuan = [
@@ -49,4 +137,11 @@ export function terbilang(n: number): string {
 
   const words = bilang(Math.floor(Math.abs(n)));
   return `${words} Rupiah`;
+}
+
+export function terbilang(n: number, lang: "en" | "id" = "en"): string {
+  if (lang === "id") {
+    return terbilangId(n);
+  }
+  return terbilangEn(n);
 }
