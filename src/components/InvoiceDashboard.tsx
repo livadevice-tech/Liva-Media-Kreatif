@@ -141,7 +141,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   const [invoiceToDelete, setInvoiceToDelete] = useState<{ brandId: string; id: string } | null>(null);
 
   const currentYearMonth = new Date().toISOString().substring(0, 7);
-  const [filterMonth, setFilterMonth] = useState<string>(currentYearMonth);
+  const [filterMonth, setFilterMonth] = useState<string>('ALL');
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -157,10 +157,10 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       }
     });
 
-    if (filterMonth) {
+    if (filterMonth && filterMonth !== 'ALL') {
       list = list.filter((inv) => {
         const dateToUse = inv.invoiceDate || inv.issueDate;
-        return dateToUse.startsWith(filterMonth);
+        return Boolean(dateToUse && dateToUse.startsWith(filterMonth));
       });
     }
 
