@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar, Maximize2, Minimize2 } from "lucide-react";
+import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar, Clock, Maximize2, Minimize2 } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
+import { formatContractDate } from "../../shared/utils/dateFormatting";
 
 type DraftInvoice = Partial<BrandInvoice>;
 
@@ -217,6 +218,32 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   onSelectBrand(val);
                 }}
               />
+              {(() => {
+                const currentBrand = clientBrands.find(b => b.id === selectedBrandId);
+                if (!currentBrand) return null;
+                const hasDates = currentBrand.contractStartDate || currentBrand.contractEndDate;
+                return (
+                  <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
+                    {hasDates && (
+                      <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-md border border-indigo-100">
+                        <Clock className="w-3 h-3 text-indigo-500" />
+                        Periode Live: {formatContractDate(currentBrand.contractStartDate)} – {formatContractDate(currentBrand.contractEndDate)}
+                      </span>
+                    )}
+                    {currentBrand.cutOffDate && (
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-md border border-amber-100">
+                        <Calendar className="w-3 h-3 text-amber-500" />
+                        Cut Off: Tgl {currentBrand.cutOffDate}
+                      </span>
+                    )}
+                    {currentBrand.invoiceDate && (
+                      <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md">
+                        Tagihan: Tgl {currentBrand.invoiceDate}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Row 1: Invoice Meta */}

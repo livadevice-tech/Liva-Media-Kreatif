@@ -247,6 +247,7 @@ export interface ClientBrand {
   contractStartDate?: string;
   contractEndDate: string;
   invoiceDate: string;
+  cutOffDate?: string;
   accounts: BrandAccount[];
   monthlyMeetingDate: string;
   clientPassword?: string;

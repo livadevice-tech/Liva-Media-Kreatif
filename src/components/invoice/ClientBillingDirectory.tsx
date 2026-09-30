@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, CheckCircle2, AlertCircle, FileText, ArrowRight, X, Save } from 'lucide-react';
+import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, Clock, CheckCircle2, AlertCircle, FileText, ArrowRight, X, Save } from 'lucide-react';
 import { ClientBrand } from '../../types';
+import { formatContractDate } from '../../shared/utils/dateFormatting';
 
 interface ClientBillingDirectoryProps {
   clientBrands: ClientBrand[];
@@ -24,6 +25,9 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
   const [picEmail, setPicEmail] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('29');
+  const [cutOffDate, setCutOffDate] = useState('15');
+  const [contractStartDate, setContractStartDate] = useState('');
+  const [contractEndDate, setContractEndDate] = useState('');
 
   const handleOpenEdit = (brand: ClientBrand) => {
     setEditingBrand(brand);
@@ -33,6 +37,9 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
     setPicEmail(brand.picEmail || '');
     setCompanyAddress(brand.companyAddress || '');
     setInvoiceDate(brand.invoiceDate || '29');
+    setCutOffDate(brand.cutOffDate || '15');
+    setContractStartDate(brand.contractStartDate ? brand.contractStartDate.split('T')[0] : '');
+    setContractEndDate(brand.contractEndDate ? brand.contractEndDate.split('T')[0] : '');
   };
 
   const handleSaveBillingData = (e: React.FormEvent) => {
@@ -49,6 +56,9 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
           picEmail: picEmail.trim(),
           companyAddress: companyAddress.trim(),
           invoiceDate: invoiceDate.trim(),
+          cutOffDate: cutOffDate.trim() || '15',
+          contractStartDate: contractStartDate || undefined,
+          contractEndDate: contractEndDate || '',
         };
       }
       return b;
@@ -210,35 +220,19 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                       />
                     </div>
 
-                    {/* PIC & Tanggal Tagihan */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
-                          PIC / Kontak <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Nama PIC"
-                          value={picName}
-                          onChange={(e) => setPicName(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
-                          Tgl Tagihan (1-31)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          placeholder="29"
-                          value={invoiceDate}
-                          onChange={(e) => setInvoiceDate(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
-                        />
-                      </div>
+                    {/* PIC / Kontak */}
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                        PIC / Kontak <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Nama PIC"
+                        value={picName}
+                        onChange={(e) => setPicName(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs"
+                      />
                     </div>
 
                     {/* WA & Email */}
@@ -284,6 +278,70 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                         onChange={(e) => setCompanyAddress(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 focus:bg-white transition-all shadow-2xs resize-none"
                       />
+                    </div>
+
+                    {/* Periode Kerjasama (Live) & Jadwal Tagihan */}
+                    <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100/80 space-y-2.5">
+                      <div className="flex items-center gap-1.5 text-indigo-900 font-bold uppercase text-[10px] tracking-wider">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Periode Kerjasama (Live) & Cut Off</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                            Mulai Live
+                          </label>
+                          <input
+                            type="date"
+                            value={contractStartDate}
+                            onChange={(e) => setContractStartDate(e.target.value)}
+                            className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                            Selesai Live
+                          </label>
+                          <input
+                            type="date"
+                            value={contractEndDate}
+                            onChange={(e) => setContractEndDate(e.target.value)}
+                            className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                            Tgl Cut Off (1-31)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="15"
+                            value={cutOffDate}
+                            onChange={(e) => setCutOffDate(e.target.value)}
+                            className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
+                            Tgl Tagihan (1-31)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="29"
+                            value={invoiceDate}
+                            onChange={(e) => setInvoiceDate(e.target.value)}
+                            className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -407,11 +465,42 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                     )}
                   </div>
 
+                  {/* Periode Kerjasama (Live) & Cut Off */}
+                  <div className="mb-3 bg-slate-50/80 border border-slate-200/70 rounded-xl p-2.5 space-y-1.5">
+                    <div className="text-xs flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" /> Periode Live:
+                      </span>
+                      <span className="font-bold text-slate-800 text-[11px]">
+                        {brand.contractStartDate || brand.contractEndDate ? (
+                          `${formatContractDate(brand.contractStartDate)} – ${formatContractDate(brand.contractEndDate)}`
+                        ) : (
+                          <span className="text-slate-400 italic font-normal">Belum diatur</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/60 text-[11px]">
+                      <div className="flex items-center justify-between bg-white px-2.5 py-1 rounded-lg border border-slate-200/60">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Cut Off:</span>
+                        <span className="font-bold text-indigo-600">
+                          Tgl {brand.cutOffDate || '15'} / bln
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between bg-white px-2.5 py-1 rounded-lg border border-slate-200/60">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Tagihan:</span>
+                        <span className="font-bold text-slate-800">
+                          Tgl {brand.invoiceDate || '29'} / bln
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Billing Schedule & Stats */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 text-slate-500">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Tagihan: Tgl {brand.invoiceDate || '29'} / bln</span>
+                      <span>Siklus Penagihan Bulanan</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FileText className="w-3.5 h-3.5 text-slate-400" />

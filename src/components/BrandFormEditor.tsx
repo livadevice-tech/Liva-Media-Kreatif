@@ -77,6 +77,7 @@ export function BrandFormEditor({
                                   "contractEndDate",
                                 ) as string,
                                 invoiceDate: fd.get("invoiceDate") as string,
+                                cutOffDate: (fd.get("cutOffDate") as string) || brandFormEditor.cutOffDate,
                                 monthlyMeetingDate: fd.get(
                                   "monthlyMeetingDate",
                                 ) as string,
@@ -356,7 +357,7 @@ export function BrandFormEditor({
                                   </p>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                                 <div>
                                   <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
                                     Tanggal Invoice (Setiap Bulan)
@@ -368,6 +369,20 @@ export function BrandFormEditor({
                                     min="1"
                                     max="31"
                                     placeholder="Contoh: 5"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Tgl Cut Off Live (Setiap Bulan)
+                                  </label>
+                                  <input
+                                    name="cutOffDate"
+                                    defaultValue={brandFormEditor.cutOffDate}
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    placeholder="Contoh: 15"
                                     className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
                                   />
                                 </div>

@@ -11899,6 +11899,15 @@ export default function App() {
                                           <Clock className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
                                           {formatContractDate(brand.contractStartDate)} – {formatContractDate(brand.contractEndDate)}
                                         </span>
+                                        {brand.cutOffDate && (
+                                          <>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                                            <span className="text-slate-300 font-black sm:hidden">•</span>
+                                            <span className="flex items-center gap-1 text-slate-500 sm:text-slate-600">
+                                              <Clock className="w-3.5 h-3.5 text-indigo-400" /> Cut Off Tgl {brand.cutOffDate}
+                                            </span>
+                                          </>
+                                        )}
                                         {brand.invoiceDate && (
                                           <>
                                             <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>

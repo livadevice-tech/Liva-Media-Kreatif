@@ -78,6 +78,7 @@ interface ClientBrandRow {
   contract_start_date?: string | null;
   contract_end_date?: string | null;
   invoice_date?: string | null;
+  cut_off_date?: string | null;
   monthly_meeting_date?: string | null;
   client_password?: string | null;
   client_username?: string | null;
@@ -203,6 +204,7 @@ async function buildBrand(brand: ClientBrandRow): Promise<BrandViewModel> {
     contractStartDate: brand.contract_start_date,
     contractEndDate: brand.contract_end_date,
     invoiceDate: brand.invoice_date,
+    cutOffDate: brand.cut_off_date || undefined,
     monthlyMeetingDate: brand.monthly_meeting_date,
     clientPassword: brand.client_password,
     clientUsername: brand.client_username,
@@ -270,9 +272,9 @@ export function registerClientRoutes(app: Express) {
     const id = b.id || genId("brand");
 
     await execute(`
-      INSERT INTO client_brands (id, name, company_name, contract_start_date, contract_end_date, invoice_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url, is_active, dashboard_settings)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null]);
+      INSERT INTO client_brands (id, name, company_name, contract_start_date, contract_end_date, invoice_date, cut_off_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url, is_active, dashboard_settings)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null]);
 
     if (Array.isArray(b.sessions)) {
       for (const s of b.sessions) {
@@ -316,9 +318,9 @@ export function registerClientRoutes(app: Express) {
 
     await execute(`
       UPDATE client_brands 
-      SET name = ?, company_name = ?, contract_start_date = ?, contract_end_date = ?, invoice_date = ?, monthly_meeting_date = ?, client_password = ?, client_username = ?, pic_name = ?, pic_phone = ?, pic_email = ?, company_address = ?, logo_url = ?, is_active = ?, dashboard_settings = ?
+      SET name = ?, company_name = ?, contract_start_date = ?, contract_end_date = ?, invoice_date = ?, cut_off_date = ?, monthly_meeting_date = ?, client_password = ?, client_username = ?, pic_name = ?, pic_phone = ?, pic_email = ?, company_address = ?, logo_url = ?, is_active = ?, dashboard_settings = ?
       WHERE id = ?
-    `, [b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null, id]);
+    `, [b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null, id]);
 
     if (Array.isArray(b.sessions)) {
       await execute(`DELETE FROM brand_sessions WHERE brand_id = ?`, [id]);

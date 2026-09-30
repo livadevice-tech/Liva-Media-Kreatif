@@ -1020,6 +1020,17 @@ async function runMigrations() {
   }
 
   try {
+    await execute(`ALTER TABLE client_brands ADD COLUMN cut_off_date VARCHAR(50) NULL`, []);
+    console.log('✅ Migration: kolom cut_off_date ditambahkan ke client_brands.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom cut_off_date sudah ada di client_brands.');
+    } else {
+      console.warn('Migration cut_off_date column warning:', e?.message);
+    }
+  }
+
+  try {
     await execute(`ALTER TABLE reporting_upload_rows ADD COLUMN duration INT DEFAULT 0`, []);
     console.log('✅ Migration: kolom duration ditambahkan ke reporting_upload_rows.');
   } catch (e: any) {
