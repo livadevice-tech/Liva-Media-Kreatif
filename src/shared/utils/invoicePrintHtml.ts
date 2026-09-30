@@ -66,12 +66,16 @@ export function generateInvoicePrintHtml(params: {
       </div>
     `;
 
+  const cleanBrandName = (brand?.name || recipientPt || "Brand").replace(/[\/\\:*?"<>|]/g, '-').trim();
+  const cleanInvoiceNo = (invoice.invoiceNumber || 'Invoice').replace(/[\/\\:*?"<>|]/g, '-').trim();
+  const documentTitle = `${cleanBrandName} - ${cleanInvoiceNo}`;
+
   return `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>${invoice.invoiceNumber} - ${recipientPt}</title>
+        <title>${documentTitle}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           @page {

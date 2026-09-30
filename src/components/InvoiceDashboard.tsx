@@ -314,6 +314,14 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     const brand = clientBrands.find((b) => b.invoices?.some((i) => i.id === invoice.id) || b.name === brandName);
     const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
 
+    const cleanBrandName = (brand?.name || brandName || invoice.ptName || 'Brand').replace(/[\/\\:*?"<>|]/g, '-').trim();
+    const cleanInvoiceNo = (invoice.invoiceNumber || 'Invoice').replace(/[\/\\:*?"<>|]/g, '-').trim();
+    const exportFileName = `${cleanBrandName} - ${cleanInvoiceNo}`;
+
+    // Temporarily set document title so browser "Save as PDF" dialog defaults to "Nama Brand - No invoice"
+    const originalTitle = document.title;
+    document.title = exportFileName;
+
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -324,7 +332,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     document.body.appendChild(iframe);
 
     const printDoc = iframe.contentWindow?.document || iframe.contentDocument;
-    if (!printDoc) return;
+    if (!printDoc) {
+      document.title = originalTitle;
+      return;
+    }
+
+    printDoc.title = exportFileName;
 
     const htmlContent = generateInvoicePrintHtml({
       invoice,
@@ -348,14 +361,35 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     printDoc.write(htmlContent);
     printDoc.close();
 
+    if (iframe.contentDocument) {
+      iframe.contentDocument.title = exportFileName;
+    }
+
+    let isCleanedUp = false;
+    const cleanup = () => {
+      if (isCleanedUp) return;
+      isCleanedUp = true;
+      document.title = originalTitle;
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    };
+
+    window.addEventListener('afterprint', cleanup, { once: true });
+    if (iframe.contentWindow) {
+      iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true });
+    }
+
+    const onWindowFocus = () => {
+      setTimeout(cleanup, 1500);
+      window.removeEventListener('focus', onWindowFocus);
+    };
+    window.addEventListener('focus', onWindowFocus);
+    setTimeout(cleanup, 60000);
+
     iframe.contentWindow?.focus();
     setTimeout(() => {
       iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (iframe.parentNode) {
-          document.body.removeChild(iframe);
-        }
-      }, 2000);
     }, 400);
   };
 
