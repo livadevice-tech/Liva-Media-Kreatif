@@ -226,6 +226,7 @@ export interface InvoiceCompanyProfile {
   directorTitle: string;
   logoUrl?: string;
   signatureUrl?: string;
+  signatureSize?: number;
   termsAndConditions?: string;
 }
 

@@ -79,6 +79,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({
     logoUrl: "",
     signatureUrl: "",
+    signatureSize: 65,
     signatureName: "Mufthi Ali",
     signatureTitle: "Direktur Utama PT Liva Media Kreatif",
     companyName: "PT. Liva Media Kreatif",
@@ -354,6 +355,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         directorTitle: invoiceSettings.signatureTitle,
         logoUrl: invoiceSettings.logoUrl,
         signatureUrl: invoiceSettings.signatureUrl,
+        signatureSize: invoiceSettings.signatureSize || 65,
         termsAndConditions: invoiceSettings.termsAndConditions,
       },
     });
@@ -648,10 +650,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
               directorTitle: invoiceSettings.signatureTitle,
               logoUrl: invoiceSettings.logoUrl,
               signatureUrl: invoiceSettings.signatureUrl,
+              signatureSize: invoiceSettings.signatureSize || 65,
               termsAndConditions: invoiceSettings.termsAndConditions,
             }}
             onClose={() => setPreviewInvoiceData(null)}
             onPrint={() => handlePrint(previewInvoiceData.invoice, previewInvoiceData.brand.name)}
+            onUpdateSignatureSize={(size) => saveSettings({ ...invoiceSettings, signatureSize: size })}
           />
         )}
 

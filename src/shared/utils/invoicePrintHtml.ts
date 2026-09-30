@@ -57,8 +57,9 @@ export function generateInvoicePrintHtml(params: {
       </div>
     `;
 
+  const signatureHeight = companyProfile?.signatureSize || 65;
   const stampHtml = companyProfile?.signatureUrl
-    ? `<img src="${companyProfile.signatureUrl}" style="max-height: 65px; object-fit: contain; margin: 4px 0;" />`
+    ? `<img src="${companyProfile.signatureUrl}" style="height: ${signatureHeight}px; max-height: ${signatureHeight}px; max-width: 280px; object-fit: contain; margin: 4px 0;" />`
     : `
       <div style="display: inline-block; border: 2px dashed #f43f5e; border-radius: 8px; padding: 4px 14px; transform: rotate(-3deg); background: rgba(244, 63, 94, 0.05); margin: 6px 0;">
         <div style="font-size: 13px; font-weight: 900; color: #e11d48; line-height: 1; text-transform: uppercase; letter-spacing: 1px;">LIVA</div>

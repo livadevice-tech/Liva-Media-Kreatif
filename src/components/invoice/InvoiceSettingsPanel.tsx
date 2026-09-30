@@ -1,9 +1,10 @@
 import React from 'react';
-import { Image as ImageIcon, Settings, Trash2, UploadCloud, Building2, MapPin, Mail, Phone, Globe, UserCheck } from 'lucide-react';
+import { Image as ImageIcon, Settings, Trash2, UploadCloud, Building2, MapPin, Mail, Phone, Globe, UserCheck, Sliders } from 'lucide-react';
 
 export type InvoiceSettings = {
   logoUrl: string;
   signatureUrl: string;
+  signatureSize?: number;
   signatureName: string;
   signatureTitle?: string;
   companyName?: string;
@@ -101,6 +102,74 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => onImageUpload(e, 'signatureUrl')} />
               </label>
             )}
+
+            {/* Signature Size Setting */}
+            <div className="mt-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                  Ukuran / Tinggi TTD di PDF:
+                </label>
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-white border border-slate-200 text-indigo-700 shadow-2xs">
+                  {invoiceSettings.signatureSize || 65}px
+                </span>
+              </div>
+
+              {/* Slider */}
+              <div className="flex items-center gap-2.5">
+                <span className="text-[10px] font-bold text-slate-400">30px</span>
+                <input
+                  type="range"
+                  min="30"
+                  max="180"
+                  step="5"
+                  value={invoiceSettings.signatureSize || 65}
+                  onChange={(e) => onInvoiceSettingsChange({ ...invoiceSettings, signatureSize: Number(e.target.value) })}
+                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none"
+                />
+                <span className="text-[10px] font-bold text-slate-400">180px</span>
+              </div>
+
+              {/* Presets */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] text-slate-400 font-semibold">Pilihan:</span>
+                {[
+                  { label: 'Kecil', size: 45 },
+                  { label: 'Standar', size: 65 },
+                  { label: 'Sedang', size: 90 },
+                  { label: 'Besar', size: 120 },
+                  { label: 'Ekstra', size: 150 },
+                ].map((preset) => (
+                  <button
+                    key={preset.size}
+                    type="button"
+                    onClick={() => onInvoiceSettingsChange({ ...invoiceSettings, signatureSize: preset.size })}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                      (invoiceSettings.signatureSize || 65) === preset.size
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {preset.label} ({preset.size}px)
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Preview of Size if signature is uploaded */}
+              {invoiceSettings.signatureUrl && (
+                <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="text-[10px] font-semibold text-slate-400">Preview Proporsi di PDF:</span>
+                  <div className="bg-white p-2 border border-slate-200 rounded-lg shadow-2xs flex items-center justify-center max-w-[200px] overflow-hidden">
+                    <img
+                      src={invoiceSettings.signatureUrl}
+                      alt="Preview Size"
+                      style={{ height: `${invoiceSettings.signatureSize || 65}px`, maxHeight: '180px' }}
+                      className="object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

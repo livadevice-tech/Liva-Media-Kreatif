@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, Download, MessageSquare, Copy, Check, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { X, Printer, Download, MessageSquare, Copy, Check, ShieldCheck, CheckCircle2, Sliders } from 'lucide-react';
 import { BrandInvoice, ClientBrand, LivaBankAccount, InvoiceCompanyProfile } from '../../types';
 import { terbilang } from '../../shared/utils/terbilang';
 import { formatDateUILocal as formatDateUI } from '../../shared/utils/date';
@@ -11,6 +11,7 @@ interface InvoicePreviewModalProps {
   companyProfile?: Partial<InvoiceCompanyProfile>;
   onClose: () => void;
   onPrint: () => void;
+  onUpdateSignatureSize?: (size: number) => void;
 }
 
 export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
@@ -20,6 +21,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   companyProfile,
   onClose,
   onPrint,
+  onUpdateSignatureSize,
 }) => {
   const [waCopied, setWaCopied] = useState(false);
 
@@ -32,6 +34,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   const signeeCity = companyProfile?.city || "Bandar Lampung";
   const signeeName = companyProfile?.directorName || "Mufthi Ali";
   const signeeTitle = companyProfile?.directorTitle || "Direktur Utama PT Liva Media Kreatif";
+  const signatureHeight = companyProfile?.signatureSize || 65;
 
   // Bank Info
   const bankName = invoice.bankInfo?.bankName || bankAccount?.bankName || "Maybank Syariah";
@@ -100,6 +103,27 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Quick Signature Size Adjustment */}
+            {companyProfile?.signatureUrl && onUpdateSignatureSize && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">Ukuran TTD:</span>
+                <input
+                  type="range"
+                  min="30"
+                  max="180"
+                  step="5"
+                  value={companyProfile.signatureSize || 65}
+                  onChange={(e) => onUpdateSignatureSize(Number(e.target.value))}
+                  className="w-20 accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none"
+                  title="Geser untuk mengatur tinggi tanda tangan di PDF"
+                />
+                <span className="font-mono font-bold text-indigo-700 text-[11px] min-w-[34px] text-right">
+                  {companyProfile.signatureSize || 65}px
+                </span>
+              </div>
+            )}
+
             <button
               onClick={handleCopyWA}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -350,9 +374,14 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                   </div>
 
                   {/* Digital Stamp / Signature */}
-                  <div className="h-16 flex items-center justify-end my-1">
+                  <div className="flex items-center justify-end my-1" style={{ minHeight: `${signatureHeight}px` }}>
                     {companyProfile?.signatureUrl ? (
-                      <img src={companyProfile.signatureUrl} alt="Signature" className="max-h-16 object-contain" />
+                      <img
+                        src={companyProfile.signatureUrl}
+                        alt="Signature"
+                        style={{ height: `${signatureHeight}px`, maxHeight: `${signatureHeight}px`, maxWidth: '280px' }}
+                        className="object-contain"
+                      />
                     ) : (
                       <div className="relative inline-block border-2 border-dashed border-rose-500/70 rounded-lg px-4 py-1 text-center rotate-[-3deg] bg-rose-50/40 shadow-xs">
                         <div className="text-[12px] font-black text-rose-600 uppercase tracking-wider leading-none">
