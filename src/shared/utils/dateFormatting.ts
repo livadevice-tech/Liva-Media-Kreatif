@@ -2,10 +2,15 @@ export const padLocal = (n: number) => String(n).padStart(2, "0");
 
 export const formatContractDate = (d?: string) => {
   if (!d) return "—";
-  const datePart = d.split("T")[0];
+  const cleaned = String(d).replace(/^Tgl\s*/i, "").trim();
+  if (!cleaned) return "—";
+  const datePart = cleaned.split("T")[0];
   const parts = datePart.split("-");
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  return d;
+  if (parts.length === 3) {
+    const day = parseInt(parts[2], 10);
+    return `Tgl ${day || parts[2]}`;
+  }
+  return `Tgl ${cleaned}`;
 };
 
 export const normalizeDateStr = (d: string) => {

@@ -38,8 +38,17 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
     setCompanyAddress(brand.companyAddress || '');
     setInvoiceDate(brand.invoiceDate || '29');
     setCutOffDate(brand.cutOffDate || '15');
-    setContractStartDate(brand.contractStartDate ? brand.contractStartDate.split('T')[0] : '');
-    setContractEndDate(brand.contractEndDate ? brand.contractEndDate.split('T')[0] : '');
+    const extractDay = (val?: string) => {
+      if (!val) return '';
+      const cleaned = val.replace(/^Tgl\s*/i, '').trim();
+      if (cleaned.includes('-')) {
+        const parts = cleaned.split('T')[0].split('-');
+        return String(parseInt(parts[parts.length - 1], 10) || '');
+      }
+      return cleaned;
+    };
+    setContractStartDate(extractDay(brand.contractStartDate));
+    setContractEndDate(extractDay(brand.contractEndDate));
   };
 
   const handleSaveBillingData = (e: React.FormEvent) => {
@@ -290,10 +299,13 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
-                            Mulai Live
+                            Tgl Mulai Live (1-31)
                           </label>
                           <input
-                            type="date"
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="Contoh: 21"
                             value={contractStartDate}
                             onChange={(e) => setContractStartDate(e.target.value)}
                             className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"
@@ -301,10 +313,13 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                         </div>
                         <div>
                           <label className="block text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">
-                            Selesai Live
+                            Tgl Selesai Live (1-31)
                           </label>
                           <input
-                            type="date"
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="Contoh: 20"
                             value={contractEndDate}
                             onChange={(e) => setContractEndDate(e.target.value)}
                             className="w-full border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all shadow-2xs"

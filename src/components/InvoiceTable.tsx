@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
+import { formatContractDate } from '../shared/utils/dateFormatting';
 
 interface InvoiceTableProps {
   allInvoices: (BrandInvoice & { brandId: string; brandName: string })[];
@@ -364,9 +365,9 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                           {(brand?.contractStartDate || brand?.contractEndDate) && (
                             <span
                               className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-700 bg-indigo-50/80 border border-indigo-100 px-1.5 py-0.5 rounded-md"
-                              title="Periode Kontrak Live"
+                              title="Periode Siklus Live"
                             >
-                              Live: {brand.contractStartDate ? formatDateUI(brand.contractStartDate) : ''} – {brand.contractEndDate ? formatDateUI(brand.contractEndDate) : ''}
+                              Live: {formatContractDate(brand.contractStartDate)} – {formatContractDate(brand.contractEndDate)}
                             </span>
                           )}
                         </div>
