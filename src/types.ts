@@ -186,6 +186,7 @@ export interface BrandInvoice {
   picPhone?: string;
   email: string;
   address: string;
+  cutOffDate?: string;
   totalAmount: number;
   sessionItems: {
     sessionId: string;

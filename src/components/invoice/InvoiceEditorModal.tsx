@@ -151,7 +151,7 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
           </div>
 
           {/* Dates Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1">
                 Tanggal Invoice
@@ -183,6 +183,20 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                 className="w-full border border-slate-200 rounded-xl px-3.5 py-2 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
                 value={invoiceEditor.dueDate}
                 onChange={e => setInvoiceEditor({...invoiceEditor, dueDate: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1">
+                Tgl Cut Off Live (Per Bulan)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                placeholder="15"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
+                value={invoiceEditor.cutOffDate || ""}
+                onChange={e => setInvoiceEditor({...invoiceEditor, cutOffDate: e.target.value})}
               />
             </div>
           </div>

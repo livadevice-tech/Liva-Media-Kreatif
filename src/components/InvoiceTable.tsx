@@ -333,7 +333,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredInvoices.map((inv) => {
-                  const brand = clientBrands.find((b) => b.id === inv.brandId);
+                  const brand = clientBrands.find((b) => b.id === inv.brandId || b.name?.toLowerCase() === inv.brandName?.toLowerCase());
                   const isInvOverdue = isOverdue(inv);
 
                   return (
@@ -354,7 +354,21 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                           {inv.ptName || brand?.companyName || brand?.name}
                         </div>
                         <div className="text-[11px] font-medium text-slate-500 mt-0.5 truncate max-w-[220px]">
-                          {inv.picName || brand?.picName || '-'}
+                          {inv.picName || brand?.picName || brand?.name || '-'}
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            Cut Off: Tgl {inv.cutOffDate || brand?.cutOffDate || '15'}
+                          </span>
+                          {(brand?.contractStartDate || brand?.contractEndDate) && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-700 bg-indigo-50/80 border border-indigo-100 px-1.5 py-0.5 rounded-md"
+                              title="Periode Kontrak Live"
+                            >
+                              Live: {brand.contractStartDate ? formatDateUI(brand.contractStartDate) : ''} – {brand.contractEndDate ? formatDateUI(brand.contractEndDate) : ''}
+                            </span>
+                          )}
                         </div>
                       </td>
 

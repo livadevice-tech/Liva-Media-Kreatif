@@ -210,6 +210,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       picPhone: brand?.picPhone || "",
       email: brand?.picEmail || "",
       address: brand?.companyAddress || "",
+      cutOffDate: brand?.cutOffDate || "15",
       bankInfo: {
         bankName: defaultBank.bankName,
         accountNo: defaultBank.accountNo,
