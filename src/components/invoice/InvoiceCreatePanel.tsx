@@ -418,7 +418,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
                     Rincian Layanan Tagihan
                   </h4>
-                  <p className="text-[10px] text-slate-400">Daftar item / paket jasa yang ditagihkan</p>
+                  <p className="text-[10px] text-slate-400">Daftar item (Tekan Enter pada rincian untuk membuat baris baru)</p>
                 </div>
               </div>
               <button
@@ -430,7 +430,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   ];
                   setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
                 }}
-                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
+                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" /> Tambah Item
               </button>
@@ -439,6 +439,9 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
             <div className="space-y-3">
               {(draftInvoice?.sessionItems || []).map((item, idx) => {
                 const itemTotal = (item.cost || 0) * (item.qty || 1);
+                const lineCount = (item.description || "").split("\n").length;
+                const rows = Math.max(2, Math.min(lineCount, 6));
+
                 return (
                   <div
                     key={item.sessionId || idx}
@@ -448,9 +451,10 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">
                         Deskripsi Layanan
                       </label>
-                      <input
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 shadow-2xs"
-                        placeholder="Deskripsi Layanan / Item (Contoh: Live Streaming Package Shopee)"
+                      <textarea
+                        rows={rows}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 shadow-2xs resize-y leading-relaxed"
+                        placeholder="Deskripsi Layanan / Item (Bisa tekan Enter untuk baris baru)"
                         value={item.description}
                         onChange={(e) => {
                           const newItems = [...(draftInvoice?.sessionItems || [])];

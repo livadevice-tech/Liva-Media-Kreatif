@@ -255,9 +255,14 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
           {/* Line Items */}
           <div className="border-t border-slate-200 pt-4">
             <div className="flex justify-between items-center mb-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Komponen / Rincian Layanan Tagihan
-              </h4>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  Komponen / Rincian Layanan Tagihan
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Tekan Enter pada rincian untuk membuat baris baru (misal: nama paket dan periode tanggal)
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -267,32 +272,37 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                   ];
                   setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
                 }}
-                className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer"
+                className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" /> Tambah Baris
               </button>
             </div>
 
             <div className="space-y-2.5">
-              {(invoiceEditor.sessionItems || []).map((item, idx) => (
-                <div
-                  key={item.sessionId || idx}
-                  className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-2.5 items-center shadow-2xs"
-                >
-                  <div className="flex-1 w-full">
-                    <input
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
-                      placeholder="Deskripsi Item"
-                      value={item.description}
-                      onChange={(e) => {
-                        const newItems = [...(invoiceEditor.sessionItems || [])];
-                        newItems[idx].description = e.target.value;
-                        setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
-                      }}
-                    />
-                  </div>
+              {(invoiceEditor.sessionItems || []).map((item, idx) => {
+                const lineCount = (item.description || "").split("\n").length;
+                const rows = Math.max(2, Math.min(lineCount, 6));
 
-                  <div className="flex items-center gap-2 w-full md:w-auto">
+                return (
+                  <div
+                    key={item.sessionId || idx}
+                    className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-2.5 items-start md:items-center shadow-2xs"
+                  >
+                    <div className="flex-1 w-full">
+                      <textarea
+                        rows={rows}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 resize-y leading-relaxed"
+                        placeholder="Deskripsi Item / Layanan (Tekan Enter untuk baris baru)"
+                        value={item.description}
+                        onChange={(e) => {
+                          const newItems = [...(invoiceEditor.sessionItems || [])];
+                          newItems[idx].description = e.target.value;
+                          setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
                     <input
                       type="number"
                       className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold text-center text-slate-800 focus:outline-none focus:border-indigo-500"
@@ -346,8 +356,9 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
             {/* Total calculation */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2">

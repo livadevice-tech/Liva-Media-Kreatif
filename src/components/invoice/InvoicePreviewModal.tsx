@@ -269,15 +269,15 @@ Mohon konfirmasi bukti transfer jika pembayaran telah dilakukan. Terima kasih at
                       const itemTotal = item.cost * qty;
                       return (
                         <tr key={item.sessionId || idx} className="hover:bg-slate-50/50">
-                          <td className="py-3 px-3 text-center text-slate-500 font-semibold">{idx + 1}</td>
-                          <td className="py-3 px-3 font-bold text-slate-800">{item.description}</td>
-                          <td className="py-3 px-3 text-center font-semibold text-slate-600">
+                          <td className="py-3 px-3 text-center text-slate-500 font-semibold align-top">{idx + 1}</td>
+                          <td className="py-3 px-3 font-bold text-slate-800 whitespace-pre-line leading-relaxed align-top">{item.description}</td>
+                          <td className="py-3 px-3 text-center font-semibold text-slate-600 align-top">
                             {qty} {unit}
                           </td>
-                          <td className="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap">
+                          <td className="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap align-top">
                             Rp {new Intl.NumberFormat('id-ID').format(item.cost)}
                           </td>
-                          <td className="py-3 px-3 text-right font-bold text-slate-900 whitespace-nowrap">
+                          <td className="py-3 px-3 text-right font-bold text-slate-900 whitespace-nowrap align-top">
                             Rp {new Intl.NumberFormat('id-ID').format(itemTotal)}
                           </td>
                         </tr>

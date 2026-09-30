@@ -219,10 +219,11 @@ export function generateInvoicePrintHtml(params: {
             border-bottom: 1px solid #f1f5f9;
             font-size: 10.5px;
             color: #1e293b;
+            vertical-align: top;
           }
-          .items-table td.center { text-align: center; color: #64748b; font-weight: 600; }
-          .items-table td.right { text-align: right; }
-          .items-table td.desc { font-weight: 700; color: #0f172a; }
+          .items-table td.center { text-align: center; color: #64748b; font-weight: 600; vertical-align: top; }
+          .items-table td.right { text-align: right; vertical-align: top; }
+          .items-table td.desc { font-weight: 700; color: #0f172a; white-space: pre-line; line-height: 1.4; vertical-align: top; }
           .bottom-grid {
             display: flex;
             justify-content: space-between;
