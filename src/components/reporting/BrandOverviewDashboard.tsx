@@ -154,43 +154,48 @@ function SaleCard({
   sparklineColor,
 }: SaleCardProps) {
   return (
-    <div className="group relative flex flex-col justify-between rounded-[20px] border border-slate-200/70 bg-white p-4.5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-slate-300 hover:shadow-md">
-      {/* Top: Icon & Title */}
-      <div className="flex items-center gap-3">
+    <div className="group relative flex flex-col rounded-[20px] border border-slate-200/70 bg-white p-4.5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-slate-300 hover:shadow-md">
+      {/* Top: Icon & Title with fixed height to ensure baseline alignment */}
+      <div className="flex h-10 items-center gap-3 min-w-0">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg} ${iconColor} transition-transform duration-200 group-hover:scale-105`}
         >
           {icon}
         </div>
-        <span className="text-xs font-bold text-slate-500">{title}</span>
+        <span
+          className="text-xs font-bold text-slate-500 truncate min-w-0"
+          title={title}
+        >
+          {title}
+        </span>
       </div>
 
-      {/* Middle: Big Value */}
-      <div className="mt-2.5 mb-1.5">
-        <div className="text-[20px] xl:text-[22px] font-black tracking-tight text-slate-900 leading-tight">
+      {/* Middle: Big Value - strictly aligned to a consistent vertical baseline */}
+      <div className="mt-3 mb-2">
+        <div className="text-[20px] xl:text-[22px] font-black tracking-tight text-slate-900 leading-tight truncate">
           {value}
         </div>
       </div>
 
-      {/* Bottom: Growth vs Prev & Sparkline */}
-      <div className="mt-1 flex items-end justify-between gap-2">
-        <div className="flex flex-col">
+      {/* Bottom: Growth vs Prev & Sparkline - pinned to bottom */}
+      <div className="mt-auto pt-1 flex items-end justify-between gap-2 min-w-0">
+        <div className="flex flex-col min-w-0">
           <div
             className={`inline-flex items-center gap-1 text-[11px] font-bold ${
               growth.isUp ? "text-emerald-600" : "text-rose-600"
             }`}
           >
             {growth.isUp ? (
-              <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
+              <TrendingUp className="h-3 w-3 shrink-0" strokeWidth={2.5} />
             ) : (
-              <TrendingDown className="h-3 w-3" strokeWidth={2.5} />
+              <TrendingDown className="h-3 w-3 shrink-0" strokeWidth={2.5} />
             )}
             <span>
               {growth.isUp ? "+" : "-"}
               {growth.pct}%
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium">
+          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
             vs periode sebelumnya
           </span>
         </div>
@@ -222,26 +227,26 @@ function EngagementCard({
   sparklineColor,
 }: EngagementCardProps) {
   return (
-    <div className="flex flex-col justify-between rounded-[20px] border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-200 hover:border-slate-300 hover:shadow-xs">
+    <div className="flex flex-col rounded-[20px] border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-200 hover:border-slate-300 hover:shadow-xs">
       <div>
         <p className="text-[12px] font-semibold text-slate-500 truncate" title={label}>
           {label}
         </p>
-        <p className="mt-1 text-[20px] font-black text-slate-900 leading-tight">
+        <p className="mt-1 text-[20px] font-black text-slate-900 leading-tight truncate">
           {value}
         </p>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-auto pt-3 flex items-center justify-between gap-2">
         <span
           className={`inline-flex items-center gap-1 text-[11px] font-bold ${
             growth.isUp ? "text-emerald-600" : "text-rose-600"
           }`}
         >
           {growth.isUp ? (
-            <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
+            <TrendingUp className="h-3 w-3 shrink-0" strokeWidth={2.5} />
           ) : (
-            <TrendingDown className="h-3 w-3" strokeWidth={2.5} />
+            <TrendingDown className="h-3 w-3 shrink-0" strokeWidth={2.5} />
           )}
           {growth.pct}%
         </span>
@@ -608,12 +613,12 @@ export function BrandOverviewDashboard({
                 sparklineColor="#f97316"
               />
 
-              {/* Card 7 (TikTok): Product clicks */}
+              {/* Card 7 (TikTok): Product Clicks */}
               <SaleCard
                 icon={<MousePointerClick className="h-5 w-5" strokeWidth={2.5} />}
                 iconBg="bg-emerald-50"
                 iconColor="text-emerald-600"
-                title="Product clicks"
+                title="Product Clicks"
                 value={formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
                 growth={clicksGrowth}
                 sparklineData={clicksSeries}
