@@ -1,6 +1,6 @@
 import { ArrowRight, Download, MoreHorizontal, Search, Sparkles, SlidersHorizontal, ChevronDown, Filter } from "lucide-react";
 import { Fragment, type KeyboardEvent, useState } from "react";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, ResponsiveContainer, YAxis } from "recharts";
 
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import type {
@@ -337,7 +337,8 @@ function MobileReportBrandCard({
   const isActionsOpen = openBrandCardActionsId === brand.id;
   const primaryPlatform = row.platforms.length > 0 ? row.platforms.join(" / ") : "TOTAL ONLINE SALES";
   
-  // Format percentage
+  // Format percentage (only show when there are at least 2 completed months to compare)
+  const hasMultipleMonths = Boolean(row.monthlyTrend && row.monthlyTrend.length >= 2);
   const percentChange = row.percentChange || 0;
   const isPositive = percentChange >= 0;
   const formattedPercent = Math.abs(percentChange).toFixed(2).replace('.', ',') + '%';
@@ -349,15 +350,18 @@ function MobileReportBrandCard({
     minimumFractionDigits: 0,
   }).format(row.totalGmv);
 
-  // Fill chart with dummy data if not enough
-  const chartData = (row.monthlyTrend && row.monthlyTrend.length > 1) ? row.monthlyTrend : [
-    { label: 'Jun', value: row.totalGmv * 0.4 },
-    { label: 'Jul', value: row.totalGmv * 0.6 },
-    { label: 'Aug', value: row.totalGmv * 0.5 },
-    { label: 'Sep', value: row.totalGmv * 0.8 },
-    { label: 'Oct', value: row.totalGmv * 0.9 },
-    { label: 'Nov', value: row.totalGmv }
-  ];
+  const trend = row.monthlyTrend || [];
+  const chartData = trend.length > 1
+    ? trend
+    : trend.length === 1
+    ? [
+        { label: '', value: trend[0].value },
+        { label: trend[0].label, value: trend[0].value }
+      ]
+    : [
+        { label: '', value: 0 },
+        { label: '', value: 0 }
+      ];
 
   return (
     <div
@@ -461,40 +465,55 @@ function MobileReportBrandCard({
         </div>
         
         {/* Percentage Badge */}
-        <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black ${isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-          <span>{isPositive ? '↑' : '↓'}</span>
-          <span>{formattedPercent}</span>
-        </div>
+        {hasMultipleMonths ? (
+          <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black ${isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+            <span>{isPositive ? '↑' : '↓'}</span>
+            <span>{formattedPercent}</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Chart Area */}
       <div className="h-24 w-full mt-2 -ml-2 relative z-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={"colorUv" + brand.id} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="#8b5cf6"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill={"url(#colorUv" + brand.id + ")"}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {trend.length === 0 ? (
+          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-slate-400">
+            Belum ada data bulan penuh
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={"colorUv" + brand.id} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis hide domain={[0, "auto"]} />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#8b5cf6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill={"url(#colorUv" + brand.id + ")"}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
       
       {/* X Axis Labels */}
-      <div className="flex justify-between items-center px-2 mt-2 text-[10px] font-bold text-slate-400">
-        {chartData.map((d, i) => (
-           <span key={i}>{d.label}</span>
-        ))}
-      </div>
+      {trend.length > 1 ? (
+        <div className="flex justify-between items-center px-2 mt-2 text-[10px] font-bold text-slate-400">
+          {trend.map((d, i) => (
+            <span key={i}>{d.label}</span>
+          ))}
+        </div>
+      ) : trend.length === 1 ? (
+        <div className="flex justify-center items-center px-2 mt-2 text-[10px] font-bold text-slate-400">
+          <span>{trend[0].label}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

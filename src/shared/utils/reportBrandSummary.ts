@@ -3,6 +3,7 @@ import type {
   BrandPerformanceLogEntry,
   UploadHistoryEntry,
 } from "../types/reporting";
+import { normalizeDateYMD } from "./appUi";
 
 export interface ReportBrandRowView {
   brand: Pick<ClientBrand, "id" | "name" | "clientPassword" | "logoUrl" | "isActive">;
@@ -209,16 +210,32 @@ export function buildReportBrandSummary({
       const latestActivity = timestamps[timestamps.length - 1] || "";
 
 
-      // Calculate monthly trend (last 6 months)
+      // Calculate monthly trend (last 6 completed months)
+      // Exclude unfinished months (such as current calendar month or future months)
+      // because partial month data causes the trend curve to drop artificially.
+      const now = new Date();
+      const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
       const monthlyData: Record<string, number> = {};
-      sessionLogs.forEach(log => {
+      sessionLogs.forEach((log) => {
         const dateStr = log.date || log.dateTime || log.uploadedAt;
         if (dateStr) {
           try {
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) {
-              const monthLabel = d.toLocaleString('id-ID', { month: 'short' });
-              const yearMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            let yearMonth = "";
+            const norm = typeof dateStr === "string" ? normalizeDateYMD(dateStr) : "";
+            if (norm && norm.includes("-")) {
+              const parts = norm.split("-");
+              if (parts.length >= 2) {
+                yearMonth = `${parts[0]}-${parts[1]}`;
+              }
+            }
+            if (!yearMonth) {
+              const d = new Date(dateStr);
+              if (!isNaN(d.getTime())) {
+                yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+              }
+            }
+            if (yearMonth) {
               if (!monthlyData[yearMonth]) monthlyData[yearMonth] = 0;
               monthlyData[yearMonth] += (log.gmv || 0);
             }
@@ -227,20 +244,22 @@ export function buildReportBrandSummary({
       });
       
       const sortedMonths = Object.keys(monthlyData).sort();
-      // take last 6
-      const recentMonths = sortedMonths.slice(-6);
+      // Only include months that are completed (strictly before current ongoing month)
+      const completedMonths = sortedMonths.filter((ym) => ym < currentYearMonth);
+      // Take up to the last 6 completed months
+      const recentMonths = completedMonths.slice(-6);
       
       // format to {label, value}
-      const monthlyTrend = recentMonths.map(ym => {
-        const [year, m] = ym.split('-');
-        const d = new Date(parseInt(year), parseInt(m) - 1, 1);
+      const monthlyTrend = recentMonths.map((ym) => {
+        const [year, m] = ym.split("-");
+        const d = new Date(parseInt(year, 10), parseInt(m, 10) - 1, 1);
         return {
-          label: d.toLocaleString('en-US', { month: 'short' }), // "Jun", "Jul" as requested
-          value: monthlyData[ym]
+          label: d.toLocaleString("en-US", { month: "short" }),
+          value: monthlyData[ym],
         };
       });
 
-      // Calculate percentChange between last month and previous month
+      // Calculate percentChange between last completed month and previous completed month
       let percentChange = 0;
       if (recentMonths.length >= 2) {
         const lastMonthVal = monthlyData[recentMonths[recentMonths.length - 1]];
