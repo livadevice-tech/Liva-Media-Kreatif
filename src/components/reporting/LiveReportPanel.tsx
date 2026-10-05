@@ -167,6 +167,8 @@ export function LiveReportPanel({
           brandId={activeReportBrandId}
           brandDashboardSettings={brandDashboardSettings}
           hasData={hasAnyData}
+          chartSelectedMetrics={chartSelectedMetrics}
+          onChartSelectedMetricsChange={onChartSelectedMetricsChange}
         />
 
         <ReportRawSessionsCard

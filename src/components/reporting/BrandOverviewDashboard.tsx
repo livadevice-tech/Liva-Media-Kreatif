@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   DollarSign,
   Package,
@@ -6,6 +6,7 @@ import {
   Calculator,
   Users,
   Eye,
+  EyeOff,
   MousePointerClick,
   Clock,
   TrendingUp,
@@ -14,6 +15,9 @@ import {
   Tag,
   Tv,
   ShoppingCart,
+  SlidersHorizontal,
+  Calendar,
+  Check,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -29,6 +33,10 @@ import type {
   LiveReportSummaryStats,
 } from "./liveReportSummaryTypes";
 import type { BrandDashboardSettings } from "../../types";
+import {
+  aggregateChartData,
+  type ChartGranularity,
+} from "../../shared/utils/chartDataAggregation";
 
 interface BrandOverviewDashboardProps {
   stats: LiveReportSummaryStats;
@@ -41,6 +49,8 @@ interface BrandOverviewDashboardProps {
   brandDashboardSettings?: BrandDashboardSettings;
   latestActivity?: string;
   hasData?: boolean;
+  chartSelectedMetrics?: string[];
+  onChartSelectedMetricsChange?: (metrics: string[]) => void;
 }
 
 function formatCurrency(val: number): string {
@@ -55,6 +65,12 @@ function formatCurrency(val: number): string {
 function formatCompactNumber(val: number): string {
   if (!val) return "0";
   return Number(val).toLocaleString("id-ID");
+}
+
+function formatDurationText(sec: number): string {
+  const hours = Math.floor((sec || 0) / 3600);
+  const mins = Math.round(((sec || 0) % 3600) / 60);
+  return `${hours}h ${mins}m`;
 }
 
 function calcGrowth(curr: number, prev: number): { pct: number; isUp: boolean } {
@@ -271,8 +287,45 @@ export function BrandOverviewDashboard({
   brandDashboardSettings,
   latestActivity,
   hasData = true,
+  chartSelectedMetrics,
+  onChartSelectedMetricsChange,
 }: BrandOverviewDashboardProps) {
-  const [chartInterval, setChartInterval] = useState<"daily" | "weekly">("daily");
+  const [internalSelectedMetrics, setInternalSelectedMetrics] = useState<string[]>([
+    "gmv",
+    "orders",
+    "penonton",
+  ]);
+  const activeMetrics =
+    chartSelectedMetrics && chartSelectedMetrics.length > 0
+      ? chartSelectedMetrics
+      : internalSelectedMetrics;
+  const setActiveMetrics = (newMetrics: string[]) => {
+    if (onChartSelectedMetricsChange) {
+      onChartSelectedMetricsChange(newMetrics);
+    }
+    setInternalSelectedMetrics(newMetrics);
+  };
+
+  const [granularity, setGranularity] = useState<ChartGranularity>("daily");
+  const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
+  const [isMetricMenuOpen, setIsMetricMenuOpen] = useState(false);
+  const chartControlsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        chartControlsRef.current &&
+        !chartControlsRef.current.contains(event.target as Node)
+      ) {
+        setIsGranularityMenuOpen(false);
+        setIsMetricMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [isDurationVisible, setIsDurationVisible] = useState(true);
 
   const hm = brandDashboardSettings?.hiddenMetrics || [];
   const isMetricHidden = (id: string) =>
@@ -414,26 +467,291 @@ export function BrandOverviewDashboard({
     [chartData]
   );
 
-  // Formatted Chart Points for Dual-Axis LineChart
-  const formattedChartData = useMemo(() => {
-    return chartData.map((pt) => {
-      let label = pt.date;
-      try {
-        const dateObj = new Date(pt.date);
-        if (!isNaN(dateObj.getTime())) {
-          label = dateObj.toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-          });
-        }
-      } catch (e) {}
+  const availableMetricOptions = useMemo(() => {
+    const isPlatformShopee = isShopee;
+    const list: Array<{
+      key: string;
+      label: string;
+      category: "Sale Metrics" | "Engagement Metrics";
+      color: string;
+      yAxisId: "left" | "right";
+      platforms: ("tiktok" | "shopee")[];
+      formatValue: (val: number) => string;
+    }> = [
+      // Sale Metrics
+      {
+        key: "gmv",
+        label: "GMV",
+        category: "Sale Metrics",
+        color: "#10b981",
+        yAxisId: "left",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => formatCurrency(v),
+      },
+      {
+        key: "orders",
+        label: isPlatformShopee ? "Purchase" : "Orders",
+        category: "Sale Metrics",
+        color: "#6366f1",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} ${isPlatformShopee ? "pembelian" : "pesanan"}`,
+      },
+      {
+        key: "itemsSold",
+        label: "Item Sold",
+        category: "Sale Metrics",
+        color: "#f59e0b",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} item`,
+      },
+      {
+        key: "clicks",
+        label: isPlatformShopee ? "Add To Cart" : "Product Clicks",
+        category: "Sale Metrics",
+        color: "#0d9488",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} klik`,
+      },
+      {
+        key: "buyers",
+        label: "Customer",
+        category: "Sale Metrics",
+        color: "#db2777",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} pembeli`,
+      },
+      {
+        key: "gmvPerHour",
+        label: "GMV/Hours",
+        category: "Sale Metrics",
+        color: "#8b5cf6",
+        yAxisId: "left",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCurrency(v)}/jam`,
+      },
+      {
+        key: "durationHours",
+        label: "Durasi Live",
+        category: "Sale Metrics",
+        color: "#a855f7",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${v} jam`,
+      },
+      {
+        key: "productImpressions",
+        label: "Product Impressions",
+        category: "Sale Metrics",
+        color: "#ea580c",
+        yAxisId: "right",
+        platforms: ["tiktok"],
+        formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
+      },
+      {
+        key: "conversionRate",
+        label: "Conversion Rate",
+        category: "Sale Metrics",
+        color: "#06b6d4",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${Number(v).toFixed(2)}%`,
+      },
+
+      // Engagement Metrics
+      {
+        key: "penonton",
+        label: isPlatformShopee ? "Views" : "Live Viewer",
+        category: "Engagement Metrics",
+        color: "#0284c7",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} penonton`,
+      },
+      {
+        key: "impressions",
+        label: "Live Impressions",
+        category: "Engagement Metrics",
+        color: "#38bdf8",
+        yAxisId: "right",
+        platforms: ["tiktok"],
+        formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
+      },
+      {
+        key: "likes",
+        label: "Likes",
+        category: "Engagement Metrics",
+        color: "#ef4444",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} likes`,
+      },
+      {
+        key: "comments",
+        label: "Comments",
+        category: "Engagement Metrics",
+        color: "#eab308",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} komen`,
+      },
+      {
+        key: "shares",
+        label: "Shares",
+        category: "Engagement Metrics",
+        color: "#84cc16",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} share`,
+      },
+      {
+        key: "followers",
+        label: "New Followers",
+        category: "Engagement Metrics",
+        color: "#d946ef",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${formatCompactNumber(v)} followers`,
+      },
+      {
+        key: "err",
+        label: "ERR %",
+        category: "Engagement Metrics",
+        color: "#14b8a6",
+        yAxisId: "right",
+        platforms: ["tiktok", "shopee"],
+        formatValue: (v) => `${Number(v).toFixed(2)}%`,
+      },
+    ];
+
+    const currentPlatform = isShopee ? "shopee" : "tiktok";
+    return list.filter((m) => m.platforms.includes(currentPlatform));
+  }, [isShopee]);
+
+  const isMetricActive = (key: string) => {
+    if (activeMetrics.includes(key)) return true;
+    if (key === "penonton" && (activeMetrics.includes("views") || activeMetrics.includes("penonton"))) return true;
+    if (key === "views" && (activeMetrics.includes("views") || activeMetrics.includes("penonton"))) return true;
+    return false;
+  };
+
+  const activeMetricOptions = useMemo(() => {
+    return availableMetricOptions.filter((opt) => isMetricActive(opt.key));
+  }, [availableMetricOptions, activeMetrics]);
+
+  const saleMetricOptions = useMemo(() => {
+    return availableMetricOptions.filter((opt) => opt.category === "Sale Metrics");
+  }, [availableMetricOptions]);
+
+  const engagementMetricOptions = useMemo(() => {
+    return availableMetricOptions.filter((opt) => opt.category === "Engagement Metrics");
+  }, [availableMetricOptions]);
+
+  const toggleMetric = (key: string) => {
+    const isCurrentlyActive = isMetricActive(key);
+    if (isCurrentlyActive) {
+      if (activeMetricOptions.length <= 1) {
+        return;
+      }
+      const next = activeMetrics.filter(
+        (m) =>
+          m !== key &&
+          !(key === "penonton" && m === "views") &&
+          !(key === "views" && m === "penonton")
+      );
+      setActiveMetrics(next);
+    } else {
+      setActiveMetrics([...activeMetrics, key]);
+    }
+  };
+
+  const hasLeftAxis = useMemo(() => {
+    return activeMetricOptions.some((opt) => opt.yAxisId === "left");
+  }, [activeMetricOptions]);
+
+  const hasRightAxis = useMemo(() => {
+    return activeMetricOptions.some((opt) => opt.yAxisId === "right");
+  }, [activeMetricOptions]);
+
+  const dynamicChartTitle = useMemo(() => {
+    if (activeMetricOptions.length === 0) return "Tren Grafik Live";
+    const labels = activeMetricOptions.map((o) => o.label);
+    if (labels.length === 1) return `Tren ${labels[0]}`;
+    if (labels.length === 2) return `Tren ${labels[0]} & ${labels[1]}`;
+    if (labels.length === 3) return `Tren ${labels[0]}, ${labels[1]} & ${labels[2]}`;
+    return `Tren ${labels[0]}, ${labels[1]} (+${labels.length - 2} lainnya)`;
+  }, [activeMetricOptions]);
+
+  // Aggregated Chart Data based on selected granularity (Harian/Mingguan/Bulanan)
+  const visibleChartData = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+
+    const aggregated = aggregateChartData(
+      chartData,
+      granularity,
+      [
+        "gmv", "orders", "itemsSold", "clicks", "penonton", "views", "buyers",
+        "likes", "comments", "shares", "followers", "impressions",
+        "peakViewers", "shopVouchers", "liveVisits", "sessionsCount",
+        "duration", "avgViewDurationSum", "productImpressions"
+      ]
+    );
+
+    return aggregated.map((point: any) => {
+      const gmv = point.gmv || 0;
+      const orders = point.orders || 0;
+      const itemsSold = point.itemsSold || 0;
+      const clicks = point.clicks || 0;
+      const penonton = point.penonton || point.views || 0;
+      const views = point.views || point.penonton || 0;
+      const buyers = point.buyers || 0;
+      const likes = point.likes || 0;
+      const comments = point.comments || 0;
+      const shares = point.shares || 0;
+      const followers = point.followers || 0;
+      const impressions = point.impressions || (isShopee ? penonton : 0);
+      const productImpressions = point.productImpressions || 0;
+      const duration = point.duration || 0;
+      const durationHours = Number((duration / 3600).toFixed(1));
+      const sessionsCount = point.sessionsCount || 0;
+      const avgViewDurationSum = point.avgViewDurationSum || 0;
+      const liveVisits = point.liveVisits || 0;
+
+      let conversionRate = 0;
+      if (clicks > 0) conversionRate = (orders / clicks) * 100;
+      else if (isShopee && liveVisits > 0) conversionRate = (orders / liveVisits) * 100;
+      else if (!isShopee && productImpressions > 0) conversionRate = (orders / productImpressions) * 100;
+      else if (impressions > 0) conversionRate = (orders / impressions) * 100;
+
+      const gmvPerHour = duration > 0 ? gmv / (duration / 3600) : 0;
+      const err = impressions > 0 ? ((likes + comments + shares) / impressions) * 100 : 0;
 
       return {
-        ...pt,
-        displayDate: label,
+        ...point,
+        gmv,
+        orders,
+        itemsSold,
+        clicks,
+        penonton,
+        views,
+        buyers,
+        likes,
+        comments,
+        shares,
+        followers,
+        impressions,
+        productImpressions,
+        duration,
+        durationHours,
+        conversionRate,
+        gmvPerHour,
+        err,
       };
     });
-  }, [chartData]);
+  }, [chartData, granularity, isShopee]);
 
   if (!hasData) {
     return (
@@ -458,13 +776,44 @@ export function BrandOverviewDashboard({
       <section className="space-y-3.5">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5 font-black text-slate-900 text-base">
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-[#5600e0] font-black text-xs">
                 $
               </span>
               <span>Sale Metrics</span>
             </div>
+
+            {/* Total Duration Badge */}
+            {!isMetricHidden("duration_hours") && (
+              <div className="flex items-center gap-1">
+                {isDurationVisible ? (
+                  <>
+                    <span className="bg-[#5600e0]/10 text-[#5600e0] px-2.5 py-0.5 rounded-full font-bold tracking-normal text-[11px] lowercase">
+                      {formatDurationText(stats.totalDbDuration || 0)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsDurationVisible(false)}
+                      className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors cursor-pointer"
+                      title="Sembunyikan durasi"
+                    >
+                      <EyeOff size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsDurationVisible(true)}
+                    className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors cursor-pointer"
+                    title="Tampilkan durasi"
+                  >
+                    <Eye size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-1 text-slate-400 text-xs font-medium">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
               <span>
@@ -643,56 +992,215 @@ export function BrandOverviewDashboard({
 
       {/* ── 2. MIDDLE SECTION: CHART (FULL WIDTH) ───────────────────────── */}
       <section>
-        {/* Tren GMV, Orders & Penonton */}
+        {/* Dynamic Chart with Custom Metrics & Timeframe Granularity */}
         <div className="w-full rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)]">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                Tren GMV, Orders & Penonton
+                {dynamicChartTitle}
               </h3>
               <span className="rounded-md bg-slate-100/90 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                 {periodLabel}
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Legend */}
-              <div className="flex items-center gap-3 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-slate-700">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#10b981]" />
-                  GMV
-                </span>
-                <span className="flex items-center gap-1.5 text-slate-700">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#6366f1]" />
-                  Orders
-                </span>
+            <div className="flex items-center gap-3 flex-wrap" ref={chartControlsRef}>
+              {/* Dynamic Legend */}
+              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold flex-wrap">
+                {activeMetricOptions.map((opt) => (
+                  <span
+                    key={opt.key}
+                    className="inline-flex items-center gap-1.5 text-slate-700 bg-slate-50/80 px-2 py-0.5 rounded-md border border-slate-100"
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: opt.color }}
+                    />
+                    {opt.label}
+                  </span>
+                ))}
               </div>
 
-              {/* Timeframe Dropdown */}
+              {/* Custom Metriks Dropdown */}
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() =>
-                    setChartInterval((prev) =>
-                      prev === "daily" ? "weekly" : "daily"
-                    )
-                  }
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+                  onClick={() => {
+                    setIsMetricMenuOpen(!isMetricMenuOpen);
+                    setIsGranularityMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                    isMetricMenuOpen
+                      ? "border-[#5600e0] bg-purple-50 text-[#5600e0]"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
                 >
-                  <span>{chartInterval === "daily" ? "Harian" : "Mingguan"}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Custom Metriks ({activeMetricOptions.length})</span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+                      isMetricMenuOpen ? "rotate-180 text-[#5600e0]" : ""
+                    }`}
+                  />
                 </button>
+
+                {isMetricMenuOpen && (
+                  <div className="absolute right-0 top-full z-40 mt-1.5 w-64 max-h-[360px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xl animate-fadeIn custom-scrollbar">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 text-[11px] font-semibold text-slate-500">
+                      <span>Pilih Metriks Grafik</span>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
+                        {activeMetricOptions.length} aktif
+                      </span>
+                    </div>
+
+                    {/* Sale Metrics */}
+                    <div className="mb-2">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                        Sale Metrics
+                      </div>
+                      <div className="space-y-0.5">
+                        {saleMetricOptions.map((opt) => {
+                          const isChecked = isMetricActive(opt.key);
+                          return (
+                            <label
+                              key={opt.key}
+                              className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: opt.color }}
+                                />
+                                <span
+                                  className={`text-xs ${
+                                    isChecked ? "font-bold text-slate-900" : "font-medium text-slate-600"
+                                  }`}
+                                >
+                                  {opt.label}
+                                </span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleMetric(opt.key)}
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0] cursor-pointer"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Engagement Metrics */}
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                        Engagement Metrics
+                      </div>
+                      <div className="space-y-0.5">
+                        {engagementMetricOptions.map((opt) => {
+                          const isChecked = isMetricActive(opt.key);
+                          return (
+                            <label
+                              key={opt.key}
+                              className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: opt.color }}
+                                />
+                                <span
+                                  className={`text-xs ${
+                                    isChecked ? "font-bold text-slate-900" : "font-medium text-slate-600"
+                                  }`}
+                                >
+                                  {opt.label}
+                                </span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleMetric(opt.key)}
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0] cursor-pointer"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Granularity Dropdown (Harian / Mingguan / Bulanan) */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGranularityMenuOpen(!isGranularityMenuOpen);
+                    setIsMetricMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                    isGranularityMenuOpen
+                      ? "border-[#5600e0] bg-purple-50 text-[#5600e0]"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                  <span>
+                    {granularity === "daily"
+                      ? "Harian"
+                      : granularity === "weekly"
+                      ? "Mingguan"
+                      : "Bulanan"}
+                  </span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+                      isGranularityMenuOpen ? "rotate-180 text-[#5600e0]" : ""
+                    }`}
+                  />
+                </button>
+
+                {isGranularityMenuOpen && (
+                  <div className="absolute right-0 top-full z-40 mt-1.5 w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl animate-fadeIn">
+                    {[
+                      { value: "daily", label: "Harian" },
+                      { value: "weekly", label: "Mingguan" },
+                      { value: "monthly", label: "Bulanan" },
+                    ].map((item) => {
+                      const isSelected = granularity === item.value;
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => {
+                            setGranularity(item.value as ChartGranularity);
+                            setIsGranularityMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-purple-50 text-[#5600e0]"
+                              : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{item.label}</span>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-[#5600e0]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Chart Canvas */}
           <div className="h-[280px] w-full">
-            {formattedChartData.length > 0 ? (
+            {visibleChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={formattedChartData}
+                  data={visibleChartData}
                   margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                 >
                   <CartesianGrid
@@ -706,78 +1214,87 @@ export function BrandOverviewDashboard({
                     axisLine={{ stroke: "#f1f5f9" }}
                     tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
                   />
-                  {/* Left Y Axis for GMV (in Millions) */}
-                  <YAxis
-                    yAxisId="gmv"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 11 }}
-                    tickFormatter={(val) => {
-                      if (val >= 1000000) {
-                        return `${(val / 1000000).toFixed(0)}M`;
-                      }
-                      if (val >= 1000) {
-                        return `${(val / 1000).toFixed(0)}k`;
-                      }
-                      return `${val}`;
-                    }}
-                  />
-                  {/* Right Y Axis for Orders */}
-                  <YAxis
-                    yAxisId="orders"
-                    orientation="right"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 11 }}
-                    tickFormatter={(val) => `${val}`}
-                  />
+                  {/* Left Y Axis for Currency (GMV, GMV/Hours) */}
+                  {hasLeftAxis && (
+                    <YAxis
+                      yAxisId="left"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#94a3b8", fontSize: 11 }}
+                      tickFormatter={(val) => {
+                        if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B`;
+                        if (val >= 1000000) return `${(val / 1000000).toFixed(0)}M`;
+                        if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+                        return `${val}`;
+                      }}
+                    />
+                  )}
+                  {/* Right Y Axis for Counts/Quantities */}
+                  {hasRightAxis && (
+                    <YAxis
+                      yAxisId="right"
+                      orientation={hasLeftAxis ? "right" : "left"}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#94a3b8", fontSize: 11 }}
+                      tickFormatter={(val) => {
+                        if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                        if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+                        return `${val}`;
+                      }}
+                    />
+                  )}
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const dataPt = payload[0].payload;
                         return (
-                          <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-xl text-xs space-y-1">
-                            <p className="font-bold text-slate-900 border-b border-slate-100 pb-1 mb-1">
-                              {dataPt.date}
+                          <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-xl text-xs space-y-1.5 min-w-[190px] z-50">
+                            <p className="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-1.5 flex items-center justify-between">
+                              <span>{dataPt.displayDate || dataPt.date}</span>
+                              <span className="text-[10px] font-semibold text-slate-400 capitalize">
+                                {granularity === "daily" ? "Harian" : granularity === "weekly" ? "Mingguan" : "Bulanan"}
+                              </span>
                             </p>
-                            <p className="flex items-center justify-between gap-4 text-emerald-600 font-semibold">
-                              <span>GMV:</span>
-                              <strong>{formatCurrency(dataPt.gmv)}</strong>
-                            </p>
-                            <p className="flex items-center justify-between gap-4 text-indigo-600 font-semibold">
-                              <span>Orders:</span>
-                              <strong>{dataPt.orders} pesanan</strong>
-                            </p>
-                            <p className="flex items-center justify-between gap-4 text-slate-500 font-semibold">
-                              <span>Penonton:</span>
-                              <strong>
-                                {dataPt.views || dataPt.penonton || 0}
-                              </strong>
-                            </p>
+                            {activeMetricOptions.map((opt) => {
+                              const val = dataPt[opt.key] ?? dataPt[opt.key === "penonton" ? "views" : opt.key] ?? 0;
+                              return (
+                                <p
+                                  key={opt.key}
+                                  className="flex items-center justify-between gap-4 font-semibold text-slate-700"
+                                >
+                                  <span className="flex items-center gap-1.5 text-slate-600">
+                                    <span
+                                      className="h-2 w-2 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: opt.color }}
+                                    />
+                                    <span>{opt.label}:</span>
+                                  </span>
+                                  <strong className="text-slate-900 font-bold">
+                                    {opt.formatValue ? opt.formatValue(val) : formatCompactNumber(val)}
+                                  </strong>
+                                </p>
+                              );
+                            })}
                           </div>
                         );
                       }
                       return null;
                     }}
                   />
-                  <Line
-                    yAxisId="gmv"
-                    type="monotone"
-                    dataKey="gmv"
-                    stroke="#10b981"
-                    strokeWidth={2.8}
-                    dot={false}
-                    activeDot={{ r: 5, fill: "#10b981" }}
-                  />
-                  <Line
-                    yAxisId="orders"
-                    type="monotone"
-                    dataKey="orders"
-                    stroke="#6366f1"
-                    strokeWidth={2.8}
-                    dot={false}
-                    activeDot={{ r: 5, fill: "#6366f1" }}
-                  />
+                  {activeMetricOptions.map((opt) => (
+                    <Line
+                      key={opt.key}
+                      yAxisId={opt.yAxisId === "left" && hasLeftAxis ? "left" : "right"}
+                      type="monotone"
+                      dataKey={opt.key}
+                      name={opt.label}
+                      stroke={opt.color}
+                      strokeWidth={2.8}
+                      dot={visibleChartData.length === 1 ? { r: 4, strokeWidth: 2, fill: opt.color } : false}
+                      activeDot={{ r: 5, fill: opt.color, stroke: "#ffffff", strokeWidth: 2 }}
+                    />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
             ) : (
