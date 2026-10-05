@@ -419,21 +419,21 @@ export function AdvancedDatePicker({
   ];
 
   return (
-    <div className="bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-[#e7e0f8] select-none flex flex-col sm:flex-row overflow-hidden w-full max-w-full sm:max-w-none">
+    <div className="bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] border border-[#e7e0f8] select-none flex flex-col sm:flex-row overflow-hidden w-full max-w-full sm:max-w-none">
       {/* Sidebar */}
-      <div className="w-full sm:w-[180px] bg-slate-50/50 border-b sm:border-b-0 sm:border-r border-[#e7e0f8] p-3 flex flex-col gap-1">
+      <div className="w-full sm:w-[185px] bg-slate-50/70 border-b sm:border-b-0 sm:border-r border-[#e7e0f8] p-2 sm:p-3 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible shrink-0 custom-scrollbar">
         {filters.map(filter => (
           <button
             key={filter.id}
             onClick={() => setType(filter.id)}
-            className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
+            className={`flex items-center justify-between px-3 py-2 sm:py-2.5 rounded-xl text-[12px] sm:text-[13px] font-semibold transition-all whitespace-nowrap shrink-0 ${
               type === filter.id
                 ? "bg-[#5200ff] text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900"
             }`}
           >
-            {filter.label}
-            {type === filter.id && <Check className="w-4 h-4" strokeWidth={3} />}
+            <span>{filter.label}</span>
+            {type === filter.id && <Check className="w-4 h-4 ml-1.5" strokeWidth={3} />}
           </button>
         ))}
       </div>

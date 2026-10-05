@@ -241,6 +241,42 @@ export function ReportingWorkspaceHeader({
     .toUpperCase()
     .slice(0, 2);
 
+  const [dateMenuAlign, setDateMenuAlign] = useState<"left" | "right">("left");
+
+  useEffect(() => {
+    if (!isDateMenuOpen) return;
+
+    const updateAlignment = () => {
+      const desktopEl = desktopDateMenuRef.current;
+      const mobileEl = mobileDateMenuRef.current;
+      const triggerEl =
+        (desktopEl && desktopEl.offsetParent !== null ? desktopEl : mobileEl) ||
+        desktopEl ||
+        mobileEl;
+      if (!triggerEl) return;
+
+      const rect = triggerEl.getBoundingClientRect();
+      const estimatedPopupWidth = 520;
+
+      // If aligning right (right-0), the popup starts at rect.right - estimatedPopupWidth.
+      // If that would push it past the left edge (< 16px), it MUST align left (left-0).
+      if (rect.right - estimatedPopupWidth < 16) {
+        setDateMenuAlign("left");
+      } else if (window.innerWidth - rect.left < estimatedPopupWidth) {
+        // If aligning left (left-0), the popup ends at rect.left + estimatedPopupWidth.
+        // If that would push it past the right edge, it MUST align right (right-0).
+        setDateMenuAlign("right");
+      } else {
+        // Otherwise pick based on side of screen the button is on
+        setDateMenuAlign(rect.left < window.innerWidth / 2 ? "left" : "right");
+      }
+    };
+
+    updateAlignment();
+    window.addEventListener("resize", updateAlignment);
+    return () => window.removeEventListener("resize", updateAlignment);
+  }, [isDateMenuOpen]);
+
   const openDateMenu = () => {
     setIsDateMenuOpen((open) => !open);
     setIsPlatformMenuOpen(false);
@@ -435,7 +471,11 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isDateMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2">
+                <div
+                  className={`absolute top-full z-50 mt-2 ${
+                    dateMenuAlign === "left" ? "left-0" : "right-0"
+                  } max-w-[calc(100vw-24px)]`}
+                >
                   <AdvancedDatePicker
                     initialType={dateFilterType}
                     initialStartDate={customStartDate}
@@ -677,7 +717,11 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isDateMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2">
+                <div
+                  className={`absolute top-full z-50 mt-2 ${
+                    dateMenuAlign === "left" ? "left-0" : "right-0"
+                  } max-w-[calc(100vw-24px)]`}
+                >
                   <AdvancedDatePicker
                     initialType={dateFilterType}
                     initialStartDate={customStartDate}
