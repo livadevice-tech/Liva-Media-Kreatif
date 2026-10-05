@@ -10,6 +10,7 @@ import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
 import { MobileWeeklySchedule } from './components/admin/MobileWeeklySchedule';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import { InvoiceDashboard } from './components/InvoiceDashboard';
+import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt';
 import React, {
   useState,
   useEffect,
@@ -13677,6 +13678,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <PWAInstallPrompt />
     </div>
   );
 }
