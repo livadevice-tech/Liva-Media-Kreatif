@@ -7342,6 +7342,12 @@ export default function App() {
                               studios={studios}
                               weekStartDate={adminWeekStartDate}
                               masterShifts={shifts}
+                              isFilterActive={Boolean(scheduleHostSearch.trim() || scheduleBrandSearch.trim())}
+                              filterSummary={[scheduleHostSearch.trim(), scheduleBrandSearch.trim()].filter(Boolean).join(" • ")}
+                              onResetFilter={() => {
+                                setScheduleHostSearch("");
+                                setScheduleBrandSearch("");
+                              }}
                               onAddStudio={(newSt) => {
                                 const studioObj: StudioItem = {
                                   id: `std_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,

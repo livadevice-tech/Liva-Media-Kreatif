@@ -19,6 +19,9 @@ interface AdminWeeklyScheduleGridProps {
   onOpenTemplateModal?: () => void;
   onOpenExportModal?: () => void;
   onAddStudio?: (newStudio: { name: string; location: string }) => void;
+  isFilterActive?: boolean;
+  filterSummary?: string;
+  onResetFilter?: () => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -59,7 +62,10 @@ export function AdminWeeklyScheduleGrid({
   clientBrands = [],
   onOpenTemplateModal,
   onOpenExportModal,
-  onAddStudio
+  onAddStudio,
+  isFilterActive = false,
+  filterSummary = '',
+  onResetFilter,
 }: AdminWeeklyScheduleGridProps) {
 
 
@@ -354,12 +360,18 @@ export function AdminWeeklyScheduleGrid({
       const loc = st.location || "Lainnya";
       
       const studioSchedules = thisWeekSchedules.filter(s => s.studio === st.name);
-      let uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
       
-      // Merge with manually added shifts
-      const manualShifts = addedShifts[st.name];
-      if (manualShifts) {
-        uniqueShifts = Array.from(new Set([...uniqueShifts, ...Array.from(manualShifts)])) as string[];
+      let uniqueShifts: string[] = [];
+      if (isFilterActive) {
+        // When host or brand filter is active, only show shifts with matching schedules this week
+        uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
+      } else {
+        uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
+        // Merge with manually added shifts
+        const manualShifts = addedShifts[st.name];
+        if (manualShifts) {
+          uniqueShifts = Array.from(new Set([...uniqueShifts, ...Array.from(manualShifts)])) as string[];
+        }
       }
 
       uniqueShifts.sort(compareShiftsByTime);
@@ -375,21 +387,24 @@ export function AdminWeeklyScheduleGrid({
       }
     });
 
-    const existingNames = new Set(studios.map(s => s.name.toLowerCase()));
-    Object.keys(addedShifts).forEach(stName => {
-      if (stName === "All Studio" || stName === "All Studio (Standby)") return;
-      if (!existingNames.has(stName.toLowerCase())) {
-        const shifts = Array.from(addedShifts[stName] || []).filter(Boolean);
-        if (shifts.length > 0) {
-          const loc = "Lainnya";
-          if (!groupsMap.has(loc)) groupsMap.set(loc, []);
-          groupsMap.get(loc)!.push({
-            name: stName,
-            shifts: shifts.sort(compareShiftsByTime)
-          });
+    // Only add extra studios from addedShifts if filter is NOT active
+    if (!isFilterActive) {
+      const existingNames = new Set(studios.map(s => s.name.toLowerCase()));
+      Object.keys(addedShifts).forEach(stName => {
+        if (stName === "All Studio" || stName === "All Studio (Standby)") return;
+        if (!existingNames.has(stName.toLowerCase())) {
+          const shifts = Array.from(addedShifts[stName] || []).filter(Boolean);
+          if (shifts.length > 0) {
+            const loc = "Lainnya";
+            if (!groupsMap.has(loc)) groupsMap.set(loc, []);
+            groupsMap.get(loc)!.push({
+              name: stName,
+              shifts: shifts.sort(compareShiftsByTime)
+            });
+          }
         }
-      }
-    });
+      });
+    }
 
     const naturalSort = (a: string, b: string) =>
       a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
@@ -402,7 +417,7 @@ export function AdminWeeklyScheduleGrid({
       }));
 
     return sorted;
-  }, [studios, computedSchedules, weekDays, addedShifts, masterShifts]);
+  }, [studios, computedSchedules, weekDays, addedShifts, masterShifts, isFilterActive]);
 
   // State for hidden standby shifts (e.g. user removed Standby 1 or Standby 2)
   const [hiddenStandbyShifts, setHiddenStandbyShifts] = useState<Set<string>>(() => new Set());
@@ -416,6 +431,13 @@ export function AdminWeeklyScheduleGrid({
     });
 
     let shiftsList = Array.from(new Set(thisWeekSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
+
+    if (isFilterActive) {
+      // When filter is active, only show standby shifts that actually have matching schedules this week
+      shiftsList.sort(compareShiftsByTime);
+      return shiftsList;
+    }
+
     const manualStandby = addedShifts["All Studio"] || addedShifts["All Studio (Standby)"];
     if (manualStandby) {
       shiftsList = Array.from(new Set([...shiftsList, ...Array.from(manualStandby)])) as string[];
@@ -442,7 +464,7 @@ export function AdminWeeklyScheduleGrid({
 
     shiftsList.sort(compareShiftsByTime);
     return shiftsList;
-  }, [computedSchedules, weekDays, addedShifts, hiddenStandbyShifts]);
+  }, [computedSchedules, weekDays, addedShifts, hiddenStandbyShifts, isFilterActive]);
 
   // Studio badge color helper for pastel letter 'S'
   const getStudioBadgeStyle = (name: string) => {
@@ -502,13 +524,20 @@ export function AdminWeeklyScheduleGrid({
           <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
             <Calendar className="w-4 h-4 stroke-[2.2]" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-slate-800 text-sm tracking-tight">
               Jadwal Mingguan
             </h3>
             <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border border-slate-200/70">
               {formatWeekRange()}
             </span>
+            {isFilterActive && (
+              <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-amber-200/80 flex items-center gap-1.5 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>Filter Aktif</span>
+                {filterSummary ? <span className="font-semibold text-amber-800">({filterSummary})</span> : null}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -621,6 +650,39 @@ export function AdminWeeklyScheduleGrid({
             </tr>
           </thead>
           <tbody>
+            {/* If Filter is active and no matching schedules in the entire week, show clean empty state */}
+            {isFilterActive && standbyShifts.length === 0 && studioGroups.length === 0 && (
+              <tr>
+                <td
+                  colSpan={9}
+                  className="py-14 text-center text-slate-500 bg-slate-50/40"
+                >
+                  <div className="flex flex-col items-center justify-center gap-2.5 max-w-sm mx-auto">
+                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shadow-2xs">
+                      <Calendar className="w-5 h-5 stroke-[2]" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-slate-800">
+                        Tidak Ada Jadwal Ditemukan
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Tidak ada jadwal untuk {filterSummary ? <strong className="text-indigo-600 font-semibold">{filterSummary}</strong> : "filter aktif"} pada minggu ini ({formatWeekRange()}).
+                      </p>
+                    </div>
+                    {onResetFilter && (
+                      <button
+                        type="button"
+                        onClick={onResetFilter}
+                        className="mt-1 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+
             {/* Host Standby (All Studio) Row at the Very Top */}
             {standbyShifts.map((shift, shiftIdx) => {
               const isFirstRowInStandby = shiftIdx === 0;
