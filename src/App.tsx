@@ -2567,12 +2567,18 @@ export default function App() {
 
       // 4. Log activity
       try {
-        activityLogsApi.create({
-          action: "BROADCAST_SCHEDULE_NOTIFICATION",
-          actor: currentUser?.name || "Admin",
-          target: `${hostIds.length} Host (${dateRangeStr})`,
-          details: `Push notifikasi jadwal ke ${hostIds.length} host: "${title}"`,
-        }).catch(console.error);
+        if (hostIds[0]) {
+          activityLogsApi.create({
+            hostId: hostIds[0],
+            action: "BROADCAST_SCHEDULE_NOTIFICATION",
+            details: {
+              targetHostsCount: hostIds.length,
+              dateRangeStr,
+              title,
+              sender: authSession?.role === "master" ? "Master Admin" : "Administrator",
+            },
+          }).catch(() => {});
+        }
       } catch {}
 
       // 5. In-App Toast
@@ -2585,7 +2591,7 @@ export default function App() {
 
       return { count: hostIds.length };
     },
-    [setHostNotifications, currentUser?.name, addNotification],
+    [setHostNotifications, authSession, addNotification],
   );
 
   const [reportingRawData, setReportingRawData] = useState<ReportingRawRow[]>(
