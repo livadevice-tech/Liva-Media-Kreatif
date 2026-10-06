@@ -10432,7 +10432,7 @@ export default function App() {
                     {/* UNIFIED DATABASE TOOLBAR */}
                     <div className="flex flex-col bg-white border border-slate-200/80 rounded-2xl shadow-sm mb-6 transition-all" id="operator_database_unified_toolbar">
                       {/* Top Header: Title, Segmented Control, Actions */}
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 sm:p-5 gap-4 border-b border-slate-100">
+                      <div className={`flex flex-col xl:flex-row xl:items-center justify-between p-4 sm:p-5 gap-4 ${dbTabMode !== "calendar" ? "border-b border-slate-100" : ""}`}>
                         <div className="flex justify-between items-center w-full xl:w-auto">
                           <div className="flex items-center gap-3">
                             <button
@@ -10451,7 +10451,7 @@ export default function App() {
                                     Database Absensi
                                   </h3>
                                   <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
-                                    {filteredLogsList.length} logs
+                                    {filteredLogsList.length.toLocaleString("id-ID")} logs
                                   </span>
                                 </div>
                                 <p className="hidden sm:block text-xs text-slate-500 font-medium mt-0.5">

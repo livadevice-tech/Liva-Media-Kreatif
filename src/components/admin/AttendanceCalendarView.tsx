@@ -251,6 +251,23 @@ export function AttendanceCalendarView({
     }
   };
 
+  const selectedHost = useMemo(() => {
+    return hosts.find(h => h.id === selectedHostId);
+  }, [hosts, selectedHostId]);
+
+  const hostStats = useMemo(() => {
+    if (!selectedHostId || selectedHostLogs.length === 0) {
+      return { present: 0, late: 0, excused: 0, absent: 0, overtime: 0, total: 0 };
+    }
+    const present = selectedHostLogs.filter(l => l.status === "Present").length;
+    const late = selectedHostLogs.filter(l => l.status === "Late").length;
+    const excused = selectedHostLogs.filter(l => l.status === "Excused").length;
+    const absent = selectedHostLogs.filter(l => l.status === "Absent").length;
+    const overtime = selectedHostLogs.reduce((acc, l) => acc + (Number(l.overtimeHours) || 0), 0);
+    const total = selectedHostLogs.length;
+    return { present, late, excused, absent, overtime, total };
+  }, [selectedHostId, selectedHostLogs]);
+
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -259,39 +276,40 @@ export function AttendanceCalendarView({
   }, []);
 
   const hostSelectorUI = (
-    <div className="w-full lg:w-[350px] flex items-center gap-1.5 sm:gap-2">
-      <div className="flex-1">
+    <div className="w-full flex items-center gap-1.5 sm:gap-2">
+      <div className="flex-1 min-w-0">
         <SearchableHostSelect
           hosts={hosts}
           value={selectedHostId}
           onChange={setSelectedHostId}
           placeholder="Pilih Host..."
-          triggerClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2.5 font-bold text-left text-slate-700 hover:bg-slate-100/50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer transition-all flex items-center justify-between min-h-[36px] sm:min-h-[42px] text-xs sm:text-sm"
+          triggerClassName="w-full h-10 bg-white border border-slate-200/90 rounded-xl px-3 sm:px-3.5 font-bold text-left text-slate-800 hover:border-indigo-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer transition-all flex items-center justify-between min-h-[40px] text-xs sm:text-sm shadow-3xs"
         />
       </div>
-      <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-0.5 sm:p-1">
+      <div className="flex items-center h-10 bg-white rounded-xl border border-slate-200/90 shadow-3xs p-0.5 shrink-0">
         <button
           onClick={handlePrevHost}
           disabled={currentHostIndex <= 0}
-          className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="h-8.5 w-8.5 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors cursor-pointer border-0 bg-transparent"
           title="Host Sebelumnya"
         >
-          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
+        <div className="w-[1px] h-4 bg-slate-200" />
         <button
           onClick={handleNextHost}
           disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
-          className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="h-8.5 w-8.5 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors cursor-pointer border-0 bg-transparent"
           title="Host Selanjutnya"
         >
-          <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-2 sm:p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-3 sm:p-5 md:p-6 overflow-hidden">
       
       {/* Mobile Host Selector Portal */}
       {portalTarget && createPortal(
@@ -301,76 +319,188 @@ export function AttendanceCalendarView({
         portalTarget
       )}
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-6 mb-4 md:mb-8">
-        {/* Desktop Host Selector (or fallback if portal missing) */}
-        <div className={portalTarget ? "hidden sm:block" : ""}>
+      {/* TOP CONTROLS TOOLBAR */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 mb-5 shadow-3xs">
+        {/* Desktop Host Selector */}
+        <div className={`w-full lg:w-[320px] xl:w-[360px] ${portalTarget ? "hidden sm:block" : ""}`}>
           {hostSelectorUI}
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full lg:w-auto">
-          <div className="flex bg-slate-100/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-200/50 shadow-inner w-full sm:w-auto justify-center">
+        {/* Right side controls: Mode Toggle, Month Navigator, Export */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto justify-start sm:justify-end">
+          {/* Segmented Mode Toggle */}
+          <div className="inline-flex h-10 items-center bg-slate-200/60 p-1 rounded-xl border border-slate-200/70 shrink-0">
             <button
               onClick={() => setViewMode("monthly")}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`h-8 px-3.5 sm:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "monthly"
-                  ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
-                  : "bg-transparent text-slate-500 hover:text-slate-700"
+                  ? "bg-white text-indigo-700 shadow-3xs"
+                  : "bg-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               Per Bulan
             </button>
             <button
               onClick={() => setViewMode("cutoff")}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`h-8 px-3.5 sm:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "cutoff"
-                  ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
-                  : "bg-transparent text-slate-500 hover:text-slate-700"
+                  ? "bg-white text-indigo-700 shadow-3xs"
+                  : "bg-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               Cut Off Penggajian
             </button>
           </div>
 
-          <div className="flex items-center justify-between min-w-[200px] sm:min-w-[220px] bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
-            <button onClick={handlePrevMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent flex-shrink-0">
-              <ChevronLeft className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+          {/* Date Navigator */}
+          <div className="inline-flex h-10 items-center justify-between bg-white px-1 rounded-xl border border-slate-200/90 shadow-3xs shrink-0">
+            <button 
+              onClick={handlePrevMonth} 
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer border-0 bg-transparent shrink-0"
+              title="Periode Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
             </button>
-            <h2 className="text-xs sm:text-base font-extrabold text-slate-700 mx-2 truncate">
+            <span className="px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap select-none text-center min-w-[140px] sm:min-w-[170px]">
               {gridTitle}
-            </h2>
-            <button onClick={handleNextMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent flex-shrink-0">
-              <ChevronRight className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            </span>
+            <button 
+              onClick={handleNextMonth} 
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer border-0 bg-transparent shrink-0"
+              title="Periode Selanjutnya"
+            >
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
+          {/* Export Button */}
           {onOpenExportModal && (
             <button
               type="button"
               onClick={onOpenExportModal}
-              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-lg sm:rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="h-10 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 bg-emerald-50 hover:bg-emerald-100/90 text-emerald-700 border border-emerald-200/90 rounded-xl text-xs font-bold transition-all shadow-3xs cursor-pointer shrink-0 active:scale-[0.98]"
               title="Export Jadwal ke Excel (.xlsx)"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              <span>Export Excel</span>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="whitespace-nowrap">Export Excel</span>
             </button>
           )}
         </div>
       </div>
 
-      {!selectedHostId ? (
-        <div className="py-10 md:py-20 px-4 text-center flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-          <div className="w-12 h-12 md:w-16 md:h-16 mb-4 rounded-full bg-white shadow-sm flex items-center justify-center">
-            <span className="text-xl md:text-2xl">📅</span>
+      {/* Selected Host Header & Summary Banner */}
+      {selectedHostId && selectedHost && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-slate-50/80 rounded-2xl border border-slate-200/70 mb-4 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
+              {selectedHost.name ? selectedHost.name.charAt(0).toUpperCase() : "H"}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-bold text-slate-800 leading-tight">
+                  {selectedHost.name}
+                </h4>
+                {selectedHost.hostType && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    {selectedHost.hostType}
+                  </span>
+                )}
+                {selectedHost.studio && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
+                    {selectedHost.studio}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                Periode Aktif: <span className="font-semibold text-slate-700">{gridTitle}</span>
+              </p>
+            </div>
           </div>
-          <p className="font-medium text-xs md:text-sm">Silakan pilih nama host terlebih dahulu untuk melihat kalender absensi.</p>
+
+          {/* Quick Stats Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-3xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {hostStats.present} Hadir
+            </span>
+            {hostStats.late > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-3xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {hostStats.late} Terlambat
+              </span>
+            )}
+            {hostStats.excused > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-3xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                {hostStats.excused} Izin
+              </span>
+            )}
+            {hostStats.absent > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-3xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                {hostStats.absent} Alpa
+              </span>
+            )}
+            {hostStats.overtime > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-3xs">
+                +{hostStats.overtime}j Lembur
+              </span>
+            )}
+            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-600 border border-slate-200/70 shadow-3xs">
+              Total {hostStats.total} Sesi
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!selectedHostId ? (
+        <div className="py-12 sm:py-16 px-4 sm:px-8 text-center flex flex-col items-center justify-center bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 rounded-2xl border border-dashed border-slate-200/90 my-2">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 mb-4 rounded-2xl bg-indigo-50 border border-indigo-100/90 flex items-center justify-center text-indigo-600 shadow-xs">
+            <Calendar className="w-7 h-7 sm:w-8 sm:h-8" />
+          </div>
+          <h4 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight mb-1">
+            Pilih Host untuk Melihat Kalender Absensi
+          </h4>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+            Pilih nama host pada menu dropdown di atas atau klik salah satu pilihan cepat di bawah untuk meninjau kalender kehadiran dan status cut-off penggajian.
+          </p>
+
+          {hosts.length > 0 && (
+            <div className="flex flex-col items-center gap-2.5 max-w-2xl">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Pilihan Cepat Host
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {hosts.slice(0, 10).map((host) => (
+                  <button
+                    key={host.id}
+                    type="button"
+                    onClick={() => setSelectedHostId(host.id)}
+                    className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:bg-indigo-50/40 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-3xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                    <span>{host.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="bg-white md:rounded-2xl md:border border-slate-200/70 overflow-hidden md:shadow-sm mt-2 md:mt-0">
-          <div className="grid grid-cols-7 bg-white md:bg-slate-50/80 md:border-b border-slate-200/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((d) => (
-              <div key={d} className="py-2 md:py-4 text-center">{d}</div>
+        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
+          {/* Day Names Header */}
+          <div className="grid grid-cols-7 bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((d, idx) => (
+              <div 
+                key={d} 
+                className={`py-2.5 md:py-3.5 text-center ${idx >= 5 ? 'text-indigo-600/80 bg-indigo-50/30' : ''}`}
+              >
+                {d}
+              </div>
             ))}
           </div>
+
+          {/* Grid Cells */}
           <div className="grid grid-cols-7 gap-y-4 md:gap-y-0 px-2 md:px-0 py-4 md:py-0">
             {Array.from({ length: firstDayOfGrid }).map((_, i) => (
               <div key={`empty-${i}`} className="min-h-[40px] md:min-h-[130px] md:border-r md:border-b border-slate-100 md:bg-slate-50/30"></div>
@@ -407,13 +537,13 @@ export function AttendanceCalendarView({
                 const hasLate = dayLogs.some(l => l.status === "Late");
                 const hasExcused = dayLogs.some(l => l.status === "Excused");
                 if (hasAbsent) {
-                   mobileCircleBg = "bg-[#747d7c]"; 
+                   mobileCircleBg = "bg-rose-500 text-white"; 
                 } else if (hasLate) {
-                   mobileCircleBg = "bg-[#fbe083]"; 
+                   mobileCircleBg = "bg-amber-400 text-slate-900"; 
                 } else if (hasExcused) {
-                   mobileCircleBg = "bg-[#b2db9d]";
+                   mobileCircleBg = "bg-blue-400 text-white";
                 } else {
-                   mobileCircleBg = "bg-[#5bb073]"; 
+                   mobileCircleBg = "bg-emerald-500 text-white"; 
                 }
               }
 
@@ -422,8 +552,8 @@ export function AttendanceCalendarView({
                   key={dayObj.dateStr} 
                   onClick={() => handleOpenModal(dayObj.dateStr)}
                   className={`flex flex-col items-center md:items-stretch md:min-h-[130px] md:p-2.5 md:border-r md:border-b border-slate-100 group cursor-pointer transition-all relative
-                    ${isToday ? 'md:bg-purple-50/20' : ''} 
-                    ${!dayObj.isCurrentMonth && viewMode === "monthly" ? 'opacity-40 md:bg-slate-50' : 'md:hover:bg-slate-50'}
+                    ${isToday ? 'md:bg-indigo-50/20' : ''} 
+                    ${!dayObj.isCurrentMonth && viewMode === "monthly" ? 'opacity-40 md:bg-slate-50' : 'md:hover:bg-slate-50/80'}
                   `}
                 >
                   {/* MOBILE VIEW */}
@@ -436,11 +566,11 @@ export function AttendanceCalendarView({
                     }}
                     className="md:hidden flex flex-col items-center justify-start w-full relative min-h-[70px] pt-1"
                   >
-                    <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg} relative`}>
+                    <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg} relative shadow-3xs`}>
                       {hasLogs && firstLogBrandLogo ? (
                         <img src={firstLogBrandLogo} alt={firstLogBrandName} className="w-full h-full object-cover rounded-full" />
                       ) : hasLogs ? (
-                        <span className="font-black text-xl text-slate-700/90 leading-none">{firstLogBrandName.charAt(0).toUpperCase()}</span>
+                        <span className="font-black text-xl leading-none">{firstLogBrandName.charAt(0).toUpperCase()}</span>
                       ) : null}
                       
                       {/* Double Absent Badge */}
@@ -451,7 +581,7 @@ export function AttendanceCalendarView({
                       )}
                     </div>
                     <div className="mt-1 flex items-center justify-center">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isToday ? "bg-[#5bb073] text-white" : "text-slate-400"}`}>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isToday ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500"}`}>
                         {dayObj.date.getDate()}
                       </span>
                     </div>
@@ -459,19 +589,19 @@ export function AttendanceCalendarView({
 
                   {/* DESKTOP VIEW */}
                   <div className="hidden md:flex flex-col h-full w-full">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-all ${isToday ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-100' : 'text-slate-600 group-hover:text-slate-900 group-hover:bg-slate-100'}`}>
+                    <div className="flex justify-between items-start mb-2.5">
+                      <div className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all ${isToday ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-100' : 'text-slate-600 group-hover:text-slate-900 group-hover:bg-slate-100'}`}>
                         {dayObj.date.getDate()}
                       </div>
                       {/* Month indicator for CutOff mode */}
                       {dayObj.date.getDate() === 1 && viewMode === "cutoff" && (
-                        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
                           {dayObj.date.toLocaleString('id-ID', { month: 'short' })}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1 flex-1">
                       {logGroups.length > 0 ? (
                         logGroups.map((group: any, idx: number) => {
                           const log = group[0];
@@ -484,63 +614,63 @@ export function AttendanceCalendarView({
                           let label = "Tidak Ada Data";
 
                           if (log.status === "Present") {
-                            badgeBg = "bg-[#faf8ff]";
-                            badgeBorder = "border-[#e4ddf6]";
-                            badgeText = "text-[#5600e0]";
-                            badgeDot = "bg-[#5600e0]";
+                            badgeBg = "bg-emerald-50/90";
+                            badgeBorder = "border-emerald-200/90";
+                            badgeText = "text-emerald-700";
+                            badgeDot = "bg-emerald-500";
                             label = "Hadir";
                           } else if (log.status === "Absent") {
-                            badgeBg = "bg-rose-50/80";
-                            badgeBorder = "border-rose-200";
-                            badgeText = "text-rose-600";
+                            badgeBg = "bg-rose-50/90";
+                            badgeBorder = "border-rose-200/90";
+                            badgeText = "text-rose-700";
                             badgeDot = "bg-rose-500";
                             label = "Alpa";
                           } else if (log.status === "Late") {
-                            badgeBg = "bg-amber-50/80";
-                            badgeBorder = "border-amber-200";
-                            badgeText = "text-amber-600";
+                            badgeBg = "bg-amber-50/90";
+                            badgeBorder = "border-amber-200/90";
+                            badgeText = "text-amber-700";
                             badgeDot = "bg-amber-500";
                             label = "Terlambat";
                           } else if (log.status === "Excused") {
-                            badgeBg = "bg-blue-50/80";
-                            badgeBorder = "border-blue-200";
-                            badgeText = "text-blue-600";
+                            badgeBg = "bg-blue-50/90";
+                            badgeBorder = "border-blue-200/90";
+                            badgeText = "text-blue-700";
                             badgeDot = "bg-blue-500";
                             label = "Izin/Sakit";
                           }
 
                           if (duplicateCount > 1) {
-                            badgeBg = "bg-yellow-50/80";
-                            badgeBorder = "border-yellow-300";
-                            badgeText = "text-yellow-800";
-                            badgeDot = "bg-yellow-500";
+                            badgeBg = "bg-amber-50/90";
+                            badgeBorder = "border-amber-300";
+                            badgeText = "text-amber-800";
+                            badgeDot = "bg-amber-500";
                           }
 
                           return (
-                            <div key={idx} onClick={(e) => { e.stopPropagation(); handleOpenModal(dayObj.dateStr, group as any); }} className="flex flex-col gap-1.5 mb-1.5 last:mb-0">
-                              <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform hover:scale-[1.02]`}>
-                                <div className="flex items-center gap-1.5">
-                                  <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
-                                  <span className={`text-[10px] font-bold flex items-center gap-1 ${badgeText}`}>
+                            <div key={idx} onClick={(e) => { e.stopPropagation(); handleOpenModal(dayObj.dateStr, group as any); }} className="flex flex-col gap-1 mb-1 last:mb-0">
+                              <div className={`flex items-center justify-between px-2 py-1 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform hover:scale-[1.01]`}>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${badgeDot} shrink-0`}></div>
+                                  <span className={`text-[10px] font-bold flex items-center gap-1 truncate ${badgeText}`}>
                                     {label}
                                     {duplicateCount > 1 && (
-                                      <span className="bg-white/60 px-1 py-0.5 rounded text-[9px] ml-1 border border-current shadow-sm">
+                                      <span className="bg-white/70 px-1 py-0.2 rounded text-[9px] ml-0.5 border border-current shadow-3xs shrink-0">
                                         +{duplicateCount}
                                       </span>
                                     )}
                                   </span>
                                 </div>
                                 {log.isBackupShift && (
-                                  <span className="text-[8px] font-black uppercase tracking-wider text-fuchsia-600 bg-fuchsia-100/80 px-1.5 py-0.5 rounded-sm">
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-fuchsia-700 bg-fuchsia-100/80 px-1 py-0.2 rounded shrink-0">
                                     Backup
                                   </span>
                                 )}
                               </div>
                               {log.brandHandled && (
-                                <div className={`px-2 py-1 rounded text-[9px] font-semibold truncate w-full shadow-sm border ${
+                                <div className={`px-2 py-0.5 rounded text-[9px] font-semibold truncate w-full border ${
                                   log.isBackupShift 
                                     ? 'bg-fuchsia-50/50 text-fuchsia-700 border-fuchsia-100' 
-                                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                                    : 'bg-slate-100/80 text-slate-600 border-slate-200/60'
                                 }`}>
                                   {log.brandHandled}
                                 </div>
@@ -549,7 +679,7 @@ export function AttendanceCalendarView({
                           );
                         })
                       ) : (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center py-1.5 mt-1 text-[10px] font-bold text-purple-600 bg-purple-50/80 rounded-lg border border-purple-100 border-dashed">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center py-1 mt-auto text-[10px] font-bold text-indigo-600 bg-indigo-50/80 rounded-lg border border-indigo-200/60 border-dashed">
                           <Plus className="w-3 h-3 mr-1" /> Tambah Data
                         </div>
                       )}
@@ -561,8 +691,38 @@ export function AttendanceCalendarView({
             
             {/* Fill the rest of the grid cells for the last week */}
             {Array.from({ length: (7 - ((firstDayOfGrid + calendarDays.length) % 7)) % 7 }).map((_, i) => (
-              <div key={`empty-end-${i}`} className="min-h-[40px] md:min-h-[120px] md:border-r md:border-b border-slate-100 md:bg-slate-50/50"></div>
+              <div key={`empty-end-${i}`} className="min-h-[40px] md:min-h-[120px] md:border-r md:border-b border-slate-100 md:bg-slate-50/40"></div>
             ))}
+          </div>
+
+          {/* Footer Legend Bar */}
+          <div className="hidden md:flex items-center justify-between px-5 py-3 bg-slate-50/80 border-t border-slate-200/80 text-xs text-slate-500">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">Keterangan:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-semibold text-slate-700 text-[11px]">Hadir</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="font-semibold text-slate-700 text-[11px]">Terlambat</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="font-semibold text-slate-700 text-[11px]">Izin / Sakit</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span className="font-semibold text-slate-700 text-[11px]">Alpa</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200">Backup</span>
+                <span className="font-semibold text-slate-700 text-[11px]">Shift Pengganti</span>
+              </div>
+            </div>
+            <div className="text-[11px] text-slate-400 font-medium">
+              Klik tanggal untuk menambah atau mengedit rekaman kehadiran
+            </div>
           </div>
         </div>
       )}
@@ -574,7 +734,7 @@ export function AttendanceCalendarView({
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 relative">
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1.5 bg-slate-200 rounded-full sm:hidden"></div>
               <h3 className="font-bold text-slate-800 flex items-center gap-2 mt-2 sm:mt-0">
-                {editingLogId ? <Edit2 className="w-5 h-5 text-indigo-500" /> : <Calendar className="w-5 h-5 text-purple-500" />}
+                {editingLogId ? <Edit2 className="w-5 h-5 text-indigo-600" /> : <Calendar className="w-5 h-5 text-indigo-600" />}
                 {editingLogId ? "Edit Absensi" : "Tambah Absensi"}
               </h3>
               <button 
@@ -594,8 +754,8 @@ export function AttendanceCalendarView({
                   </p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {duplicateLogs.map((log, i) => (
-                    <div key={log.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer" onClick={() => selectLogToEdit(log)}>
+                  {duplicateLogs.map((log) => (
+                    <div key={log.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer" onClick={() => selectLogToEdit(log)}>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{log.brandHandled}</span>
@@ -633,7 +793,7 @@ export function AttendanceCalendarView({
                             e.stopPropagation();
                             selectLogToEdit(log);
                           }}
-                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-lg transition-colors border-0 cursor-pointer"
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg transition-colors border-0 cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5" /> Edit
                         </button>
@@ -659,7 +819,7 @@ export function AttendanceCalendarView({
                   <select 
                     value={formStatus} 
                     onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                     required
                   >
                     <option value="Present">Hadir</option>
@@ -673,7 +833,7 @@ export function AttendanceCalendarView({
                   <select 
                     value={formBrand} 
                     onChange={(e) => setFormBrand(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                     required
                   >
                     {clientBrands.filter(b => b.isActive !== false).map(b => (
@@ -686,7 +846,7 @@ export function AttendanceCalendarView({
                   <select 
                     value={formPlatform} 
                     onChange={(e) => setFormPlatform(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                     required
                   >
                     {platforms.map(p => (
@@ -699,7 +859,7 @@ export function AttendanceCalendarView({
                   <select 
                     value={formShift} 
                     onChange={(e) => setFormShift(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                     required
                   >
                     {shifts.map(s => (
@@ -712,7 +872,7 @@ export function AttendanceCalendarView({
                   <select 
                     value={formStudio} 
                     onChange={(e) => setFormStudio(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                     required
                   >
                     {studios.map(s => {
@@ -729,7 +889,7 @@ export function AttendanceCalendarView({
                     step="0.5"
                     value={formOvertime}
                     onChange={(e) => setFormOvertime(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
                 <div className="flex flex-col justify-end pb-2">
@@ -741,7 +901,7 @@ export function AttendanceCalendarView({
                         onChange={(e) => setFormIsBackup(e.target.checked)}
                         className="peer sr-only"
                       />
-                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                     </div>
                     <span className="text-xs font-bold text-slate-600 group-hover:text-slate-800">Shift Backup</span>
                   </label>
@@ -771,7 +931,7 @@ export function AttendanceCalendarView({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-1.5 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition-colors border-0 cursor-pointer shadow-sm disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-colors border-0 cursor-pointer shadow-3xs disabled:opacity-50"
                   >
                     {isSubmitting ? "Menyimpan..." : "Simpan Data"}
                   </button>
