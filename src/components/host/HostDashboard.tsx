@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
 import { getCutoffMonthForDate } from '../../shared/utils/appUi';
-import { activityLogsApi, hostsApi } from '../../api';
+import { activityLogsApi, hostsApi, hostNotificationsApi } from '../../api';
 import AnalysisPerformanceTab from '../reporting/AnalysisPerformanceTab';
 import { MobileLiveDailyTable } from '../reporting/MobileLiveDailyTable';
 import { MobileLiveMetricsPanel } from '../reporting/MobileLiveMetricsPanel';
@@ -161,20 +161,26 @@ export default function HostDashboard({
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [serverNotifications, setServerNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!activeHostObj?.id) return;
+    const fetchNotifs = () => {
+      hostNotificationsApi.getAll(activeHostObj.id).then((data) => {
+        if (Array.isArray(data)) {
+          setServerNotifications(data);
+        }
+      }).catch(() => {});
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 10000);
+    return () => clearInterval(interval);
+  }, [activeHostObj?.id]);
 
   const myNotifications = useMemo(() => {
-    if (hostNotifications && hostNotifications.length > 0) {
-      return hostNotifications.filter((n: any) => n.hostId === activeHostObj?.id);
-    }
-    try {
-      const saved = localStorage.getItem("mcn_host_notifications_v1");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.filter((n: any) => n.hostId === activeHostObj?.id);
-      }
-    } catch {}
-    return [];
-  }, [hostNotifications, activeHostObj]);
+    const list = serverNotifications.length > 0 ? serverNotifications : (hostNotifications || []);
+    return list.filter((n: any) => n.hostId === activeHostObj?.id || n.hostId === 'all');
+  }, [serverNotifications, hostNotifications, activeHostObj]);
 
   const unreadNotifCount = myNotifications.filter((n: any) => !n.read).length;
 
@@ -1581,8 +1587,10 @@ export default function HostDashboard({
                   <button
                     type="button"
                     onClick={() => {
-                      if (onMarkHostNotificationAsRead && activeHostObj?.id) {
-                        onMarkHostNotificationAsRead(activeHostObj.id);
+                      if (activeHostObj?.id) {
+                        setServerNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        hostNotificationsApi.markRead({ hostId: activeHostObj.id }).catch(() => {});
+                        onMarkHostNotificationAsRead?.(activeHostObj.id);
                       }
                     }}
                     className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer hover:underline"
@@ -1624,8 +1632,10 @@ export default function HostDashboard({
                       <div
                         key={notif.id}
                         onClick={() => {
-                          if (isUnread && onMarkHostNotificationAsRead && activeHostObj?.id) {
-                            onMarkHostNotificationAsRead(activeHostObj.id);
+                          if (isUnread && activeHostObj?.id) {
+                            setServerNotifications(prev => prev.map(n => n.id === notif.id ? ({ ...n, read: true }) : n));
+                            hostNotificationsApi.markRead({ id: notif.id }).catch(() => {});
+                            onMarkHostNotificationAsRead?.(activeHostObj.id);
                           }
                         }}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${

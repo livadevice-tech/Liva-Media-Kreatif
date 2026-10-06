@@ -272,6 +272,7 @@ import {
   reportingBrandApi,
   activityLogsApi,
   violationsApi,
+  hostNotificationsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { QuickGridInput } from "./components/QuickGridInput";
@@ -2472,8 +2473,26 @@ export default function App() {
     [setHostNotifications],
   );
 
+  // Floating Live PWA Notification Banner state
+  const [activePwaToast, setActivePwaToast] = useState<{
+    title: string;
+    message: string;
+    time: string;
+    count?: number;
+  } | null>(null);
+
+  // Load host notifications from MySQL API on initial load
+  useEffect(() => {
+    hostNotificationsApi.getAll().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setHostNotifications(data);
+      }
+    }).catch(() => {});
+  }, [setHostNotifications]);
+
   const markHostNotificationsAsRead = (hostId: string) => {
     setHostNotifications((prev) => markHostNotificationsAsReadList(prev, hostId));
+    hostNotificationsApi.markRead({ hostId }).catch(console.error);
   };
 
   const handleBroadcastScheduleNotification = useCallback(
@@ -2489,7 +2508,19 @@ export default function App() {
       const { hostIds, title, message, dateRangeStr, sendWebPush, sendInApp, playSound } = payload;
       const nowIso = new Date().toISOString();
 
-      // 1. In-App Notifications creation per recipient host
+      // 1. Persist to MySQL Backend Database for all hosts
+      try {
+        await hostNotificationsApi.broadcast({
+          hostIds,
+          title,
+          message,
+          dateRangeStr,
+        });
+      } catch (err) {
+        console.warn("Simpan notifikasi ke database:", err);
+      }
+
+      // 2. In-App Notifications state update
       if (sendInApp) {
         setHostNotifications((prev) => {
           const newNotifs: HostNotificationItem[] = hostIds.map((hId) => ({
@@ -2504,44 +2535,6 @@ export default function App() {
           }));
           return [...newNotifs, ...prev].slice(0, 300);
         });
-      }
-
-      // 2. Browser PWA Push Notification via Service Worker / Notification API
-      if (sendWebPush && typeof window !== "undefined") {
-        try {
-          if ("Notification" in window) {
-            if (Notification.permission === "granted") {
-              if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-                const reg = await navigator.serviceWorker.ready;
-                reg.showNotification(title, {
-                  body: message,
-                  icon: "/pwa-192x192.png",
-                  badge: "/pwa-192x192.png",
-                  tag: `schedule-push-${Date.now()}`,
-                  data: {
-                    url: window.location.origin,
-                    dateRangeStr,
-                  },
-                } as any);
-              } else {
-                new Notification(title, {
-                  body: message,
-                  icon: "/pwa-192x192.png",
-                });
-              }
-            } else if (Notification.permission !== "denied") {
-              const perm = await Notification.requestPermission();
-              if (perm === "granted") {
-                new Notification(title, {
-                  body: message,
-                  icon: "/pwa-192x192.png",
-                });
-              }
-            }
-          }
-        } catch (err) {
-          console.warn("PWA Push notification trigger:", err);
-        }
       }
 
       // 3. Audio Chime
@@ -2565,7 +2558,44 @@ export default function App() {
         } catch {}
       }
 
-      // 4. Log activity
+      // 4. Show Floating Live In-App Notification Toast!
+      setActivePwaToast({
+        title,
+        message,
+        time: "Baru saja",
+        count: hostIds.length,
+      });
+
+      // 5. Native Browser / PWA Push Notification
+      if (sendWebPush && typeof window !== "undefined" && "Notification" in window) {
+        try {
+          if (Notification.permission === "granted") {
+            if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+              const reg = await navigator.serviceWorker.ready;
+              reg.showNotification(title, {
+                body: message,
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: `schedule-push-${Date.now()}`,
+                vibrate: [200, 100, 200],
+                data: {
+                  url: window.location.origin,
+                  dateRangeStr,
+                },
+              } as any);
+            } else {
+              new Notification(title, {
+                body: message,
+                icon: "/pwa-192x192.png",
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("PWA Push notification trigger:", err);
+        }
+      }
+
+      // 6. Log activity
       try {
         if (hostIds[0]) {
           activityLogsApi.create({
@@ -2581,7 +2611,7 @@ export default function App() {
         }
       } catch {}
 
-      // 5. In-App Toast
+      // 7. In-App Toast
       addNotification(
         "Push Notifikasi Terkirim",
         `Berhasil mengirim jadwal siaran (${dateRangeStr}) ke ${hostIds.length} akun host PWA.`,
@@ -13857,6 +13887,59 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* FLOATING LIVE PWA NOTIFICATION BANNER */}
+      <AnimatePresence>
+        {activePwaToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] w-[92%] max-w-md bg-slate-900/95 text-white backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-slate-700/80 cursor-pointer"
+            onClick={() => setActivePwaToast(null)}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
+                <Bell className="w-5 h-5 text-white animate-bounce" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="text-[10px] font-black tracking-wider uppercase text-blue-400">
+                    LIVA MEDIA KREATIF • PWA PUSH
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {activePwaToast.time}
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-white truncate">
+                  {activePwaToast.title}
+                </h4>
+                <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-relaxed">
+                  {activePwaToast.message}
+                </p>
+                {activePwaToast.count && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    Tersinkron ke {activePwaToast.count} Akun Host PWA
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActivePwaToast(null);
+                }}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <PWAInstallPrompt />
     </div>
   );

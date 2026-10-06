@@ -140,6 +140,30 @@ export function ScheduleNotificationBroadcastModal({
   const [sendInApp, setSendInApp] = useState(true);
   const [playSound, setPlaySound] = useState(true);
 
+  // Browser Notification Permission State
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
+    return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
+  });
+
+  const handleRequestPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotificationPermission(perm);
+        if (perm === 'granted') {
+          try {
+            new Notification('🔔 Notifikasi Browser Diaktifkan!', {
+              body: 'Perangkat ini sekarang siap menerima push notifikasi siaran.',
+              icon: '/pwa-192x192.png',
+            });
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Request notification permission:', err);
+      }
+    }
+  };
+
   // Submission state
   const [isSending, setIsSending] = useState(false);
   const [sendSuccessResult, setSendSuccessResult] = useState<{ count: number } | null>(null);
@@ -292,12 +316,51 @@ export function ScheduleNotificationBroadcastModal({
             <h4 className="text-lg font-extrabold text-slate-800 mb-1">
               Notifikasi Berhasil Dikirim!
             </h4>
-            <p className="text-sm text-slate-500 max-w-sm mb-2">
+            <p className="text-sm text-slate-500 max-w-sm mb-4">
               Broadcast jadwal berhasil dikirimkan ke <strong className="text-slate-700">{sendSuccessResult.count} akun host</strong> melalui PWA Web Push dan Kotak Masuk.
             </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+            >
+              Selesai & Tutup
+            </button>
           </div>
         ) : (
-          <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col lg:flex-row gap-6">
+          <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
+            {/* PERMISSION STATUS BANNER */}
+            <div>
+              {notificationPermission === 'default' && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 text-amber-900 font-medium">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Izin notifikasi browser belum aktif di perangkat ini. Klik tombol untuk mengaktifkan notifikasi pop-up layar.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRequestPermission}
+                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm cursor-pointer transition-colors"
+                  >
+                    Aktifkan Notifikasi
+                  </button>
+                </div>
+              )}
+              {notificationPermission === 'granted' && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-xs text-emerald-800 font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Izin notifikasi Web & PWA aktif di browser ini. Pop-up sistem akan tampil saat dikirim.</span>
+                </div>
+              )}
+              {notificationPermission === 'denied' && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2 text-xs text-rose-800 font-medium">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Notifikasi sistem browser dinonaktifkan di situs ini. Notifikasi tetap tersimpan ke database & Kotak Masuk aplikasi host.</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6">
             
             {/* LEFT COLUMN: Message Editor & Template */}
             <div className="flex-1 flex flex-col gap-4">
@@ -553,6 +616,7 @@ export function ScheduleNotificationBroadcastModal({
               </div>
             </div>
           </div>
+        </div>
         )}
 
         {/* Modal Footer */}

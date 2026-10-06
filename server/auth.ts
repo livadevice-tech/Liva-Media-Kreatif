@@ -116,6 +116,7 @@ function getAdminRequiredTabs(path: string): readonly string[] | null {
   if (isPathUnder(path, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
   if (isPathUnder(path, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
   if (isPathUnder(path, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
+  if (isPathUnder(path, "/host-notifications")) return MODULE_TAB_REQUIREMENTS.schedules;
   if (isPathUnder(path, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
   if (isPathUnder(path, "/client-brands")) return MODULE_TAB_REQUIREMENTS.clientBrands;
   if (isPathUnder(path, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
@@ -153,6 +154,7 @@ export function isRequestAllowed(
       (method === "POST" && path === "/logs") ||
       (method === "POST" && path === "/host-activity-logs") ||
       (method === "GET" && path === "/schedules") ||
+      ((method === "GET" || method === "PUT") && isPathUnder(path, "/host-notifications")) ||
       (method === "GET" && path === "/settings/liva_global_configs")
     );
   }

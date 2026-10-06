@@ -286,6 +286,20 @@ export const settingsApi = {
 };
 
 // ==================================================================
+// HOST NOTIFICATIONS
+// ==================================================================
+export const hostNotificationsApi = {
+  getAll: (hostId?: string) => {
+    const qs = hostId ? `?hostId=${hostId}` : '';
+    return request<any[]>('GET', `/host-notifications${qs}`);
+  },
+  broadcast: (payload: { hostIds: string[]; title: string; message: string; dateRangeStr?: string }) =>
+    request<{ success: boolean; count: number }>('POST', '/host-notifications/broadcast', payload),
+  markRead: (params: { hostId?: string; id?: string }) =>
+    request<{ success: boolean }>('PUT', '/host-notifications/mark-read', params),
+};
+
+// ==================================================================
 // CLIENT REPORTING
 // ==================================================================
 export const clientReportingApi = {

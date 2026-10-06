@@ -205,4 +205,62 @@ export function registerHostRoutes(app: Express) {
     await execute(`DELETE FROM hosts WHERE id = ?`, [req.params.id]);
     res.json({ success: true });
   }));
+
+  // ==================================================================
+  // HOST NOTIFICATIONS (PWA & IN-APP INBOX)
+  // ==================================================================
+  app.get("/api/host-notifications", asyncHandler(async (req: Request, res: Response) => {
+    const session = (req as any).authSession;
+    let sql = `
+      SELECT 
+        id, 
+        host_id as hostId, 
+        title, 
+        message, 
+        date_str as date, 
+        type, 
+        is_read as \`read\`, 
+        CONVERT_TZ(created_at, @@session.time_zone, '+07:00') as createdAt
+      FROM host_notifications
+    `;
+    const params: any[] = [];
+    if (session?.role === 'host') {
+      sql += ` WHERE host_id = ? OR host_id = 'all'`;
+      params.push(session.subjectId);
+    } else if (req.query.hostId) {
+      sql += ` WHERE host_id = ? OR host_id = 'all'`;
+      params.push(req.query.hostId);
+    }
+    sql += ` ORDER BY created_at DESC LIMIT 300`;
+
+    const rows = await queryMany(sql, params);
+    res.json(rows.map(r => ({ ...r, read: Boolean(r.read) })));
+  }));
+
+  app.post("/api/host-notifications/broadcast", asyncHandler(async (req: Request, res: Response) => {
+    const { hostIds, title, message, dateRangeStr } = req.body;
+    if (!Array.isArray(hostIds) || hostIds.length === 0 || !title) {
+      return res.status(400).json({ error: "Data broadcast tidak lengkap." });
+    }
+
+    for (const hId of hostIds) {
+      const notifId = `hnotif_${Date.now()}_${hId}_${Math.random().toString(36).substring(2, 6)}`;
+      await execute(`
+        INSERT INTO host_notifications (id, host_id, title, message, date_str, type, is_read)
+        VALUES (?, ?, ?, ?, ?, 'schedule_broadcast', 0)
+      `, [notifId, hId, title, message, dateRangeStr || null]);
+    }
+
+    res.json({ success: true, count: hostIds.length });
+  }));
+
+  app.put("/api/host-notifications/mark-read", asyncHandler(async (req: Request, res: Response) => {
+    const { hostId, id } = req.body;
+    if (id) {
+      await execute(`UPDATE host_notifications SET is_read = 1 WHERE id = ?`, [id]);
+    } else if (hostId) {
+      await execute(`UPDATE host_notifications SET is_read = 1 WHERE host_id = ?`, [hostId]);
+    }
+    res.json({ success: true });
+  }));
 }

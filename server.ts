@@ -893,6 +893,27 @@ async function runMigrations() {
   }
 
   try {
+    // Create host_notifications table
+    await execute(`
+      CREATE TABLE IF NOT EXISTS host_notifications (
+        id VARCHAR(100) PRIMARY KEY,
+        host_id VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        date_str VARCHAR(100) NULL,
+        type VARCHAR(50) DEFAULT 'schedule_broadcast',
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_host_id (host_id),
+        INDEX idx_created_at (created_at)
+      )
+    `, []);
+    console.log('✅ Migration: Tabel host_notifications dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration host_notifications warning:', e?.message);
+  }
+
+  try {
     // Tambah kolom studio ke shift_schedules jika belum ada
     // Tidak pakai IF NOT EXISTS karena MySQL lama (sebelum 8.0) tidak support
     await execute(`ALTER TABLE shift_schedules ADD COLUMN studio VARCHAR(255) NULL`, []);
