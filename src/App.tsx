@@ -283,6 +283,7 @@ import { AttendanceCalendarView } from "./components/admin/AttendanceCalendarVie
 import { AdminWeeklyScheduleGrid } from "./components/admin/AdminWeeklyScheduleGrid";
 import { ScheduleTemplateModal } from "./components/admin/ScheduleTemplateModal";
 import { ScheduleExportModal } from "./components/admin/ScheduleExportModal";
+import { ScheduleNotificationBroadcastModal } from "./components/admin/ScheduleNotificationBroadcastModal";
 
 
 import {
@@ -364,6 +365,8 @@ interface HostNotificationItem {
   date: string;
   createdAt: string;
   read: boolean;
+  type?: string;
+  metadata?: any;
 }
 
 const getErrorMessage = (error: unknown) =>
@@ -2425,7 +2428,13 @@ export default function App() {
   };
 
   // --- HOST NOTIFICATION ENGINE ---
-  const [hostNotifications, _setHostNotifications] = useState<HostNotificationItem[]>([]);
+  const [hostNotifications, _setHostNotifications] = useState<HostNotificationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("mcn_host_notifications_v1");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
 
   const setHostNotifications = useCallback(
     (action: React.SetStateAction<HostNotificationItem[]>) => {
@@ -2434,6 +2443,9 @@ export default function App() {
           typeof action === "function"
             ? (action as (prevState: HostNotificationItem[]) => HostNotificationItem[])(prev)
             : action;
+        try {
+          localStorage.setItem("mcn_host_notifications_v1", JSON.stringify(next));
+        } catch {}
         return next;
       });
     },
@@ -2454,7 +2466,7 @@ export default function App() {
           createdAt: new Date().toISOString(),
           read: false,
         };
-        return [newNotif, ...prev].slice(0, 50); // cap at 50
+        return [newNotif, ...prev].slice(0, 200);
       });
     },
     [setHostNotifications],
@@ -2463,6 +2475,118 @@ export default function App() {
   const markHostNotificationsAsRead = (hostId: string) => {
     setHostNotifications((prev) => markHostNotificationsAsReadList(prev, hostId));
   };
+
+  const handleBroadcastScheduleNotification = useCallback(
+    async (payload: {
+      hostIds: string[];
+      title: string;
+      message: string;
+      dateRangeStr: string;
+      sendWebPush: boolean;
+      sendInApp: boolean;
+      playSound: boolean;
+    }) => {
+      const { hostIds, title, message, dateRangeStr, sendWebPush, sendInApp, playSound } = payload;
+      const nowIso = new Date().toISOString();
+
+      // 1. In-App Notifications creation per recipient host
+      if (sendInApp) {
+        setHostNotifications((prev) => {
+          const newNotifs: HostNotificationItem[] = hostIds.map((hId) => ({
+            id: `hnotif_${Date.now()}_${hId}_${Math.random().toString(36).substring(2, 7)}`,
+            hostId: hId,
+            title,
+            message,
+            date: dateRangeStr,
+            createdAt: nowIso,
+            read: false,
+            type: "schedule_broadcast",
+          }));
+          return [...newNotifs, ...prev].slice(0, 300);
+        });
+      }
+
+      // 2. Browser PWA Push Notification via Service Worker / Notification API
+      if (sendWebPush && typeof window !== "undefined") {
+        try {
+          if ("Notification" in window) {
+            if (Notification.permission === "granted") {
+              if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+                const reg = await navigator.serviceWorker.ready;
+                reg.showNotification(title, {
+                  body: message,
+                  icon: "/pwa-192x192.png",
+                  badge: "/pwa-192x192.png",
+                  tag: `schedule-push-${Date.now()}`,
+                  data: {
+                    url: window.location.origin,
+                    dateRangeStr,
+                  },
+                } as any);
+              } else {
+                new Notification(title, {
+                  body: message,
+                  icon: "/pwa-192x192.png",
+                });
+              }
+            } else if (Notification.permission !== "denied") {
+              const perm = await Notification.requestPermission();
+              if (perm === "granted") {
+                new Notification(title, {
+                  body: message,
+                  icon: "/pwa-192x192.png",
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("PWA Push notification trigger:", err);
+        }
+      }
+
+      // 3. Audio Chime
+      if (playSound && typeof window !== "undefined") {
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioContextClass) {
+            const audioCtx = new AudioContextClass();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+          }
+        } catch {}
+      }
+
+      // 4. Log activity
+      try {
+        activityLogsApi.create({
+          action: "BROADCAST_SCHEDULE_NOTIFICATION",
+          actor: currentUser?.name || "Admin",
+          target: `${hostIds.length} Host (${dateRangeStr})`,
+          details: `Push notifikasi jadwal ke ${hostIds.length} host: "${title}"`,
+        }).catch(console.error);
+      } catch {}
+
+      // 5. In-App Toast
+      addNotification(
+        "Push Notifikasi Terkirim",
+        `Berhasil mengirim jadwal siaran (${dateRangeStr}) ke ${hostIds.length} akun host PWA.`,
+        "success",
+        "jadwal"
+      );
+
+      return { count: hostIds.length };
+    },
+    [setHostNotifications, currentUser?.name, addNotification],
+  );
 
   const [reportingRawData, setReportingRawData] = useState<ReportingRawRow[]>(
     [],
@@ -3572,6 +3696,7 @@ export default function App() {
   });
   const [isScheduleTemplateModalOpen, setIsScheduleTemplateModalOpen] = useState(false);
   const [isScheduleExportModalOpen, setIsScheduleExportModalOpen] = useState(false);
+  const [isScheduleNotificationModalOpen, setIsScheduleNotificationModalOpen] = useState(false);
 
   useEffect(() => {
     settingsApi.get<ScheduleTemplate[] | null>("liva_schedule_templates").then((saved) => {
@@ -5372,6 +5497,8 @@ export default function App() {
           brandPerformanceLogs={brandPerformanceLogs}
           onOpenFullReporting={(brandId) => setHostActiveReportingBrandId(brandId)}
           onRefreshData={async () => window.location.reload()}
+          hostNotifications={hostNotifications}
+          onMarkHostNotificationAsRead={markHostNotificationsAsRead}
         />
       )}
 
@@ -6660,6 +6787,17 @@ export default function App() {
                             type="button"
                             onClick={() => {
                               setIsScheduleActionsOpen(false);
+                              setIsScheduleNotificationModalOpen(true);
+                            }}
+                            className="w-full px-4 py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-amber-200"
+                          >
+                            <Bell className="w-4 h-4 text-amber-600" /> Push Notifikasi PWA
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsScheduleActionsOpen(false);
                               setIsScheduleExportModalOpen(true);
                             }}
                             className="w-full px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-emerald-200"
@@ -6970,6 +7108,17 @@ export default function App() {
                                         type="button"
                                         onClick={() => {
                                           setIsScheduleActionsOpen(false);
+                                          setIsScheduleNotificationModalOpen(true);
+                                        }}
+                                        className="w-full px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-amber-100"
+                                      >
+                                        <Bell className="w-4 h-4 text-amber-600" /> Push Notifikasi PWA
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setIsScheduleActionsOpen(false);
                                           setIsScheduleExportModalOpen(true);
                                         }}
                                         className="w-full px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-emerald-100"
@@ -7037,6 +7186,14 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
+                            <button
+                              type="button"
+                              onClick={() => setIsScheduleNotificationModalOpen(true)}
+                              className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/90 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-xs"
+                              title="Push Notifikasi Jadwal ke PWA Host"
+                            >
+                              <Bell className="w-4 h-4 text-amber-600" /> Push Notifikasi PWA
+                            </button>
                             <button
                               type="button"
                               onClick={() => setIsScheduleExportModalOpen(true)}
@@ -8488,6 +8645,16 @@ export default function App() {
                       schedules={computedSchedules}
                       clientBrands={clientBrands}
                       hosts={hosts}
+                    />
+
+                    {/* SCHEDULE PUSH NOTIFICATION BROADCAST MODAL */}
+                    <ScheduleNotificationBroadcastModal
+                      isOpen={isScheduleNotificationModalOpen}
+                      onClose={() => setIsScheduleNotificationModalOpen(false)}
+                      weekStartDate={adminWeekStartDate}
+                      computedSchedules={computedSchedules}
+                      hosts={hosts}
+                      onSendNotification={handleBroadcastScheduleNotification}
                     />
                   </>
                 )}

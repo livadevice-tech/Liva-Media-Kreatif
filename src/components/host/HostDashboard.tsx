@@ -3,7 +3,7 @@ import {
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
-  DollarSign, Package, ShoppingCart, Activity, Search
+  DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -117,6 +117,8 @@ interface HostDashboardProps {
   brandPerformanceLogs: any[];
   onOpenFullReporting?: (brandId: string) => void;
   onRefreshData?: () => Promise<void>;
+  hostNotifications?: any[];
+  onMarkHostNotificationAsRead?: (hostId: string) => void;
 };
 
 
@@ -153,9 +155,29 @@ export default function HostDashboard({
   brandPerformanceLogs,
   onOpenFullReporting,
   onRefreshData,
+  hostNotifications,
+  onMarkHostNotificationAsRead,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+
+  const myNotifications = useMemo(() => {
+    if (hostNotifications && hostNotifications.length > 0) {
+      return hostNotifications.filter((n: any) => n.hostId === activeHostObj?.id);
+    }
+    try {
+      const saved = localStorage.getItem("mcn_host_notifications_v1");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.filter((n: any) => n.hostId === activeHostObj?.id);
+      }
+    } catch {}
+    return [];
+  }, [hostNotifications, activeHostObj]);
+
+  const unreadNotifCount = myNotifications.filter((n: any) => !n.read).length;
+
   const [profileForm, setProfileForm] = useState({
     name: '',
     phone: '',
@@ -722,12 +744,21 @@ export default function HostDashboard({
 
         <div className="flex items-center gap-2">
           
-          <button className="relative w-9 h-9 flex items-center justify-center text-slate-600">
+          <button 
+            type="button"
+            onClick={() => setIsNotificationsModalOpen(true)}
+            aria-label="Notifikasi PWA"
+            className="relative w-9 h-9 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100/80 rounded-xl transition-all cursor-pointer"
+          >
             <Bell className="w-[22px] h-[22px]" />
-            <div className="absolute top-1 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#f8f9fc]"></div>
+            {unreadNotifCount > 0 ? (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white border-2 border-white flex items-center justify-center shadow-sm animate-pulse">
+                {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+              </span>
+            ) : null}
           </button>
           
-          <button onClick={handleLogout} className="relative w-9 h-9 flex items-center justify-center text-red-400 hover:text-red-500">
+          <button onClick={handleLogout} className="relative w-9 h-9 flex items-center justify-center text-red-400 hover:text-red-500 cursor-pointer">
             <LogOut className="w-[22px] h-[22px]" />
           </button>
         </div>
@@ -1487,6 +1518,175 @@ export default function HostDashboard({
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Drawer / Modal Notifikasi PWA Host */}
+      <AnimatePresence>
+        {isNotificationsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsNotificationsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Sheet Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] z-10 border border-slate-100"
+            >
+              {/* Header */}
+              <div className="px-5 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between shadow-sm shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                    <Bell className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base leading-tight">Kotak Notifikasi</h3>
+                    <p className="text-xs text-indigo-100/90 font-medium">
+                      Pemberitahuan resmi siaran & roster
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationsModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Tutup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sub-header Actions (Tandai Semua Dibaca) */}
+              <div className="px-5 py-2.5 bg-indigo-50/70 border-b border-indigo-100/60 flex items-center justify-between text-xs shrink-0">
+                <span className="font-semibold text-indigo-900">
+                  {unreadNotifCount > 0 ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      {unreadNotifCount} pesan belum dibaca
+                    </span>
+                  ) : (
+                    'Semua pesan telah dibaca'
+                  )}
+                </span>
+                {unreadNotifCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onMarkHostNotificationAsRead && activeHostObj?.id) {
+                        onMarkHostNotificationAsRead(activeHostObj.id);
+                      }
+                    }}
+                    className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer hover:underline"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    Tandai Semua Dibaca
+                  </button>
+                )}
+              </div>
+
+              {/* Notification List Body */}
+              <div className="p-4 overflow-y-auto space-y-3 divide-y-0 flex-1">
+                {myNotifications.length === 0 ? (
+                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-400 mb-3">
+                      <Bell className="w-7 h-7" />
+                    </div>
+                    <h4 className="font-bold text-sm text-slate-800 mb-1">Belum Ada Notifikasi</h4>
+                    <p className="text-xs text-slate-500 max-w-[260px] leading-relaxed">
+                      Jadwal siaran baru dan pengumuman dari admin akan langsung muncul di sini.
+                    </p>
+                  </div>
+                ) : (
+                  myNotifications.map((notif: any) => {
+                    const isUnread = !notif.read;
+                    const timeAgo = notif.createdAt
+                      ? (() => {
+                          const diff = Date.now() - new Date(notif.createdAt).getTime();
+                          const min = Math.floor(diff / 60000);
+                          if (min < 1) return 'Baru saja';
+                          if (min < 60) return `${min}m yang lalu`;
+                          const hr = Math.floor(min / 60);
+                          if (hr < 24) return `${hr} jam yang lalu`;
+                          return `${Math.floor(hr / 24)} hari yang lalu`;
+                        })()
+                      : notif.date || '';
+
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          if (isUnread && onMarkHostNotificationAsRead && activeHostObj?.id) {
+                            onMarkHostNotificationAsRead(activeHostObj.id);
+                          }
+                        }}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                          isUnread
+                            ? 'bg-gradient-to-br from-indigo-50/70 to-white border-indigo-200/90 shadow-sm'
+                            : 'bg-white border-slate-100 hover:bg-slate-50/80'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {isUnread && (
+                              <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
+                            )}
+                            <h5 className="font-bold text-xs text-slate-800 leading-snug truncate">
+                              {notif.title}
+                            </h5>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium shrink-0 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {timeAgo}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-indigo-200 my-2">
+                          {notif.message}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[10px]">
+                            <CalendarIcon className="w-3 h-3 text-slate-400" />
+                            {notif.date || 'Siaran Host'}
+                          </span>
+
+                          {isUnread ? (
+                            <span className="text-[10px] font-bold text-indigo-600 flex items-center gap-1">
+                              Belum Dibaca
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                              <Check className="w-3 h-3 text-emerald-500" /> Dibaca
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationsModalOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 font-bold text-xs transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
