@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useId } from "react";
 import {
   DollarSign,
   Package,
@@ -83,7 +83,93 @@ function calcGrowth(curr: number, prev: number): { pct: number; isUp: boolean } 
   return { pct: Number(pct.toFixed(1)), isUp: diff >= 0 };
 }
 
-// ── Smooth SVG Sparkline Generator ──────────────────────────────────────────
+// ── Smooth SVG Sparkline Resampler & Monotone Spline Generator ──────────────
+function resampleSparklineData(rawData: number[], targetPoints = 14): number[] {
+  if (!rawData || rawData.length === 0) return [];
+  if (rawData.length <= targetPoints) {
+    if (rawData.length >= 6) {
+      return movingAverage(rawData, 2);
+    }
+    return rawData;
+  }
+
+  // Rolling moving average to filter out high-frequency noise and reveal macro trend
+  const windowSize = Math.max(2, Math.round(rawData.length / targetPoints));
+  const smoothed = movingAverage(rawData, windowSize);
+
+  // Resample evenly across the smoothed series to targetPoints
+  const resampled: number[] = [];
+  const step = (smoothed.length - 1) / (targetPoints - 1);
+  for (let i = 0; i < targetPoints; i++) {
+    const idx = Math.min(smoothed.length - 1, Math.round(i * step));
+    resampled.push(smoothed[idx]);
+  }
+  return resampled;
+}
+
+function movingAverage(arr: number[], windowSize: number): number[] {
+  if (arr.length <= 1 || windowSize <= 1) return arr;
+  const half = Math.floor(windowSize / 2);
+  return arr.map((val, idx) => {
+    const start = Math.max(0, idx - half);
+    const end = Math.min(arr.length, idx + half + 1);
+    let sum = 0;
+    let count = 0;
+    for (let j = start; j < end; j++) {
+      sum += arr[j];
+      count++;
+    }
+    return count > 0 ? sum / count : val;
+  });
+}
+
+// Monotone Cubic Spline (guarantees no loops, no overshoot, and strictly preserves local bounds)
+function getMonotonePath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  if (points.length === 2) {
+    return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)}`;
+  }
+
+  const n = points.length;
+  const dx: number[] = [];
+  const dy: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const dxi = points[i + 1].x - points[i].x;
+    const dyi = points[i + 1].y - points[i].y;
+    dx.push(dxi);
+    dy.push(dyi);
+    m.push(dxi === 0 ? 0 : dyi / dxi);
+  }
+
+  const slopes: number[] = [m[0]];
+  for (let i = 1; i < n - 1; i++) {
+    if (m[i - 1] * m[i] <= 0) {
+      slopes.push(0);
+    } else {
+      const dxi0 = dx[i - 1];
+      const dxi1 = dx[i];
+      const sumDx = dxi0 + dxi1;
+      slopes.push((3 * sumDx) / ((sumDx + dxi1) / m[i - 1] + (sumDx + dxi0) / m[i]));
+    }
+  }
+  slopes.push(m[n - 2]);
+
+  let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const dxi = dx[i] / 3;
+    const cp1x = p0.x + dxi;
+    const cp1y = p0.y + slopes[i] * dxi;
+    const cp2x = p1.x - dxi;
+    const cp2y = p1.y - slopes[i + 1] * dxi;
+    path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  }
+  return path;
+}
+
 function MiniSparkline({
   data,
   color,
@@ -93,56 +179,85 @@ function MiniSparkline({
   color: string;
   isPositive?: boolean;
 }) {
+  const rawId = useId();
+  const gradientId = "spark-" + rawId.replace(/[^a-zA-Z0-9_-]/g, "");
   const width = 64;
   const height = 28;
-  const padding = 3;
+  const paddingX = 3;
+  const paddingTop = 4;
+  const paddingBottom = 4;
 
-  const pathD = useMemo(() => {
-    // If not enough points or flat zero, generate an organic smooth wave
-    const valid = data && data.length >= 2 && data.some((v) => v > 0);
+  const { lineD, areaD, lastPoint } = useMemo(() => {
+    const resampled = resampleSparklineData(data, 14);
+    const valid = resampled && resampled.length >= 2 && resampled.some((v) => v > 0);
+
     if (!valid) {
       const up = isPositive !== false;
-      if (up) {
-        return `M 3 22 Q 18 18, 30 15 T 48 10 T 61 6`;
-      }
-      return `M 3 8 Q 18 10, 30 14 T 48 19 T 61 23`;
+      const lineD = up
+        ? `M ${paddingX} 22 Q 20 18, 34 14 T 50 10 T ${width - paddingX} 6`
+        : `M ${paddingX} 6 Q 20 10, 34 14 T 50 18 T ${width - paddingX} 22`;
+      const areaD = `${lineD} L ${width - paddingX} ${height} L ${paddingX} ${height} Z`;
+      return {
+        lineD,
+        areaD,
+        lastPoint: { x: width - paddingX, y: up ? 6 : 22 },
+      };
     }
 
-    const min = Math.min(...data);
-    const max = Math.max(...data);
+    const min = Math.min(...resampled);
+    const max = Math.max(...resampled);
     const range = max === min ? 1 : max - min;
 
-    const points = data.map((val, idx) => {
-      const x = padding + (idx / (data.length - 1)) * (width - 2 * padding);
-      const y = height - padding - ((val - min) / range) * (height - 2 * padding);
+    const points = resampled.map((val, idx) => {
+      const x = paddingX + (idx / (resampled.length - 1)) * (width - 2 * paddingX);
+      const y = height - paddingBottom - ((val - min) / range) * (height - paddingTop - paddingBottom);
       return { x, y };
     });
 
-    // Build smooth bezier curve
-    let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      const mx = (p0.x + p1.x) / 2;
-      d += ` C ${mx.toFixed(1)} ${p0.y.toFixed(1)}, ${mx.toFixed(1)} ${p1.y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
-    }
-    return d;
+    const linePath = getMonotonePath(points);
+    const last = points[points.length - 1];
+    const first = points[0];
+    const areaPath = `${linePath} L ${last.x.toFixed(1)} ${height} L ${first.x.toFixed(1)} ${height} Z`;
+
+    return {
+      lineD: linePath,
+      areaD: areaPath,
+      lastPoint: last,
+    };
   }, [data, isPositive]);
 
   return (
     <svg
-      className="w-16 h-7 shrink-0 overflow-visible"
+      className="w-16 h-7 shrink-0 overflow-hidden"
       viewBox={`0 0 ${width} ${height}`}
       fill="none"
     >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.0} />
+        </linearGradient>
+      </defs>
+      {/* Soft gradient area fill */}
+      <path d={areaD} fill={`url(#${gradientId})`} />
+      {/* Crisp smooth spline curve */}
       <path
-        d={pathD}
+        d={lineD}
         fill="none"
         stroke={color}
-        strokeWidth="2.2"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* End point dot */}
+      {lastPoint && (
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r="1.8"
+          fill={color}
+        />
+      )}
     </svg>
   );
 }
@@ -194,8 +309,8 @@ function SaleCard({
       </div>
 
       {/* Bottom: Growth vs Prev & Sparkline - pinned to bottom */}
-      <div className="mt-auto pt-1 flex items-end justify-between gap-2 min-w-0">
-        <div className="flex flex-col min-w-0">
+      <div className="mt-auto pt-2 flex items-end justify-between gap-2.5 min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
           <div
             className={`inline-flex items-center gap-1 text-[11px] font-bold ${
               growth.isUp ? "text-emerald-600" : "text-rose-600"
@@ -211,16 +326,21 @@ function SaleCard({
               {growth.pct}%
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+          <span
+            className="text-[9.5px] text-slate-400 font-medium truncate mt-0.5"
+            title="vs periode sebelumnya"
+          >
             vs periode sebelumnya
           </span>
         </div>
 
-        <MiniSparkline
-          data={sparklineData}
-          color={sparklineColor}
-          isPositive={growth.isUp}
-        />
+        <div className="shrink-0 flex items-end">
+          <MiniSparkline
+            data={sparklineData}
+            color={sparklineColor}
+            isPositive={growth.isUp}
+          />
+        </div>
       </div>
     </div>
   );
@@ -253,24 +373,34 @@ function EngagementCard({
         </p>
       </div>
 
-      <div className="mt-auto pt-3 flex items-center justify-between gap-2">
-        <span
-          className={`inline-flex items-center gap-1 text-[11px] font-bold ${
-            growth.isUp ? "text-emerald-600" : "text-rose-600"
-          }`}
-        >
-          {growth.isUp ? (
-            <TrendingUp className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-          ) : (
-            <TrendingDown className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-          )}
-          {growth.pct}%
-        </span>
-        <MiniSparkline
-          data={sparklineData}
-          color={sparklineColor}
-          isPositive={growth.isUp}
-        />
+      <div className="mt-auto pt-3 flex items-end justify-between gap-2.5 min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
+          <span
+            className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+              growth.isUp ? "text-emerald-600" : "text-rose-600"
+            }`}
+          >
+            {growth.isUp ? (
+              <TrendingUp className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+            ) : (
+              <TrendingDown className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+            )}
+            {growth.pct}%
+          </span>
+          <span
+            className="text-[9.5px] text-slate-400 font-medium truncate mt-0.5"
+            title="vs periode sebelumnya"
+          >
+            vs periode sebelumnya
+          </span>
+        </div>
+        <div className="shrink-0 flex items-end">
+          <MiniSparkline
+            data={sparklineData}
+            color={sparklineColor}
+            isPositive={growth.isUp}
+          />
+        </div>
       </div>
     </div>
   );
