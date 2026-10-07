@@ -136,6 +136,7 @@ interface BrandViewModel {
   contractStartDate?: string | null;
   contractEndDate?: string | null;
   invoiceDate?: string | null;
+  cutOffDate?: string | null;
   monthlyMeetingDate?: string | null;
   clientPassword?: string | null;
   clientUsername?: string | null;
