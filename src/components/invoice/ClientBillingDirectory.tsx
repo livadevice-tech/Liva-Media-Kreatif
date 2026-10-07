@@ -435,12 +435,14 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Qty</label>
                                 <input
                                   type="number"
-                                  min="1"
+                                  min="0"
+                                  step="any"
                                   className="w-full border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
-                                  value={srv.qty ?? 1}
+                                  value={srv.qty !== undefined && srv.qty !== null ? srv.qty : ""}
                                   onChange={(e) => {
                                     const updated = [...servicesList];
-                                    updated[idx].qty = Number(e.target.value) || 1;
+                                    const val = e.target.value === "" ? 1 : Number(e.target.value);
+                                    updated[idx].qty = Number.isNaN(val) ? 1 : val;
                                     setServicesList(updated);
                                   }}
                                 />
@@ -464,12 +466,14 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                                 <input
                                   type="number"
                                   min="0"
-                                  step="100000"
+                                  step="any"
+                                  placeholder="0"
                                   className="w-full border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
-                                  value={srv.cost ?? 0}
+                                  value={srv.cost !== undefined && srv.cost !== null ? srv.cost : ""}
                                   onChange={(e) => {
                                     const updated = [...servicesList];
-                                    updated[idx].cost = Number(e.target.value) || 0;
+                                    const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                    updated[idx].cost = Number.isNaN(val) ? 0 : val;
                                     setServicesList(updated);
                                   }}
                                 />
