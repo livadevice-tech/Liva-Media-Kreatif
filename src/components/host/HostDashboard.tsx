@@ -4,7 +4,7 @@ import {
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
   DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
-  Smartphone, Sparkles, ShieldCheck
+  Smartphone, Sparkles, ShieldCheck, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -1570,6 +1570,26 @@ export default function HostDashboard({
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Card Pasang Aplikasi ke Layar Utama HP */}
+            <div className="p-4 bg-purple-50/60 border border-purple-100 rounded-2xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <Download size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-sm text-slate-800">Pasang ke Layar Utama HP</h4>
+                  <p className="text-[11px] text-slate-500 truncate">Jadikan aplikasi di Home Screen Android / iOS</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-pwa-install-modal'))}
+                className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm cursor-pointer shrink-0"
+              >
+                Pasang
+              </button>
             </div>
 
             <div className="space-y-2 pt-1">
