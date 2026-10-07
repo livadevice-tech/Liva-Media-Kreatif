@@ -211,6 +211,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       email: brand?.picEmail || "",
       address: brand?.companyAddress || "",
       cutOffDate: brand?.cutOffDate || "15",
+      livePeriodStart: brand?.contractStartDate || "",
+      livePeriodEnd: brand?.contractEndDate || "",
       bankInfo: {
         bankName: defaultBank.bankName,
         accountNo: defaultBank.accountNo,
@@ -245,6 +247,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
 
     const finalInvoice = {
       ...draftInvoice,
+      livePeriodStart: draftInvoice.livePeriodStart || undefined,
+      livePeriodEnd: draftInvoice.livePeriodEnd || undefined,
       paymentType,
       subtotalProject,
       totalAmount: billableAmount,
@@ -259,6 +263,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
           picPhone: draftInvoice.picPhone || b.picPhone,
           picEmail: draftInvoice.email || b.picEmail,
           companyAddress: draftInvoice.address || b.companyAddress,
+          contractStartDate: draftInvoice.livePeriodStart || b.contractStartDate,
+          contractEndDate: draftInvoice.livePeriodEnd || b.contractEndDate,
           invoices: [...(b.invoices || []), finalInvoice],
         };
       }

@@ -3,6 +3,7 @@ import { X, Printer, Download, MessageSquare, Copy, Check, ShieldCheck, CheckCir
 import { BrandInvoice, ClientBrand, LivaBankAccount, InvoiceCompanyProfile } from '../../types';
 import { terbilang } from '../../shared/utils/terbilang';
 import { formatDateUILocal as formatDateUI } from '../../shared/utils/date';
+import { formatContractDate } from '../../shared/utils/dateFormatting';
 
 interface InvoicePreviewModalProps {
   invoice: BrandInvoice;
@@ -80,6 +81,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   const remainingAmount = Math.max(0, subtotalProject - (invoice.dpAmount ?? dpAmount));
   const amountTerbilang = terbilang(totalAmount);
 
+  const effectiveLivePeriodStart = invoice.livePeriodStart || brand?.contractStartDate || "";
+  const effectiveLivePeriodEnd = invoice.livePeriodEnd || brand?.contractEndDate || "";
+  const livePeriod = effectiveLivePeriodStart && effectiveLivePeriodEnd
+    ? `${formatContractDate(effectiveLivePeriodStart)} – ${formatContractDate(effectiveLivePeriodEnd)}`
+    : "";
+
   // WhatsApp reminder message template
   const waMessage = `Dear ${recipientPic || recipientPt},
 Here is the official invoice from PT. Liva Media Kreatif:
@@ -88,7 +95,7 @@ Here is the official invoice from PT. Liva Media Kreatif:
 🏢 *Billed To:* ${recipientPt}
 📅 *Invoice Date:* ${formattedInvoiceDate}
 ⏰ *Due Date:* ${formattedDueDate}
-${paymentType !== 'full' ? `📊 *Total Project:* Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}\n` : ''}💰 *${paymentType === 'dp' ? `Tagihan DP (${dpPercent}%):` : paymentType === 'pelunasan' ? 'Final Payment (Pelunasan):' : 'Total Amount:'}* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
+${livePeriod ? `📺 *Periode Live:* ${livePeriod}\n` : ''}${paymentType !== 'full' ? `📊 *Total Project:* Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}\n` : ''}💰 *${paymentType === 'dp' ? `Tagihan DP (${dpPercent}%):` : paymentType === 'pelunasan' ? 'Final Payment (Pelunasan):' : 'Total Amount:'}* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
 (${amountTerbilang})
 ${paymentType === 'dp' ? `📌 *Sisa Pembayaran:* Rp ${new Intl.NumberFormat('id-ID').format(remainingAmount)}\n` : ''}
 🏦 *Payment Information (Bank Transfer):*
@@ -243,6 +250,14 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                       <span className="font-semibold text-slate-400 mr-1.5">Due Date:</span>
                       <span className="font-semibold text-slate-800">{formattedDueDate}</span>
                     </div>
+                    {livePeriod && (
+                      <div className="pt-0.5">
+                        <span className="font-semibold text-slate-400 mr-1.5">Periode Live:</span>
+                        <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[11px] inline-block mt-0.5">
+                          {livePeriod}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

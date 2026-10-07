@@ -1252,6 +1252,28 @@ async function runMigrations() {
       console.warn('Migration subtotal_project warning:', e?.message);
     }
   }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN live_period_start DATE NULL`, []);
+    console.log('✅ Migration: kolom live_period_start ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom live_period_start sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration live_period_start warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN live_period_end DATE NULL`, []);
+    console.log('✅ Migration: kolom live_period_end ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom live_period_end sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration live_period_end warning:', e?.message);
+    }
+  }
 }
 
 async function bootstrap() {

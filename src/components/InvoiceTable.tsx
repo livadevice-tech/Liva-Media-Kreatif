@@ -362,14 +362,19 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                             <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
                             Cut Off: Tgl {inv.cutOffDate || brand?.cutOffDate || '15'}
                           </span>
-                          {(brand?.contractStartDate || brand?.contractEndDate) && (
-                            <span
-                              className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-700 bg-indigo-50/80 border border-indigo-100 px-1.5 py-0.5 rounded-md"
-                              title="Periode Siklus Live"
-                            >
-                              Live: {formatContractDate(brand.contractStartDate)} – {formatContractDate(brand.contractEndDate)}
-                            </span>
-                          )}
+                          {(() => {
+                            const pStart = inv.livePeriodStart || brand?.contractStartDate;
+                            const pEnd = inv.livePeriodEnd || brand?.contractEndDate;
+                            if (!pStart && !pEnd) return null;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-700 bg-indigo-50/80 border border-indigo-100 px-1.5 py-0.5 rounded-md"
+                                title="Periode Siklus Live"
+                              >
+                                Live: {formatContractDate(pStart)} – {formatContractDate(pEnd)}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </td>
 

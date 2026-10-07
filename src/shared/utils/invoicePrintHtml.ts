@@ -1,5 +1,6 @@
 import { BrandInvoice, ClientBrand, LivaBankAccount, InvoiceCompanyProfile } from '../../types';
 import { terbilang } from './terbilang';
+import { formatContractDate } from './dateFormatting';
 
 export function generateInvoicePrintHtml(params: {
   invoice: BrandInvoice;
@@ -39,6 +40,12 @@ export function generateInvoicePrintHtml(params: {
     month: 'long',
     year: 'numeric',
   });
+
+  const effectiveLivePeriodStart = invoice.livePeriodStart || brand?.contractStartDate || "";
+  const effectiveLivePeriodEnd = invoice.livePeriodEnd || brand?.contractEndDate || "";
+  const livePeriodFormatted = (effectiveLivePeriodStart && effectiveLivePeriodEnd)
+    ? `${formatContractDate(effectiveLivePeriodStart)} – ${formatContractDate(effectiveLivePeriodEnd)}`
+    : "";
 
   const subtotalProject = invoice.subtotalProject || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
   const paymentType = invoice.paymentType || 'full';
@@ -433,6 +440,12 @@ export function generateInvoicePrintHtml(params: {
                 <td class="meta-label">Due Date:</td>
                 <td class="meta-val">${formattedDueDate}</td>
               </tr>
+              ${livePeriodFormatted ? `
+              <tr>
+                <td class="meta-label">Periode Live:</td>
+                <td class="meta-val" style="font-weight: 700; color: #312e81;">${livePeriodFormatted}</td>
+              </tr>
+              ` : ''}
             </table>
           </div>
         </div>

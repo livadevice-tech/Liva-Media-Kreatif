@@ -161,6 +161,14 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
     remainingAmount = 0;
   }
 
+  const currentBrand = clientBrands.find(b => b.id === selectedBrandId);
+  const effectivePeriodStart = draftInvoice?.livePeriodStart !== undefined
+    ? draftInvoice.livePeriodStart
+    : (currentBrand?.contractStartDate || "");
+  const effectivePeriodEnd = draftInvoice?.livePeriodEnd !== undefined
+    ? draftInvoice.livePeriodEnd
+    : (currentBrand?.contractEndDate || "");
+
   const terbilangStr = terbilang(billableAmount);
 
   return (
@@ -366,6 +374,53 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   value={draftInvoice?.dueDate || ""}
                   onChange={e => setDraftInvoice({...draftInvoice, dueDate: e.target.value})}
                 />
+              </div>
+            </div>
+
+            {/* Detail Periode Live */}
+            <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3.5 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-[11px] font-black uppercase text-indigo-950 tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" /> Detail Periode Live (Siklus Kontrak)
+                </label>
+                {(effectivePeriodStart || effectivePeriodEnd) && (
+                  <span className="text-[10px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-md shadow-2xs">
+                    {formatContractDate(effectivePeriodStart)} – {formatContractDate(effectivePeriodEnd)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">
+                Rentang tanggal sesi live streaming yang ditagihkan pada invoice ini
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Periode Live Mulai (Start Date)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-indigo-200/80 rounded-xl px-3 py-1.5 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                    value={effectivePeriodStart}
+                    onChange={e => setDraftInvoice({
+                      ...draftInvoice,
+                      livePeriodStart: e.target.value,
+                    })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Periode Live Selesai (End Date)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-indigo-200/80 rounded-xl px-3 py-1.5 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                    value={effectivePeriodEnd}
+                    onChange={e => setDraftInvoice({
+                      ...draftInvoice,
+                      livePeriodEnd: e.target.value,
+                    })}
+                  />
+                </div>
               </div>
             </div>
           </div>

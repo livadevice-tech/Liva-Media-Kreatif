@@ -1,7 +1,8 @@
 import React from "react";
-import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard } from "lucide-react";
+import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard, Clock } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
+import { formatContractDate } from "../../shared/utils/dateFormatting";
 
 type EditableInvoice = BrandInvoice & { brandId: string };
 
@@ -23,6 +24,14 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   onUpdateBrands,
 }) => {
   if (!invoiceEditor) return null;
+
+  const currentBrand = clientBrands.find((b) => b.id === invoiceEditor.brandId);
+  const effectivePeriodStart = invoiceEditor.livePeriodStart !== undefined
+    ? invoiceEditor.livePeriodStart
+    : (currentBrand?.contractStartDate || "");
+  const effectivePeriodEnd = invoiceEditor.livePeriodEnd !== undefined
+    ? invoiceEditor.livePeriodEnd
+    : (currentBrand?.contractEndDate || "");
 
   const subtotalProject = (invoiceEditor.sessionItems || []).reduce(
     (acc, curr) => acc + (curr.cost * (curr.qty || 1)),
@@ -50,6 +59,8 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   const handleSave = () => {
     const updatedInvoice: BrandInvoice = {
       ...invoiceEditor,
+      livePeriodStart: effectivePeriodStart || undefined,
+      livePeriodEnd: effectivePeriodEnd || undefined,
       paymentType,
       dpPercent: paymentType === 'dp' ? dpPercent : undefined,
       dpAmount: paymentType !== 'full' ? dpAmount : undefined,
@@ -69,6 +80,9 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
           picPhone: invoiceEditor.picPhone || b.picPhone,
           picEmail: invoiceEditor.email || b.picEmail,
           companyAddress: invoiceEditor.address || b.companyAddress,
+          contractStartDate: effectivePeriodStart || b.contractStartDate,
+          contractEndDate: effectivePeriodEnd || b.contractEndDate,
+          cutOffDate: invoiceEditor.cutOffDate || b.cutOffDate,
           invoices: updatedInvoices,
         };
       }
@@ -219,6 +233,53 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                 value={invoiceEditor.cutOffDate || ""}
                 onChange={e => setInvoiceEditor({...invoiceEditor, cutOffDate: e.target.value})}
               />
+            </div>
+          </div>
+
+          {/* Detail Periode Live */}
+          <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="text-xs font-black uppercase text-indigo-950 tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-600" /> Detail Periode Live (Siklus Kontrak)
+              </label>
+              {(effectivePeriodStart || effectivePeriodEnd) && (
+                <span className="text-[11px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                  {formatContractDate(effectivePeriodStart)} – {formatContractDate(effectivePeriodEnd)}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium">
+              Rentang tanggal sesi live streaming yang ditagihkan pada invoice ini
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Periode Live Mulai (Start Date)
+                </label>
+                <input
+                  type="date"
+                  className="w-full border border-indigo-200/80 rounded-xl px-3.5 py-2 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                  value={effectivePeriodStart}
+                  onChange={e => setInvoiceEditor({
+                    ...invoiceEditor,
+                    livePeriodStart: e.target.value,
+                  })}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Periode Live Selesai (End Date)
+                </label>
+                <input
+                  type="date"
+                  className="w-full border border-indigo-200/80 rounded-xl px-3.5 py-2 font-bold text-xs bg-white text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
+                  value={effectivePeriodEnd}
+                  onChange={e => setInvoiceEditor({
+                    ...invoiceEditor,
+                    livePeriodEnd: e.target.value,
+                  })}
+                />
+              </div>
             </div>
           </div>
 

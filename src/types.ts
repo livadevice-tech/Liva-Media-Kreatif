@@ -207,6 +207,8 @@ export interface BrandInvoice {
   dpPercent?: number;
   dpAmount?: number;
   subtotalProject?: number;
+  livePeriodStart?: string;
+  livePeriodEnd?: string;
 }
 
 export interface LivaBankAccount {
