@@ -2,7 +2,7 @@ import React from "react";
 import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard, Clock } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
-import { formatContractDate } from "../../shared/utils/dateFormatting";
+import { formatContractDate, formatLivePeriod, resolveContractPeriodDates } from "../../shared/utils/dateFormatting";
 
 type EditableInvoice = BrandInvoice & { brandId: string };
 
@@ -26,12 +26,17 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   if (!invoiceEditor) return null;
 
   const currentBrand = clientBrands.find((b) => b.id === invoiceEditor.brandId);
-  const effectivePeriodStart = invoiceEditor.livePeriodStart !== undefined
+  const resolvedPeriod = resolveContractPeriodDates(
+    invoiceEditor.livePeriodStart || currentBrand?.contractStartDate,
+    invoiceEditor.livePeriodEnd || currentBrand?.contractEndDate,
+    invoiceEditor.invoiceDate || invoiceEditor.issueDate
+  );
+  const effectivePeriodStart = (invoiceEditor.livePeriodStart && invoiceEditor.livePeriodStart.includes('-'))
     ? invoiceEditor.livePeriodStart
-    : (currentBrand?.contractStartDate || "");
-  const effectivePeriodEnd = invoiceEditor.livePeriodEnd !== undefined
+    : (resolvedPeriod.startDate || currentBrand?.contractStartDate || "");
+  const effectivePeriodEnd = (invoiceEditor.livePeriodEnd && invoiceEditor.livePeriodEnd.includes('-'))
     ? invoiceEditor.livePeriodEnd
-    : (currentBrand?.contractEndDate || "");
+    : (resolvedPeriod.endDate || currentBrand?.contractEndDate || "");
 
   const subtotalProject = (invoiceEditor.sessionItems || []).reduce(
     (acc, curr) => acc + (curr.cost * (curr.qty || 1)),
@@ -242,11 +247,14 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
               <label className="text-xs font-black uppercase text-indigo-950 tracking-wider flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-indigo-600" /> Detail Periode Live (Siklus Kontrak)
               </label>
-              {(effectivePeriodStart || effectivePeriodEnd) && (
-                <span className="text-[11px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-lg shadow-2xs">
-                  {formatContractDate(effectivePeriodStart)} – {formatContractDate(effectivePeriodEnd)}
-                </span>
-              )}
+              {(() => {
+                const formatted = formatLivePeriod(effectivePeriodStart, effectivePeriodEnd, invoiceEditor.invoiceDate || invoiceEditor.issueDate);
+                return formatted ? (
+                  <span className="text-[11px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                    {formatted}
+                  </span>
+                ) : null;
+              })()}
             </div>
             <p className="text-[10px] text-slate-500 font-medium">
               Rentang tanggal sesi live streaming yang ditagihkan pada invoice ini

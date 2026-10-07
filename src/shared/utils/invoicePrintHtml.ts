@@ -1,6 +1,6 @@
 import { BrandInvoice, ClientBrand, LivaBankAccount, InvoiceCompanyProfile } from '../../types';
 import { terbilang } from './terbilang';
-import { formatContractDate } from './dateFormatting';
+import { formatContractDate, formatLivePeriod } from './dateFormatting';
 
 export function generateInvoicePrintHtml(params: {
   invoice: BrandInvoice;
@@ -43,9 +43,11 @@ export function generateInvoicePrintHtml(params: {
 
   const effectiveLivePeriodStart = invoice.livePeriodStart || brand?.contractStartDate || "";
   const effectiveLivePeriodEnd = invoice.livePeriodEnd || brand?.contractEndDate || "";
-  const livePeriodFormatted = (effectiveLivePeriodStart && effectiveLivePeriodEnd)
-    ? `${formatContractDate(effectiveLivePeriodStart)} – ${formatContractDate(effectiveLivePeriodEnd)}`
-    : "";
+  const livePeriodFormatted = formatLivePeriod(
+    effectiveLivePeriodStart,
+    effectiveLivePeriodEnd,
+    invoice.invoiceDate || invoice.issueDate
+  );
 
   const subtotalProject = invoice.subtotalProject || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
   const paymentType = invoice.paymentType || 'full';

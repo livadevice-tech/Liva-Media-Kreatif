@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
-import { formatContractDate } from '../shared/utils/dateFormatting';
+import { formatContractDate, formatLivePeriod } from '../shared/utils/dateFormatting';
 
 interface InvoiceTableProps {
   allInvoices: (BrandInvoice & { brandId: string; brandName: string })[];
@@ -365,13 +365,15 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                           {(() => {
                             const pStart = inv.livePeriodStart || brand?.contractStartDate;
                             const pEnd = inv.livePeriodEnd || brand?.contractEndDate;
-                            if (!pStart && !pEnd) return null;
+                            const formattedPeriod = formatLivePeriod(pStart, pEnd, inv.invoiceDate || inv.issueDate);
+                            if (!formattedPeriod) return null;
                             return (
                               <span
-                                className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-700 bg-indigo-50/80 border border-indigo-100 px-1.5 py-0.5 rounded-md"
-                                title="Periode Siklus Live"
+                                className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-700 bg-indigo-50/90 border border-indigo-200/80 px-2 py-0.5 rounded-md shadow-2xs"
+                                title="Periode Siklus Invoice"
                               >
-                                Live: {formatContractDate(pStart)} – {formatContractDate(pEnd)}
+                                <Calendar className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
+                                Periode: {formattedPeriod}
                               </span>
                             );
                           })()}

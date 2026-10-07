@@ -28,6 +28,7 @@ import { InvoiceSettingsPanel, type InvoiceSettings } from './invoice/InvoiceSet
 import { ClientBillingDirectory } from './invoice/ClientBillingDirectory';
 import { LivaBankManager } from './invoice/LivaBankManager';
 import { InvoicePreviewModal } from './invoice/InvoicePreviewModal';
+import { resolveContractPeriodDates } from '../shared/utils/dateFormatting';
 
 import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
@@ -196,6 +197,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     const shiftCount = brand?.sessions?.length || 2;
     const invoiceNumber = buildNextInvoiceNumber(clientBrands, today);
     const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
+    const resolvedPeriod = resolveContractPeriodDates(
+      brand?.contractStartDate,
+      brand?.contractEndDate,
+      today.toISOString().substring(0, 10)
+    );
 
     setDraftInvoice({
       id: `inv_${Date.now()}`,
@@ -211,8 +217,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       email: brand?.picEmail || "",
       address: brand?.companyAddress || "",
       cutOffDate: brand?.cutOffDate || "15",
-      livePeriodStart: brand?.contractStartDate || "",
-      livePeriodEnd: brand?.contractEndDate || "",
+      livePeriodStart: resolvedPeriod.startDate || brand?.contractStartDate || "",
+      livePeriodEnd: resolvedPeriod.endDate || brand?.contractEndDate || "",
       bankInfo: {
         bankName: defaultBank.bankName,
         accountNo: defaultBank.accountNo,

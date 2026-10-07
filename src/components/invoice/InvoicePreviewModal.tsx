@@ -3,7 +3,7 @@ import { X, Printer, Download, MessageSquare, Copy, Check, ShieldCheck, CheckCir
 import { BrandInvoice, ClientBrand, LivaBankAccount, InvoiceCompanyProfile } from '../../types';
 import { terbilang } from '../../shared/utils/terbilang';
 import { formatDateUILocal as formatDateUI } from '../../shared/utils/date';
-import { formatContractDate } from '../../shared/utils/dateFormatting';
+import { formatContractDate, formatLivePeriod } from '../../shared/utils/dateFormatting';
 
 interface InvoicePreviewModalProps {
   invoice: BrandInvoice;
@@ -83,9 +83,11 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   const effectiveLivePeriodStart = invoice.livePeriodStart || brand?.contractStartDate || "";
   const effectiveLivePeriodEnd = invoice.livePeriodEnd || brand?.contractEndDate || "";
-  const livePeriod = effectiveLivePeriodStart && effectiveLivePeriodEnd
-    ? `${formatContractDate(effectiveLivePeriodStart)} – ${formatContractDate(effectiveLivePeriodEnd)}`
-    : "";
+  const livePeriod = formatLivePeriod(
+    effectiveLivePeriodStart,
+    effectiveLivePeriodEnd,
+    invoice.invoiceDate || invoice.issueDate
+  );
 
   // WhatsApp reminder message template
   const waMessage = `Dear ${recipientPic || recipientPt},
