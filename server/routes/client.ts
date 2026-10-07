@@ -54,6 +54,10 @@ interface BrandInvoiceRow {
   email?: string | null;
   address?: string | null;
   total_amount?: string | number | null;
+  payment_type?: string | null;
+  dp_percent?: number | string | null;
+  dp_amount?: number | string | null;
+  subtotal_project?: number | string | null;
 }
 
 interface InvoiceItemRow {
@@ -193,6 +197,10 @@ async function buildBrand(brand: ClientBrandRow): Promise<BrandViewModel> {
         picName: inv.pic_name || null,
         picPhone: inv.pic_phone || null,
         totalAmount: parseInt(String(inv.total_amount || 0), 10) || 0,
+        paymentType: (inv.payment_type as any) || 'full',
+        dpPercent: inv.dp_percent !== null && inv.dp_percent !== undefined ? Number(inv.dp_percent) : undefined,
+        dpAmount: inv.dp_amount !== null && inv.dp_amount !== undefined ? Number(inv.dp_amount) : undefined,
+        subtotalProject: inv.subtotal_project !== null && inv.subtotal_project !== undefined ? Number(inv.subtotal_project) : undefined,
       };
     }),
   );
@@ -292,9 +300,9 @@ export function registerClientRoutes(app: Express) {
       for (const inv of b.invoices) {
         if (!inv.id) continue;
         await execute(`
-          INSERT INTO brand_invoices (id, brand_id, invoice_number, issue_date, due_date, status, recipient_name, pt_name, pic_name, pic_phone, email, address, total_amount)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-        `, [inv.id, id, inv.invoiceNumber || null, inv.issueDate || null, inv.dueDate || null, inv.status || "Draft", inv.recipientName || null, inv.ptName || null, inv.picName || null, inv.picPhone || null, inv.email || null, inv.address || null, inv.totalAmount || 0]);
+          INSERT INTO brand_invoices (id, brand_id, invoice_number, issue_date, due_date, status, recipient_name, pt_name, pic_name, pic_phone, email, address, total_amount, payment_type, dp_percent, dp_amount, subtotal_project)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `, [inv.id, id, inv.invoiceNumber || null, inv.issueDate || null, inv.dueDate || null, inv.status || "Draft", inv.recipientName || null, inv.ptName || null, inv.picName || null, inv.picPhone || null, inv.email || null, inv.address || null, inv.totalAmount || 0, inv.paymentType || 'full', inv.dpPercent ?? null, inv.dpAmount ?? null, inv.subtotalProject ?? null]);
         if (Array.isArray(inv.sessionItems)) {
           for (const item of inv.sessionItems) {
             await execute(`INSERT INTO invoice_items (invoice_id, session_id, description, qty, cost) VALUES (?,?,?,?,?)`, [inv.id, item.sessionId || null, item.description || null, item.qty || 1, item.cost || 0]);
@@ -344,8 +352,8 @@ export function registerClientRoutes(app: Express) {
       await execute(`DELETE FROM brand_invoices WHERE brand_id = ?`, [id]);
       for (const inv of b.invoices) {
         if (!inv.id) continue;
-        await execute(`INSERT INTO brand_invoices (id, brand_id, invoice_number, issue_date, due_date, status, recipient_name, pt_name, pic_name, pic_phone, email, address, total_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-          [inv.id, id, inv.invoiceNumber || null, inv.issueDate || null, inv.dueDate || null, inv.status || "Draft", inv.recipientName || null, inv.ptName || null, inv.picName || null, inv.picPhone || null, inv.email || null, inv.address || null, inv.totalAmount || 0]);
+        await execute(`INSERT INTO brand_invoices (id, brand_id, invoice_number, issue_date, due_date, status, recipient_name, pt_name, pic_name, pic_phone, email, address, total_amount, payment_type, dp_percent, dp_amount, subtotal_project) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [inv.id, id, inv.invoiceNumber || null, inv.issueDate || null, inv.dueDate || null, inv.status || "Draft", inv.recipientName || null, inv.ptName || null, inv.picName || null, inv.picPhone || null, inv.email || null, inv.address || null, inv.totalAmount || 0, inv.paymentType || 'full', inv.dpPercent ?? null, inv.dpAmount ?? null, inv.subtotalProject ?? null]);
         if (Array.isArray(inv.sessionItems)) {
           for (const item of inv.sessionItems) {
             await execute(`INSERT INTO invoice_items (invoice_id, session_id, description, qty, cost) VALUES (?,?,?,?,?)`, [inv.id, item.sessionId || null, item.description || null, item.qty || 1, item.cost || 0]);

@@ -232,11 +232,22 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     if (!selectedBrandId || !draftInvoice.invoiceNumber) return;
 
     const items = draftInvoice.sessionItems || [];
-    const totalAmount = items.reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
+    const subtotalProject = items.reduce((acc, curr) => acc + (curr.cost * (curr.qty || 1)), 0);
+    const paymentType = draftInvoice.paymentType || 'full';
+    let billableAmount = subtotalProject;
+
+    if (paymentType === 'dp') {
+      billableAmount = draftInvoice.dpAmount ?? Math.round(subtotalProject * ((draftInvoice.dpPercent ?? 50) / 100));
+    } else if (paymentType === 'pelunasan') {
+      const dpPaid = draftInvoice.dpAmount ?? 0;
+      billableAmount = Math.max(0, subtotalProject - dpPaid);
+    }
 
     const finalInvoice = {
       ...draftInvoice,
-      totalAmount,
+      paymentType,
+      subtotalProject,
+      totalAmount: billableAmount,
     } as BrandInvoice;
 
     const updatedBrands = clientBrands.map((b) => {

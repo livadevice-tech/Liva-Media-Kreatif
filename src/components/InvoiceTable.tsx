@@ -391,6 +391,25 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                         <div className="font-black text-slate-900 text-xs whitespace-nowrap">
                           Rp {new Intl.NumberFormat('id-ID').format(inv.totalAmount || 0)}
                         </div>
+                        {inv.paymentType === 'dp' && (
+                          <div className="mt-1 flex justify-end">
+                            <span className="inline-flex items-center text-[9px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              DP {inv.dpPercent ? `${inv.dpPercent}%` : ''}
+                            </span>
+                          </div>
+                        )}
+                        {inv.paymentType === 'pelunasan' && (
+                          <div className="mt-1 flex justify-end">
+                            <span className="inline-flex items-center text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Pelunasan
+                            </span>
+                          </div>
+                        )}
+                        {inv.subtotalProject && inv.paymentType && inv.paymentType !== 'full' && (
+                          <div className="text-[9px] text-slate-400 font-semibold mt-0.5 whitespace-nowrap">
+                            Total: Rp {new Intl.NumberFormat('id-ID').format(inv.subtotalProject)}
+                          </div>
+                        )}
                       </td>
 
                       {/* Status Dropdown */}

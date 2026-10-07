@@ -203,6 +203,10 @@ export interface BrandInvoice {
   notes?: string;
   paidDate?: string;
   paymentNotes?: string;
+  paymentType?: 'full' | 'dp' | 'pelunasan';
+  dpPercent?: number;
+  dpAmount?: number;
+  subtotalProject?: number;
 }
 
 export interface LivaBankAccount {

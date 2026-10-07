@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Trash2, X, Landmark, Building2, Save } from "lucide-react";
+import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
 
@@ -24,16 +24,37 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
 }) => {
   if (!invoiceEditor) return null;
 
-  const totalAmount = (invoiceEditor.sessionItems || []).reduce(
+  const subtotalProject = (invoiceEditor.sessionItems || []).reduce(
     (acc, curr) => acc + (curr.cost * (curr.qty || 1)),
     0
   );
-  const terbilangStr = terbilang(totalAmount);
+  const paymentType = invoiceEditor.paymentType || 'full';
+  const dpPercent = invoiceEditor.dpPercent ?? 50;
+  const dpAmount = invoiceEditor.dpAmount !== undefined 
+    ? invoiceEditor.dpAmount 
+    : Math.round(subtotalProject * (dpPercent / 100));
+
+  let billableAmount = subtotalProject;
+  let remainingAmount = 0;
+
+  if (paymentType === 'dp') {
+    billableAmount = dpAmount;
+    remainingAmount = Math.max(0, subtotalProject - dpAmount);
+  } else if (paymentType === 'pelunasan') {
+    billableAmount = Math.max(0, subtotalProject - dpAmount);
+    remainingAmount = 0;
+  }
+
+  const terbilangStr = terbilang(billableAmount);
 
   const handleSave = () => {
     const updatedInvoice: BrandInvoice = {
       ...invoiceEditor,
-      totalAmount,
+      paymentType,
+      dpPercent: paymentType === 'dp' ? dpPercent : undefined,
+      dpAmount: paymentType !== 'full' ? dpAmount : undefined,
+      subtotalProject,
+      totalAmount: billableAmount,
     };
 
     const updatedBrands = clientBrands.map((b) => {
@@ -374,17 +395,304 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
             })}
           </div>
 
-            {/* Total calculation */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2">
-              <div className="flex justify-between items-center text-sm font-black text-slate-900">
-                <span>Grand Total:</span>
-                <span className="text-base text-indigo-700">
-                  Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
-                </span>
+            {/* Payment Scheme & Exact Calculation */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-4">
+              <div>
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 mb-3">
+                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                      Opsi Skema Pembayaran (Payment Terms)
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Pilih jenis penagihan: Pembayaran Penuh, Uang Muka (DP), atau Pelunasan Akhir</p>
+                  </div>
+                </div>
+
+                {/* 3 Option Selection Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* 1. Full Payment */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInvoiceEditor({
+                        ...invoiceEditor,
+                        paymentType: 'full',
+                        dpPercent: undefined,
+                        dpAmount: undefined,
+                        subtotalProject,
+                      });
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      paymentType === 'full'
+                        ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-black ${paymentType === 'full' ? 'text-indigo-900' : 'text-slate-700'}`}>
+                        Full Payment
+                      </span>
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${paymentType === 'full' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                        100%
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      Tagihan penuh sekaligus untuk seluruh nilai proyek
+                    </p>
+                  </button>
+
+                  {/* 2. Down Payment (DP) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultPercent = invoiceEditor.dpPercent || 50;
+                      const calculatedDp = invoiceEditor.dpAmount !== undefined ? invoiceEditor.dpAmount : Math.round(subtotalProject * (defaultPercent / 100));
+                      setInvoiceEditor({
+                        ...invoiceEditor,
+                        paymentType: 'dp',
+                        dpPercent: defaultPercent,
+                        dpAmount: calculatedDp,
+                        subtotalProject,
+                      });
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      paymentType === 'dp'
+                        ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-black ${paymentType === 'dp' ? 'text-indigo-900' : 'text-slate-700'}`}>
+                        Tagihan DP
+                      </span>
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${paymentType === 'dp' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                        DP {dpPercent}%
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      Uang muka awal proyek. Sisanya ditagihkan di pelunasan
+                    </p>
+                  </button>
+
+                  {/* 3. Final Payment (Pelunasan) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultDp = invoiceEditor.dpAmount !== undefined ? invoiceEditor.dpAmount : Math.round(subtotalProject * 0.5);
+                      setInvoiceEditor({
+                        ...invoiceEditor,
+                        paymentType: 'pelunasan',
+                        dpPercent: 50,
+                        dpAmount: defaultDp,
+                        subtotalProject,
+                      });
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      paymentType === 'pelunasan'
+                        ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-black ${paymentType === 'pelunasan' ? 'text-emerald-900' : 'text-slate-700'}`}>
+                        Final Payment
+                      </span>
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${paymentType === 'pelunasan' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                        Pelunasan
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      Tagihan akhir setelah dipotong DP yang telah dibayar
+                    </p>
+                  </button>
+                </div>
+
+                {/* DP Configuration Controls */}
+                {paymentType === 'dp' && (
+                  <div className="mt-3 p-3 bg-white border border-indigo-200 rounded-xl space-y-2.5 animate-fadeIn">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-indigo-900">
+                        Pilih Persentase DP:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {[20, 30, 50, 70].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => {
+                              const newDp = Math.round(subtotalProject * (pct / 100));
+                              setInvoiceEditor({
+                                ...invoiceEditor,
+                                paymentType: 'dp',
+                                dpPercent: pct,
+                                dpAmount: newDp,
+                                subtotalProject,
+                              });
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              dpPercent === pct
+                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                : 'bg-slate-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-100">
+                      <label className="text-[11px] font-bold text-indigo-900 sm:w-36 shrink-0">
+                        Nominal DP (Rp):
+                      </label>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                          Rp
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={subtotalProject}
+                          value={dpAmount || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            const calculatedPct = subtotalProject > 0 ? Math.round((val / subtotalProject) * 100) : 0;
+                            setInvoiceEditor({
+                              ...invoiceEditor,
+                              paymentType: 'dp',
+                              dpPercent: calculatedPct,
+                              dpAmount: val,
+                              subtotalProject,
+                            });
+                          }}
+                          className="w-full bg-slate-50 border border-indigo-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-black text-indigo-950 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                          placeholder="Contoh: 7250000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pelunasan Configuration Controls */}
+                {paymentType === 'pelunasan' && (
+                  <div className="mt-3 p-3 bg-white border border-emerald-200 rounded-xl space-y-2.5 animate-fadeIn">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-emerald-900">
+                        DP Yang Telah Dibayar Klien:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const half = Math.round(subtotalProject * 0.5);
+                          setInvoiceEditor({
+                            ...invoiceEditor,
+                            paymentType: 'pelunasan',
+                            dpPercent: 50,
+                            dpAmount: half,
+                            subtotalProject,
+                          });
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-all cursor-pointer"
+                      >
+                        Set 50% (Rp {new Intl.NumberFormat('id-ID').format(Math.round(subtotalProject * 0.5))})
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-100">
+                      <label className="text-[11px] font-bold text-emerald-900 sm:w-36 shrink-0">
+                        Nominal DP (Rp):
+                      </label>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                          Rp
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={subtotalProject}
+                          value={dpAmount || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setInvoiceEditor({
+                              ...invoiceEditor,
+                              paymentType: 'pelunasan',
+                              dpAmount: val,
+                              subtotalProject,
+                            });
+                          }}
+                          className="w-full bg-slate-50 border border-emerald-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-black text-emerald-950 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                          placeholder="Contoh: 7250000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="pt-2 border-t border-slate-200">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Amount in Words :</div>
-                <div className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</div>
+
+              {/* Exact Calculation Preview matching User Screenshots */}
+              <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1.5 font-sans">
+                <div className="flex justify-between items-center text-xs font-semibold text-slate-500">
+                  <span>Subtotal:</span>
+                  <span className="font-bold text-slate-700">
+                    Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
+                  </span>
+                </div>
+
+                {/* Solid dark line */}
+                <div className="w-full border-t-2 border-slate-900 my-1.5" />
+
+                <div className="flex justify-between items-center text-sm font-black text-slate-900">
+                  <span>TOTAL PROJECT:</span>
+                  <span className="text-base font-black text-slate-900">
+                    Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
+                  </span>
+                </div>
+
+                {paymentType === 'dp' && (
+                  <>
+                    {/* Dashed purple line */}
+                    <div className="w-full border-t border-dashed border-[#4f46e5] my-2" />
+                    <div className="flex justify-between items-center text-sm font-black text-[#4f46e5]">
+                      <span>TAGIHAN DP ({dpPercent}%):</span>
+                      <span className="text-base font-black">
+                        Rp {new Intl.NumberFormat('id-ID').format(billableAmount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-medium text-slate-500 pt-0.5">
+                      <span>Sisa Pembayaran:</span>
+                      <span className="text-slate-600 font-semibold">
+                        Rp {new Intl.NumberFormat('id-ID').format(remainingAmount)}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {paymentType === 'pelunasan' && (
+                  <>
+                    <div className="flex justify-between items-center text-xs font-semibold text-slate-500 pt-1">
+                      <span>DP Telah Dibayar:</span>
+                      <span className="text-[#059669] font-bold">
+                        -Rp {new Intl.NumberFormat('id-ID').format(dpAmount)}
+                      </span>
+                    </div>
+                    {/* Dashed green line */}
+                    <div className="w-full border-t border-dashed border-[#059669] my-2" />
+                    <div className="flex justify-between items-center text-sm font-black text-[#059669]">
+                      <span>FINAL PAYMENT (PELUNASAN):</span>
+                      <span className="text-base font-black">
+                        Rp {new Intl.NumberFormat('id-ID').format(billableAmount)}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* Terbilang */}
+                <div className="pt-2 mt-2 border-t border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Amount in Words:</span>
+                  <span className="text-xs font-bold text-slate-700 italic">"{terbilangStr}"</span>
+                </div>
               </div>
             </div>
           </div>

@@ -40,7 +40,23 @@ export function generateInvoicePrintHtml(params: {
     year: 'numeric',
   });
 
-  const totalAmount = invoice.totalAmount || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
+  const subtotalProject = invoice.subtotalProject || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
+  const paymentType = invoice.paymentType || 'full';
+  const dpPercent = invoice.dpPercent ?? 50;
+  const dpAmount = invoice.dpAmount !== undefined ? invoice.dpAmount : Math.round(subtotalProject * (dpPercent / 100));
+
+  let totalAmount = invoice.totalAmount;
+  if (!totalAmount) {
+    if (paymentType === 'dp') {
+      totalAmount = dpAmount;
+    } else if (paymentType === 'pelunasan') {
+      totalAmount = Math.max(0, subtotalProject - dpAmount);
+    } else {
+      totalAmount = subtotalProject;
+    }
+  }
+
+  const remainingAmount = Math.max(0, subtotalProject - (invoice.dpAmount ?? dpAmount));
   const amountTerbilang = terbilang(totalAmount);
 
   const logoHtml = companyProfile?.logoUrl
@@ -254,15 +270,80 @@ export function generateInvoicePrintHtml(params: {
           .calc-block {
             flex: 0.9;
             text-align: right;
+            font-family: inherit;
           }
           .subtotal-row {
             display: flex;
             justify-content: space-between;
             font-size: 11px;
             font-weight: 600;
-            color: #475569;
+            color: #64748b;
             padding: 0 4px;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
+          }
+          .solid-line {
+            border: none;
+            border-top: 2px solid #0f172a;
+            margin: 5px 0 6px 0;
+          }
+          .project-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 4px;
+            font-size: 12.5px;
+            font-weight: 900;
+            color: #0f172a;
+          }
+          .dp-paid-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            padding: 2px 4px;
+          }
+          .dp-paid-val {
+            color: #059669;
+            font-weight: 700;
+          }
+          .dashed-green-line {
+            border: none;
+            border-top: 1.5px dashed #059669;
+            margin: 6px 0;
+          }
+          .final-payment-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 900;
+            color: #059669;
+            padding: 2px 4px;
+          }
+          .dashed-purple-line {
+            border: none;
+            border-top: 1.5px dashed #4f46e5;
+            margin: 6px 0;
+          }
+          .dp-bill-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 900;
+            color: #4f46e5;
+            padding: 2px 4px;
+          }
+          .remaining-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            padding: 2px 4px;
           }
           .grand-total-box {
             display: flex;
@@ -282,6 +363,7 @@ export function generateInvoicePrintHtml(params: {
             border-radius: 4px;
             padding: 6px 10px;
             text-align: left;
+            margin-top: 8px;
           }
           .terbilang-label {
             font-size: 8.5px;
@@ -427,13 +509,43 @@ export function generateInvoicePrintHtml(params: {
           <div class="calc-block">
             <div class="subtotal-row">
               <span>Subtotal:</span>
-              <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+              <span style="color: #334155; font-weight: 700;">Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
             </div>
 
-            <div class="grand-total-box">
-              <span>GRAND TOTAL:</span>
-              <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+            <hr class="solid-line" />
+
+            <div class="project-total-row">
+              <span>TOTAL PROJECT:</span>
+              <span>Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
             </div>
+
+            ${paymentType === 'dp' ? `
+              <hr class="dashed-purple-line" />
+              <div class="dp-bill-row">
+                <span>TAGIHAN DP (${dpPercent}%):</span>
+                <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+              </div>
+              <div class="remaining-row">
+                <span>Sisa Pembayaran:</span>
+                <span style="color: #475569; font-weight: 600;">Rp ${new Intl.NumberFormat('id-ID').format(remainingAmount)}</span>
+              </div>
+            ` : ''}
+
+            ${paymentType === 'pelunasan' ? `
+              <div class="dp-paid-row">
+                <span>DP Telah Dibayar:</span>
+                <span class="dp-paid-val">-Rp ${new Intl.NumberFormat('id-ID').format(dpAmount)}</span>
+              </div>
+              <hr class="dashed-green-line" />
+              <div class="final-payment-row">
+                <span>FINAL PAYMENT (PELUNASAN):</span>
+                <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+              </div>
+            ` : ''}
+
+            ${paymentType === 'full' ? `
+              <div style="border-bottom: 1px solid #cbd5e1; margin: 4px 0 6px 0;"></div>
+            ` : ''}
 
             <div class="terbilang-box">
               <div class="terbilang-label">AMOUNT IN WORDS :</div>

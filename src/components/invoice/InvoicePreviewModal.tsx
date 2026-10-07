@@ -61,7 +61,23 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     year: 'numeric',
   });
 
-  const totalAmount = invoice.totalAmount || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
+  const subtotalProject = invoice.subtotalProject || (invoice.sessionItems || []).reduce((sum, item) => sum + (item.cost * (item.qty || 1)), 0);
+  const paymentType = invoice.paymentType || 'full';
+  const dpPercent = invoice.dpPercent ?? 50;
+  const dpAmount = invoice.dpAmount !== undefined ? invoice.dpAmount : Math.round(subtotalProject * (dpPercent / 100));
+
+  let totalAmount = invoice.totalAmount;
+  if (!totalAmount) {
+    if (paymentType === 'dp') {
+      totalAmount = dpAmount;
+    } else if (paymentType === 'pelunasan') {
+      totalAmount = Math.max(0, subtotalProject - dpAmount);
+    } else {
+      totalAmount = subtotalProject;
+    }
+  }
+
+  const remainingAmount = Math.max(0, subtotalProject - (invoice.dpAmount ?? dpAmount));
   const amountTerbilang = terbilang(totalAmount);
 
   // WhatsApp reminder message template
@@ -72,9 +88,9 @@ Here is the official invoice from PT. Liva Media Kreatif:
 🏢 *Billed To:* ${recipientPt}
 📅 *Invoice Date:* ${formattedInvoiceDate}
 ⏰ *Due Date:* ${formattedDueDate}
-💰 *Total Amount:* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
+${paymentType !== 'full' ? `📊 *Total Project:* Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}\n` : ''}💰 *${paymentType === 'dp' ? `Tagihan DP (${dpPercent}%):` : paymentType === 'pelunasan' ? 'Final Payment (Pelunasan):' : 'Total Amount:'}* Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}
 (${amountTerbilang})
-
+${paymentType === 'dp' ? `📌 *Sisa Pembayaran:* Rp ${new Intl.NumberFormat('id-ID').format(remainingAmount)}\n` : ''}
 🏦 *Payment Information (Bank Transfer):*
 Bank: ${bankName}
 Account Number: *${accountNo}*
@@ -329,23 +345,68 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                 </div>
 
                 {/* Right: Subtotal, Grand Total, Terbilang */}
-                <div className="space-y-2.5 text-right">
-                  <div className="flex justify-between items-center text-xs font-semibold text-slate-600 px-2">
+                <div className="space-y-1.5 text-right font-sans">
+                  <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1">
                     <span>Subtotal:</span>
-                    <span className="font-bold text-slate-800">
-                      Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                    <span className="font-bold text-slate-700">
+                      Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center text-sm font-black text-slate-900 border-y-2 border-slate-900 py-2 px-2">
-                    <span className="tracking-wide">GRAND TOTAL:</span>
-                    <span className="text-base text-slate-900">
-                      Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                  {/* Solid dark line */}
+                  <div className="w-full border-t-2 border-[#0b132b] my-1" />
+
+                  <div className="flex justify-between items-center text-sm font-black text-slate-900 px-1">
+                    <span>TOTAL PROJECT:</span>
+                    <span className="text-base font-black text-slate-900">
+                      Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
                     </span>
                   </div>
+
+                  {paymentType === 'dp' && (
+                    <>
+                      {/* Dashed purple line */}
+                      <div className="w-full border-t border-dashed border-[#4f46e5] my-1.5" />
+                      <div className="flex justify-between items-center text-sm font-black text-[#4f46e5] px-1">
+                        <span>TAGIHAN DP ({dpPercent}%):</span>
+                        <span className="text-base font-black">
+                          Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs font-medium text-slate-500 px-1 pt-0.5">
+                        <span>Sisa Pembayaran:</span>
+                        <span className="text-slate-600 font-semibold">
+                          Rp {new Intl.NumberFormat('id-ID').format(remainingAmount)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {paymentType === 'pelunasan' && (
+                    <>
+                      <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1 pt-0.5">
+                        <span>DP Telah Dibayar:</span>
+                        <span className="text-[#059669] font-bold">
+                          -Rp {new Intl.NumberFormat('id-ID').format(dpAmount)}
+                        </span>
+                      </div>
+                      {/* Dashed green line */}
+                      <div className="w-full border-t border-dashed border-[#059669] my-1.5" />
+                      <div className="flex justify-between items-center text-sm font-black text-[#059669] px-1">
+                        <span>FINAL PAYMENT (PELUNASAN):</span>
+                        <span className="text-base font-black">
+                          Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {paymentType === 'full' && (
+                    <div className="w-full border-b border-slate-200 mb-1" />
+                  )}
 
                   {/* Terbilang Box */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-left">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-left mt-2">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
                       AMOUNT IN WORDS :
                     </div>

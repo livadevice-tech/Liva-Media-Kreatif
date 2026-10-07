@@ -1208,6 +1208,50 @@ async function runMigrations() {
   } catch (e: any) {
     console.warn('Migration thr_items warning:', e?.message);
   }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN payment_type VARCHAR(20) DEFAULT 'full'`, []);
+    console.log('✅ Migration: kolom payment_type ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom payment_type sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration payment_type warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN dp_percent DECIMAL(5,2) NULL`, []);
+    console.log('✅ Migration: kolom dp_percent ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom dp_percent sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration dp_percent warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN dp_amount BIGINT NULL`, []);
+    console.log('✅ Migration: kolom dp_amount ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom dp_amount sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration dp_amount warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE brand_invoices ADD COLUMN subtotal_project BIGINT NULL`, []);
+    console.log('✅ Migration: kolom subtotal_project ditambahkan ke brand_invoices.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom subtotal_project sudah ada di brand_invoices.');
+    } else {
+      console.warn('Migration subtotal_project warning:', e?.message);
+    }
+  }
 }
 
 async function bootstrap() {
