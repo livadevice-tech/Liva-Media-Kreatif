@@ -12,7 +12,9 @@ import {
   Info, 
   ArrowDown, 
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -21,10 +23,13 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    return (typeof window !== 'undefined' && (window as any).__deferredPwaPrompt) || null;
+  });
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
+  const [isGoogleApp, setIsGoogleApp] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -57,13 +62,15 @@ export function PWAInstallPrompt() {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream;
     const isAndroidDevice = /android/.test(userAgent);
+    const isGoogleAppBrowser = /gsa\//.test(userAgent);
     const isSafariBrowser =
       /safari/.test(userAgent) &&
-      !/chrome|crios|crmo|firefox|fxios|opt|edgios|instagram|tiktok|fban|fbav/.test(userAgent);
+      !/chrome|crios|crmo|firefox|fxios|opt|edgios|instagram|tiktok|fban|fbav|gsa\//.test(userAgent);
 
     setIsIOS(isIosDevice);
     setIsAndroid(isAndroidDevice);
     setIsSafari(isSafariBrowser);
+    setIsGoogleApp(isGoogleAppBrowser);
 
     // Set default active tab based on detected device
     if (isIosDevice) {
@@ -72,9 +79,22 @@ export function PWAInstallPrompt() {
       setActiveTab('android');
     }
 
+    // Check if early deferredPrompt was caught in index.html head
+    if ((window as any).__deferredPwaPrompt) {
+      setDeferredPrompt((window as any).__deferredPwaPrompt);
+    }
+
+    const handlePromptReady = () => {
+      if ((window as any).__deferredPwaPrompt) {
+        setDeferredPrompt((window as any).__deferredPwaPrompt);
+      }
+    };
+    window.addEventListener('pwa-prompt-ready', handlePromptReady);
+
     // Listen for Chrome/Edge/Android beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      (window as any).__deferredPwaPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
@@ -90,6 +110,7 @@ export function PWAInstallPrompt() {
     const handleAppInstalled = () => {
       setIsStandalone(true);
       setDeferredPrompt(null);
+      (window as any).__deferredPwaPrompt = null;
       setInstallSuccess(true);
       setTimeout(() => setShowModal(false), 2000);
     };
@@ -97,6 +118,7 @@ export function PWAInstallPrompt() {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      window.removeEventListener('pwa-prompt-ready', handlePromptReady);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('open-pwa-install-modal', handleOpenModal);
       window.removeEventListener('appinstalled', handleAppInstalled);
@@ -104,48 +126,53 @@ export function PWAInstallPrompt() {
   }, []);
 
   const handleBannerInstallClick = async () => {
-    if (deferredPrompt) {
+    const promptObj = deferredPrompt || (window as any).__deferredPwaPrompt;
+    if (promptObj) {
       try {
-        await deferredPrompt.prompt();
-        const choiceResult = await deferredPrompt.userChoice;
+        await promptObj.prompt();
+        const choiceResult = await promptObj.userChoice;
         if (choiceResult.outcome === 'accepted') {
           setInstallSuccess(true);
           setDeferredPrompt(null);
+          (window as any).__deferredPwaPrompt = null;
           return;
         }
       } catch (err) {
         console.warn('Install banner prompt error:', err);
       }
     }
-    // If deferredPrompt is not ready or user is on iOS, open the full guide modal
+    // If prompt is not available or on iOS, open the guide modal
     setShowModal(true);
   };
 
   const handleDirectInstallAndroid = async () => {
-    if (deferredPrompt) {
+    const promptObj = deferredPrompt || (window as any).__deferredPwaPrompt;
+    if (promptObj) {
       setIsInstalling(true);
-      setInstallNotice(null);
+      setInstallNotice('👉 Pop-up sistem Android terbuka! Silakan tekan tombol "Install" atau "Tambahkan" pada pop-up layar HP Anda.');
       try {
-        await deferredPrompt.prompt();
-        const choiceResult = await deferredPrompt.userChoice;
+        await promptObj.prompt();
+        const choiceResult = await promptObj.userChoice;
         if (choiceResult.outcome === 'accepted') {
           setInstallSuccess(true);
           setDeferredPrompt(null);
+          (window as any).__deferredPwaPrompt = null;
+          setInstallNotice('✅ Aplikasi sedang dipasang ke Home Screen Anda!');
           setTimeout(() => {
             setShowModal(false);
-          }, 1800);
+          }, 2000);
         } else {
-          setInstallNotice('Pemasangan dibatalkan. Anda dapat menekan tombol ini kembali kapan saja.');
+          setInstallNotice('⚠️ Pemasangan dibatalkan di pop-up sistem. Anda dapat menekan tombol ini kembali kapan saja.');
         }
       } catch (err: any) {
         console.error('Direct install prompt error:', err);
-        setInstallNotice('Tekan menu titik tiga (⋮) di browser Anda lalu pilih "Pasang Aplikasi".');
+        setInstallNotice('Silakan gunakan cara manual: Tekan menu titik tiga (⋮) di kanan atas browser Anda > pilih "Pasang Aplikasi" atau "Tambahkan ke Layar Utama".');
       } finally {
         setIsInstalling(false);
       }
     } else {
-      // Deferred prompt unavailable (e.g. prompt already used or non-chromium browser)
-      setInstallNotice('Browser Android kamu memerlukan konfirmasi via menu: Tekan menu titik tiga (⋮) di pojok kanan atas browser, lalu pilih "Pasang Aplikasi" atau "Tambahkan ke Layar Utama".');
+      // Deferred prompt unavailable (e.g. non-chromium browser, already installed, or in-app webview)
+      setInstallNotice('Browser HP Anda memerlukan konfirmasi manual: Tekan menu titik tiga (⋮) di pojok kanan atas browser > lalu pilih "Pasang Aplikasi" atau "Tambahkan ke Layar Utama".');
     }
   };
 
@@ -219,10 +246,10 @@ export function PWAInstallPrompt() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 leading-tight">
-                    Pasang di Layar Utama HP
+                    Pasang ke Layar Utama HP
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    {activeTab === 'android' ? 'Untuk HP Android (Chrome / Samsung Browser)' : 'Untuk iPhone & iPad (Safari)'}
+                    {activeTab === 'android' ? 'Panduan Android (Chrome / Samsung Browser)' : 'Panduan iPhone & iPad (Safari)'}
                   </p>
                 </div>
               </div>
@@ -236,7 +263,7 @@ export function PWAInstallPrompt() {
             </div>
 
             {/* Platform Segmented Tabs */}
-            <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 mb-3.5 shrink-0">
+            <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 mb-3 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -281,9 +308,9 @@ export function PWAInstallPrompt() {
               {installSuccess && (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center text-emerald-800 flex flex-col items-center justify-center gap-1 animate-in zoom-in-95">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600 mb-1" />
-                  <strong className="text-sm font-bold">Aplikasi Berhasil Dipasang!</strong>
+                  <strong className="text-sm font-bold">Aplikasi Sedang Dipasang!</strong>
                   <span className="text-[11px] text-emerald-700">
-                    Icon Liva Agency kini sudah ada di Layar Utama HP Anda.
+                    Icon Liva Agency kini sudah dibuat di Home Screen HP Anda.
                   </span>
                 </div>
               )}
@@ -310,20 +337,27 @@ export function PWAInstallPrompt() {
                       type="button"
                       onClick={handleDirectInstallAndroid}
                       disabled={isInstalling}
-                      className="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-3 px-4 rounded-xl text-xs shadow-md shadow-purple-600/25 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      className="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs shadow-md shadow-purple-600/25 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     >
                       <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
-                      <span>{isInstalling ? 'Membuka dialog instalasi...' : '⚡ Pasang Langsung ke Home Screen'}</span>
+                      <span>{isInstalling ? 'Membuka dialog sistem...' : '⚡ Buka Pop-up Pasang Otomatis'}</span>
                     </button>
                     
                     <p className="text-[10px] text-slate-500 text-center leading-relaxed">
-                      Klik tombol di atas untuk memunculkan pop-up instalasi resmi dari sistem Android Anda.
+                      Tekan tombol di atas untuk memunculkan dialog konfirmasi resmi dari browser Android Anda.
                     </p>
+                  </div>
+
+                  {/* Clarification about OS Security */}
+                  <div className="p-3 bg-indigo-50/80 border border-indigo-200/80 text-indigo-950 rounded-2xl text-[11px] leading-relaxed">
+                    <strong className="block font-bold text-indigo-900 mb-0.5">ℹ️ Catatan Penting Sistem Android:</strong>
+                    Demi keamanan, sistem Android <strong>tidak mengizinkan</strong> website memasang icon secara diam-diam tanpa persetujuan Anda.<br/>
+                    👉 <strong>Wajib tekan tombol "Install" atau "Tambahkan"</strong> pada jendela pop-up sistem Android yang muncul di layar HP Anda.
                   </div>
 
                   {/* Feedback / Notice */}
                   {installNotice && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-[11px] flex items-start gap-2 leading-relaxed">
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-[11px] flex items-start gap-2 leading-relaxed animate-in fade-in">
                       <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <span>{installNotice}</span>
                     </div>
@@ -332,7 +366,7 @@ export function PWAInstallPrompt() {
                   {/* Android Step-by-Step Guide */}
                   <div className="pt-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-1">
-                      Panduan Manual di Browser Android:
+                      Atau Pasang Manual Lewat Menu Browser:
                     </span>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
@@ -371,17 +405,31 @@ export function PWAInstallPrompt() {
               {activeTab === 'ios' && (
                 <div className="space-y-3">
                   
-                  {/* Apple Security Notice & Explanation */}
-                  <div className="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl text-[11px] text-amber-900 flex items-start gap-2.5 leading-relaxed">
-                    <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="block text-amber-950 font-bold mb-0.5">Khusus iPhone / iPad (Apple iOS):</strong>
-                      Demi keamanan privasi, Apple tidak mengizinkan website memasang icon secara otomatis via tombol langsung. Pemasangan dilakukan melalui menu <strong>Bagikan (Share)</strong> Safari di bawah.
+                  {/* Warning if opened inside Google App on iOS */}
+                  {isGoogleApp && (
+                    <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-2xl text-[11px] text-amber-950 flex flex-col gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block text-xs font-bold text-amber-900">Anda Membuka di Aplikasi Google (iOS)</strong>
+                          <p className="mt-0.5 leading-snug">
+                            Aplikasi Google di iPhone <strong>tidak mendukung</strong> pembuatan icon di Home Screen. Sistem Apple hanya mengizinkannya di browser <strong>Safari</strong>.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copied ? 'Link Tersalin! Buka Safari & Paste' : '📋 Salin Link untuk Buka di Safari'}</span>
+                      </button>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Warning if opened inside In-App Browser or Non-Safari on iOS */}
-                  {isIOS && !isSafari && (
+                  {/* Warning if opened inside non-Safari on iOS */}
+                  {isIOS && !isSafari && !isGoogleApp && (
                     <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-900 flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <strong className="block font-bold">Harap buka di browser Safari</strong>
@@ -400,8 +448,15 @@ export function PWAInstallPrompt() {
                     </div>
                   )}
 
-                  {/* iOS Step-by-Step Guide matching user's reference */}
-                  <div className="space-y-2.5 text-xs text-slate-600">
+                  {/* Apple Security Explanation */}
+                  <div className="p-3 bg-purple-50/80 border border-purple-200/70 rounded-2xl text-[11px] text-purple-950 leading-relaxed">
+                    <strong className="block text-purple-900 font-bold mb-0.5">Mengapa di iPhone tidak bisa otomatis dengan tombol?</strong>
+                    Kebijakan keamanan sistem operasi <strong>Apple (iOS)</strong> secara resmi melarang semua website untuk menaruh icon secara diam-diam tanpa persetujuan manual pemilik iPhone.<br/>
+                    👉 Pengguna iPhone wajib menekan tombol <strong>Bagikan (Share) 📤</strong> di menu bawah Safari.
+                  </div>
+
+                  {/* iOS Step-by-Step Guide */}
+                  <div className="space-y-2.5 text-xs text-slate-600 pt-1">
                     <div className="flex items-start gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                       <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center flex-shrink-0 text-xs">
                         1
@@ -436,10 +491,10 @@ export function PWAInstallPrompt() {
                   </div>
 
                   {/* Pulsing visual cue pointing towards Safari bottom bar */}
-                  {isIOS && (
+                  {isIOS && isSafari && (
                     <div className="p-2.5 bg-blue-50 border border-blue-200/70 rounded-xl text-center text-blue-700 font-bold text-[11px] flex items-center justify-center gap-1.5 animate-bounce">
                       <ArrowDown className="w-3.5 h-3.5" />
-                      <span>Tombol Share [ 📤 ] ada di bagian bawah layar iPhone</span>
+                      <span>Tombol Share [ 📤 ] ada di bilah bawah layar Safari</span>
                     </div>
                   )}
                 </div>
