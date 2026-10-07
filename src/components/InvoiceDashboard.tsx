@@ -224,15 +224,23 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         accountNo: defaultBank.accountNo,
         accountName: defaultBank.accountName,
       },
-      sessionItems: [
-        {
-          sessionId: `sess_${Date.now()}`,
-          description: `Live Streaming Package Shopee`,
-          qty: shiftCount,
-          unit: "Session",
-          cost: 7000000,
-        },
-      ],
+      sessionItems: (brand?.defaultServices && brand.defaultServices.length > 0)
+        ? brand.defaultServices.map((ds, idx) => ({
+            sessionId: `sess_${Date.now()}_${idx}`,
+            description: ds.description,
+            qty: ds.qty ?? 1,
+            unit: ds.unit || "Session",
+            cost: ds.cost ?? 0,
+          }))
+        : [
+            {
+              sessionId: `sess_${Date.now()}`,
+              description: `Live Streaming Package Shopee`,
+              qty: shiftCount,
+              unit: "Session",
+              cost: 7000000,
+            },
+          ],
     });
   };
 
@@ -271,6 +279,14 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
           companyAddress: draftInvoice.address || b.companyAddress,
           contractStartDate: draftInvoice.livePeriodStart || b.contractStartDate,
           contractEndDate: draftInvoice.livePeriodEnd || b.contractEndDate,
+          defaultServices: (b.defaultServices && b.defaultServices.length > 0)
+            ? b.defaultServices
+            : (draftInvoice.sessionItems || []).map((item) => ({
+                description: item.description,
+                qty: item.qty || 1,
+                unit: item.unit || "Session",
+                cost: item.cost,
+              })),
           invoices: [...(b.invoices || []), finalInvoice],
         };
       }

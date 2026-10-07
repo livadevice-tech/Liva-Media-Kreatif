@@ -95,6 +95,7 @@ interface ClientBrandRow {
   logo_url?: string | null;
   is_active?: number | null;
   dashboard_settings?: string | null;
+  default_services?: string | null;
 }
 
 interface ClientLeadRow {
@@ -228,6 +229,9 @@ async function buildBrand(brand: ClientBrandRow): Promise<BrandViewModel> {
     logoUrl: brand.logo_url,
     isActive: brand.is_active === null || brand.is_active === undefined ? true : Boolean(brand.is_active),
     dashboardSettings: brand.dashboard_settings ? JSON.parse(brand.dashboard_settings) : undefined,
+    defaultServices: brand.default_services ? (() => {
+      try { return JSON.parse(brand.default_services); } catch { return undefined; }
+    })() : undefined,
     sessions: sessions.map((session) => ({
       id: session.id,
       shift: session.shift,
@@ -285,9 +289,9 @@ export function registerClientRoutes(app: Express) {
     const id = b.id || genId("brand");
 
     await execute(`
-      INSERT INTO client_brands (id, name, company_name, contract_start_date, contract_end_date, invoice_date, cut_off_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url, is_active, dashboard_settings)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null]);
+      INSERT INTO client_brands (id, name, company_name, contract_start_date, contract_end_date, invoice_date, cut_off_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url, is_active, dashboard_settings, default_services)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null, b.defaultServices ? JSON.stringify(b.defaultServices) : null]);
 
     if (Array.isArray(b.sessions)) {
       for (const s of b.sessions) {
@@ -331,9 +335,9 @@ export function registerClientRoutes(app: Express) {
 
     await execute(`
       UPDATE client_brands 
-      SET name = ?, company_name = ?, contract_start_date = ?, contract_end_date = ?, invoice_date = ?, cut_off_date = ?, monthly_meeting_date = ?, client_password = ?, client_username = ?, pic_name = ?, pic_phone = ?, pic_email = ?, company_address = ?, logo_url = ?, is_active = ?, dashboard_settings = ?
+      SET name = ?, company_name = ?, contract_start_date = ?, contract_end_date = ?, invoice_date = ?, cut_off_date = ?, monthly_meeting_date = ?, client_password = ?, client_username = ?, pic_name = ?, pic_phone = ?, pic_email = ?, company_address = ?, logo_url = ?, is_active = ?, dashboard_settings = ?, default_services = ?
       WHERE id = ?
-    `, [b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null, id]);
+    `, [b.name, b.companyName || null, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.cutOffDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, b.dashboardSettings ? JSON.stringify(b.dashboardSettings) : null, b.defaultServices ? JSON.stringify(b.defaultServices) : null, id]);
 
     if (Array.isArray(b.sessions)) {
       await execute(`DELETE FROM brand_sessions WHERE brand_id = ?`, [id]);

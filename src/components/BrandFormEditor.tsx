@@ -98,6 +98,8 @@ export function BrandFormEditor({
                                 logoUrl: brandFormEditor.logoUrl,
                                 isActive: brandFormEditor.isActive !== false,
                                 dashboardSettings: brandFormEditor.dashboardSettings || { hiddenMetrics: [], hiddenChartMetrics: [], hiddenColumns: [] },
+                                defaultServices: brandFormEditor.defaultServices,
+                                invoices: brandFormEditor.invoices,
                               };
 
                               try {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, Clock, CheckCircle2, AlertCircle, FileText, ArrowRight, X, Save } from 'lucide-react';
-import { ClientBrand } from '../../types';
-import { formatContractDate } from '../../shared/utils/dateFormatting';
+import { Building2, Search, Edit3, Plus, Phone, Mail, MapPin, Calendar, Clock, CheckCircle2, AlertCircle, FileText, ArrowRight, X, Save, Trash2, Package, Sparkles } from 'lucide-react';
+import { ClientBrand, ClientDefaultService } from '../../types';
+import { formatContractDate, formatLivePeriod } from '../../shared/utils/dateFormatting';
 
 interface ClientBillingDirectoryProps {
   clientBrands: ClientBrand[];
@@ -28,6 +28,7 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
   const [cutOffDate, setCutOffDate] = useState('15');
   const [contractStartDate, setContractStartDate] = useState('');
   const [contractEndDate, setContractEndDate] = useState('');
+  const [servicesList, setServicesList] = useState<ClientDefaultService[]>([]);
 
   const handleOpenEdit = (brand: ClientBrand) => {
     setEditingBrand(brand);
@@ -49,11 +50,35 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
     };
     setContractStartDate(extractDay(brand.contractStartDate));
     setContractEndDate(extractDay(brand.contractEndDate));
+
+    if (brand.defaultServices && brand.defaultServices.length > 0) {
+      setServicesList(brand.defaultServices.map((s) => ({ ...s })));
+    } else {
+      setServicesList([
+        {
+          id: `srv_${Date.now()}`,
+          description: 'Live Streaming Package Shopee',
+          qty: 1,
+          unit: 'Session',
+          cost: 7000000,
+        },
+      ]);
+    }
   };
 
   const handleSaveBillingData = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBrand) return;
+
+    const cleanedServices = servicesList
+      .filter((s) => s.description.trim())
+      .map((s) => ({
+        id: s.id || `srv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        description: s.description.trim(),
+        qty: Number(s.qty) || 1,
+        unit: s.unit?.trim() || 'Session',
+        cost: Number(s.cost) || 0,
+      }));
 
     const updatedBrands = clientBrands.map((b) => {
       if (b.id === editingBrand.id) {
@@ -68,6 +93,7 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
           cutOffDate: cutOffDate.trim() || '15',
           contractStartDate: contractStartDate || undefined,
           contractEndDate: contractEndDate || '',
+          defaultServices: cleanedServices,
         };
       }
       return b;
@@ -358,6 +384,134 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                         </div>
                       </div>
                     </div>
+
+                    {/* Detail Layanan Service Yang Diambil */}
+                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-indigo-950 font-bold uppercase text-[10px] tracking-wider">
+                          <Package className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Layanan / Paket Service (Otomatis Masuk Invoice)</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-md shadow-2xs">
+                          {servicesList.length} Item
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Daftar paket layanan ini otomatis dimuat saat membuat invoice baru untuk brand ini.
+                      </p>
+
+                      <div className="space-y-2">
+                        {servicesList.map((srv, idx) => (
+                          <div key={srv.id || idx} className="bg-white p-2.5 rounded-xl border border-indigo-100/90 shadow-2xs space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-black text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                Item #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setServicesList(servicesList.filter((_, i) => i !== idx))}
+                                className="text-slate-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition-all cursor-pointer"
+                                title="Hapus Layanan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Deskripsi Layanan</label>
+                              <input
+                                type="text"
+                                className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
+                                placeholder="Contoh: Live Streaming Package Shopee"
+                                value={srv.description}
+                                onChange={(e) => {
+                                  const updated = [...servicesList];
+                                  updated[idx].description = e.target.value;
+                                  setServicesList(updated);
+                                }}
+                              />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Qty</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
+                                  value={srv.qty ?? 1}
+                                  onChange={(e) => {
+                                    const updated = [...servicesList];
+                                    updated[idx].qty = Number(e.target.value) || 1;
+                                    setServicesList(updated);
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Satuan</label>
+                                <input
+                                  type="text"
+                                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
+                                  placeholder="Session"
+                                  value={srv.unit || "Session"}
+                                  onChange={(e) => {
+                                    const updated = [...servicesList];
+                                    updated[idx].unit = e.target.value;
+                                    setServicesList(updated);
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Biaya Satuan (Rp)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="100000"
+                                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50 focus:bg-white"
+                                  value={srv.cost ?? 0}
+                                  onChange={(e) => {
+                                    const updated = [...servicesList];
+                                    updated[idx].cost = Number(e.target.value) || 0;
+                                    setServicesList(updated);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500 border-t border-slate-100">
+                              <span>Subtotal Item:</span>
+                              <span className="font-bold text-indigo-700">
+                                Rp {new Intl.NumberFormat('id-ID').format((srv.qty || 1) * (srv.cost || 0))}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setServicesList([
+                            ...servicesList,
+                            {
+                              id: `srv_${Date.now()}`,
+                              description: '',
+                              qty: 1,
+                              unit: 'Session',
+                              cost: 0,
+                            }
+                          ])}
+                          className="px-2.5 py-1 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Item
+                        </button>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-500 block">Total Layanan:</span>
+                          <span className="text-xs font-black text-indigo-950">
+                            Rp {new Intl.NumberFormat('id-ID').format(
+                              servicesList.reduce((sum, s) => sum + ((s.qty || 1) * (s.cost || 0)), 0)
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Actions Footer */}
@@ -509,6 +663,47 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Layanan Kontrak / Paket Service */}
+                  <div className="mb-3 bg-slate-50/70 border border-slate-200/70 rounded-xl p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                        <Package className="w-3 h-3 text-indigo-600" /> Layanan Kontrak:
+                      </span>
+                      {brand.defaultServices && brand.defaultServices.length > 0 ? (
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded">
+                          {brand.defaultServices.length} Paket
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {brand.defaultServices && brand.defaultServices.length > 0 ? (
+                      <div className="space-y-1 pt-1">
+                        {brand.defaultServices.map((srv, sIdx) => (
+                          <div key={srv.id || sIdx} className="flex items-center justify-between text-[11px] bg-white px-2 py-1 rounded-md border border-slate-100">
+                            <span className="font-semibold text-slate-800 truncate mr-2">
+                              {srv.qty ? `${srv.qty}x ` : ''}{srv.description}
+                            </span>
+                            <span className="font-bold text-slate-900 shrink-0 text-[10px]">
+                              Rp {new Intl.NumberFormat('id-ID').format((srv.qty || 1) * (srv.cost || 0))}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                          <span className="text-slate-500 font-medium">Total Paket:</span>
+                          <span className="font-black text-indigo-950">
+                            Rp {new Intl.NumberFormat('id-ID').format(
+                              brand.defaultServices.reduce((sum, s) => sum + ((s.qty || 1) * (s.cost || 0)), 0)
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400 italic bg-white/70 p-2 rounded-lg border border-slate-100 text-center">
+                        Belum diatur • Klik <span className="font-bold text-slate-600">Edit Data</span> untuk mengatur
+                      </div>
+                    )}
                   </div>
 
                   {/* Billing Schedule & Stats */}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard, Clock } from "lucide-react";
+import { Plus, Trash2, X, Landmark, Building2, Save, CreditCard, Clock, Sparkles } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
 import { formatContractDate, formatLivePeriod, resolveContractPeriodDates } from "../../shared/utils/dateFormatting";
@@ -88,6 +88,14 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
           contractStartDate: effectivePeriodStart || b.contractStartDate,
           contractEndDate: effectivePeriodEnd || b.contractEndDate,
           cutOffDate: invoiceEditor.cutOffDate || b.cutOffDate,
+          defaultServices: (b.defaultServices && b.defaultServices.length > 0)
+            ? b.defaultServices
+            : (invoiceEditor.sessionItems || []).map((i) => ({
+                description: i.description,
+                qty: i.qty || 1,
+                unit: i.unit || "Session",
+                cost: i.cost,
+              })),
           invoices: updatedInvoices,
         };
       }
@@ -367,19 +375,40 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
                   Tekan Enter pada rincian untuk membuat baris baru (misal: nama paket dan periode tanggal)
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const newItems = [
-                    ...(invoiceEditor.sessionItems || []),
-                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
-                  ];
-                  setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
-                }}
-                className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" /> Tambah Baris
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {currentBrand?.defaultServices && currentBrand.defaultServices.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultItems = currentBrand.defaultServices!.map((ds, idx) => ({
+                        sessionId: `srv_${Date.now()}_${idx}`,
+                        description: ds.description,
+                        qty: ds.qty ?? 1,
+                        unit: ds.unit || "Session",
+                        cost: ds.cost ?? 0,
+                      }));
+                      setInvoiceEditor({ ...invoiceEditor, sessionItems: defaultItems });
+                    }}
+                    className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-700 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-indigo-100 flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Muat ulang paket layanan default brand"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Muat Layanan Default
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newItems = [
+                      ...(invoiceEditor.sessionItems || []),
+                      { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
+                    ];
+                    setInvoiceEditor({ ...invoiceEditor, sessionItems: newItems });
+                  }}
+                  className="text-xs bg-white border border-slate-200 shadow-2xs px-3 py-1.5 rounded-xl font-bold hover:bg-slate-50 text-indigo-600 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Baris
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2.5">

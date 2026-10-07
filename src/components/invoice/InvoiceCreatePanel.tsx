@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar, Clock, Maximize2, Minimize2, CreditCard } from "lucide-react";
+import { Building2, CheckSquare, Plus, Trash2, Search, X, Landmark, FileText, Calendar, Clock, Maximize2, Minimize2, CreditCard, Sparkles, Package } from "lucide-react";
 import { ClientBrand, BrandInvoice, LivaBankAccount } from "../../types";
 import { terbilang } from "../../shared/utils/terbilang";
 import { formatContractDate, formatLivePeriod, resolveContractPeriodDates } from "../../shared/utils/dateFormatting";
@@ -529,19 +529,40 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   <p className="text-[10px] text-slate-400">Daftar item (Tekan Enter pada rincian untuk membuat baris baru)</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const newItems = [
-                    ...(draftInvoice?.sessionItems || []),
-                    { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
-                  ];
-                  setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
-                }}
-                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" /> Tambah Item
-              </button>
+              <div className="flex items-center gap-2">
+                {currentBrand?.defaultServices && currentBrand.defaultServices.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultItems = currentBrand.defaultServices!.map((ds, idx) => ({
+                        sessionId: `srv_${Date.now()}_${idx}`,
+                        description: ds.description,
+                        qty: ds.qty ?? 1,
+                        unit: ds.unit || "Session",
+                        cost: ds.cost ?? 0,
+                      }));
+                      setDraftInvoice({ ...draftInvoice, sessionItems: defaultItems });
+                    }}
+                    className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                    title="Muat ulang paket layanan default yang terdaftar pada profil brand klien"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Muat Layanan Default
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newItems = [
+                      ...(draftInvoice?.sessionItems || []),
+                      { sessionId: `custom_${Date.now()}`, description: "", qty: 1, unit: "Session", cost: 0 },
+                    ];
+                    setDraftInvoice({ ...draftInvoice, sessionItems: newItems });
+                  }}
+                  className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Item
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">

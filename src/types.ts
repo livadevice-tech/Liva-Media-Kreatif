@@ -264,9 +264,18 @@ export interface ClientBrand {
   picPhone?: string;
   picEmail?: string;
   companyAddress?: string;
+  defaultServices?: ClientDefaultService[];
   invoices?: BrandInvoice[];
   berkas?: {id: string; name: string; type: string; url: string;}[];
   dashboardSettings?: BrandDashboardSettings;
+}
+
+export interface ClientDefaultService {
+  id?: string;
+  description: string;
+  qty?: number;
+  unit?: string;
+  cost: number;
 }
 
 export interface ClientReporting {
