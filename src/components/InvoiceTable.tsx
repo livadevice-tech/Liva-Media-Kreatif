@@ -358,10 +358,33 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                           {inv.picName || brand?.picName || brand?.name || '-'}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md shadow-2xs">
-                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-                            Cut Off: Tgl {inv.cutOffDate || brand?.cutOffDate || '15'}
-                          </span>
+                          {(() => {
+                            const displayDueDate = (() => {
+                              if (!inv.dueDate) {
+                                if (brand?.invoiceDate) return `Tgl ${brand.invoiceDate}`;
+                                return '-';
+                              }
+                              const trimmed = String(inv.dueDate).trim();
+                              if (/^\d{1,2}$/.test(trimmed)) {
+                                return `Tgl ${trimmed}`;
+                              }
+                              return formatDateUI(inv.dueDate);
+                            })();
+
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs ${
+                                  isInvOverdue
+                                    ? 'text-rose-800 bg-rose-50/90 border border-rose-200/80'
+                                    : 'text-amber-800 bg-amber-50/90 border border-amber-200/80'
+                                }`}
+                                title="Jatuh Tempo Pembayaran (Due Date)"
+                              >
+                                <Clock className={`w-2.5 h-2.5 shrink-0 ${isInvOverdue ? 'text-rose-600' : 'text-amber-600'}`} />
+                                Due Date: {displayDueDate}
+                              </span>
+                            );
+                          })()}
                           {(() => {
                             const pStart = inv.livePeriodStart || brand?.contractStartDate;
                             const pEnd = inv.livePeriodEnd || brand?.contractEndDate;
