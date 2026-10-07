@@ -3,12 +3,21 @@ import {
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
-  DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck
+  DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
+  Smartphone, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
 import { getCutoffMonthForDate } from '../../shared/utils/appUi';
 import { activityLogsApi, hostsApi, hostNotificationsApi } from '../../api';
+import {
+  isWebPushSupported,
+  getNotificationPermission,
+  getExistingSubscription,
+  subscribeDeviceToPush,
+  unsubscribeDeviceFromPush,
+  syncPushSubscriptionIfGranted,
+} from '../../shared/utils/webPush';
 import AnalysisPerformanceTab from '../reporting/AnalysisPerformanceTab';
 import { MobileLiveDailyTable } from '../reporting/MobileLiveDailyTable';
 import { MobileLiveMetricsPanel } from '../reporting/MobileLiveMetricsPanel';
@@ -183,6 +192,79 @@ export default function HostDashboard({
   }, [serverNotifications, hostNotifications, activeHostObj]);
 
   const unreadNotifCount = myNotifications.filter((n: any) => !n.read).length;
+
+  // Web Push HP (Lock-Screen Push) Notification State
+  const [pushStatus, setPushStatus] = useState<'checking' | 'active' | 'inactive' | 'denied' | 'unsupported'>('checking');
+  const [isPushLoading, setIsPushLoading] = useState(false);
+  const [pushFeedback, setPushFeedback] = useState<string | null>(null);
+  const [isPushBannerDismissed, setIsPushBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!activeHostObj?.id) return;
+    let isMounted = true;
+
+    const checkPush = async () => {
+      if (!isWebPushSupported()) {
+        if (isMounted) setPushStatus('unsupported');
+        return;
+      }
+      const perm = getNotificationPermission();
+      if (perm === 'denied') {
+        if (isMounted) setPushStatus('denied');
+        return;
+      }
+
+      const existing = await getExistingSubscription();
+      if (existing && perm === 'granted') {
+        if (isMounted) setPushStatus('active');
+        syncPushSubscriptionIfGranted(activeHostObj.id).catch(() => {});
+      } else {
+        if (isMounted) setPushStatus('inactive');
+      }
+    };
+
+    checkPush();
+    return () => { isMounted = false; };
+  }, [activeHostObj?.id]);
+
+  const handleEnablePushNotification = async () => {
+    if (!activeHostObj?.id) return;
+    setIsPushLoading(true);
+    setPushFeedback(null);
+    try {
+      const res = await subscribeDeviceToPush(activeHostObj.id);
+      if (res.success) {
+        setPushStatus('active');
+        setPushFeedback('✅ Berhasil! Notifikasi HP telah aktif. Kamu akan menerima pemberitahuan langsung di layar kunci HP.');
+      } else {
+        setPushFeedback(`⚠️ ${res.error || 'Gagal mengaktifkan notifikasi.'}`);
+        if (getNotificationPermission() === 'denied') {
+          setPushStatus('denied');
+        }
+      }
+    } catch (err: any) {
+      setPushFeedback(`⚠️ ${err?.message || 'Terjadi kesalahan sistem.'}`);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const handleDisablePushNotification = async () => {
+    setIsPushLoading(true);
+    setPushFeedback(null);
+    try {
+      const res = await unsubscribeDeviceFromPush();
+      if (res.success) {
+        setPushStatus('inactive');
+        setPushFeedback('Notifikasi HP telah dinonaktifkan di perangkat ini.');
+      }
+    } catch (err: any) {
+      setPushFeedback(`⚠️ ${err?.message || 'Gagal menonaktifkan notifikasi.'}`);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -773,6 +855,69 @@ export default function HostDashboard({
       {/* Konten Home / Beranda */}
       {activeTab === 'beranda' && (
       <div className="mt-2 animate-fadeIn">
+        {/* Banner Notifikasi Layar Kunci HP (Web Push) */}
+        {pushStatus === 'inactive' && !isPushBannerDismissed && (
+          <div className="mb-4 p-4 rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex items-start gap-3.5 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/25 shadow-inner">
+                <Bell className="w-5 h-5 text-amber-300 animate-bounce" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-[13px] text-white">
+                      Aktifkan Notifikasi di HP
+                    </h4>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-slate-900 tracking-wide uppercase">
+                      Penting
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPushBannerDismissed(true)}
+                    className="text-white/60 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+                    aria-label="Tutup Banner"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-indigo-100/90 mt-1 leading-relaxed">
+                  Dapatkan bunyi dan pop-up jadwal siaran langsung di layar kunci HP kamu meskipun aplikasi sedang ditutup!
+                </p>
+                {pushFeedback && (
+                  <div className="mt-2 text-[11px] font-semibold bg-black/30 px-3 py-1.5 rounded-xl text-amber-200">
+                    {pushFeedback}
+                  </div>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isPushLoading}
+                    onClick={handleEnablePushNotification}
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isPushLoading ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Smartphone className="w-3.5 h-3.5" />}
+                    {isPushLoading ? 'Menghubungkan ke HP...' : 'Aktifkan Notifikasi HP'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {pushStatus === 'denied' && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <strong className="block font-bold">Izin Notifikasi HP Terblokir</strong>
+              <span className="text-[11px] text-rose-600 block mt-0.5 leading-snug">
+                Izin notifikasi diblokir di browser HP kamu. Untuk menerima jadwal saat aplikasi ditutup, buka pengaturan situs di browser HP kamu dan aktifkan izin notifikasi.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Calendar Strip */}
         <div className="flex items-center justify-between mb-4 px-1">
           <div className="flex items-center gap-2">
@@ -1358,9 +1503,76 @@ export default function HostDashboard({
             )}
           </div>
           
-          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col">
-            <h3 className="text-sm font-bold text-slate-800 mb-4 px-2">Pengaturan Lainnya</h3>
-            <div className="space-y-2">
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+            <h3 className="text-sm font-bold text-slate-800 px-2">Pengaturan Perangkat & Akun</h3>
+            
+            {/* Card Pengaturan Notifikasi HP */}
+            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800">Notifikasi Layar Kunci HP</h4>
+                    <p className="text-[11px] text-slate-500">Pemberitahuan jadwal siaran saat aplikasi ditutup</p>
+                  </div>
+                </div>
+                {pushStatus === 'active' ? (
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-extrabold rounded-full text-[10px]">
+                    Aktif
+                  </span>
+                ) : pushStatus === 'denied' ? (
+                  <span className="px-2.5 py-1 bg-rose-100 text-rose-700 font-extrabold rounded-full text-[10px]">
+                    Diblokir
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-700 font-extrabold rounded-full text-[10px]">
+                    Belum Aktif
+                  </span>
+                )}
+              </div>
+
+              {pushFeedback && (
+                <div className="text-xs font-semibold p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700">
+                  {pushFeedback}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                {pushStatus === 'active' ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isPushLoading}
+                      onClick={handleEnablePushNotification}
+                      className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      {isPushLoading ? 'Memproses...' : 'Kirim Uji Coba'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPushLoading}
+                      onClick={handleDisablePushNotification}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-3 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      Nonaktifkan
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isPushLoading}
+                    onClick={handleEnablePushNotification}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+                  >
+                    {isPushLoading ? 'Menghubungkan...' : 'Aktifkan di Perangkat HP Ini'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center justify-between bg-rose-50 hover:bg-rose-100 text-rose-600 p-4 rounded-2xl transition-colors font-bold text-[15px]"
@@ -1597,6 +1809,48 @@ export default function HostDashboard({
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     Tandai Semua Dibaca
+                  </button>
+                )}
+              </div>
+
+              {/* Web Push HP Status Indicator inside Modal */}
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-3 text-xs shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Smartphone className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-semibold text-slate-700 truncate">
+                    Notifikasi Layar Kunci HP:
+                  </span>
+                  {pushStatus === 'active' ? (
+                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[9px] shrink-0">
+                      Aktif
+                    </span>
+                  ) : pushStatus === 'denied' ? (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[9px] shrink-0">
+                      Diblokir
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold text-[9px] shrink-0">
+                      Belum Aktif
+                    </span>
+                  )}
+                </div>
+                {pushStatus === 'active' ? (
+                  <button
+                    type="button"
+                    disabled={isPushLoading}
+                    onClick={handleEnablePushNotification}
+                    className="px-2 py-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                  >
+                    {isPushLoading ? 'Menguji...' : 'Tes Bunyi'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isPushLoading}
+                    onClick={handleEnablePushNotification}
+                    className="px-2.5 py-1 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs"
+                  >
+                    {isPushLoading ? 'Menghubungkan...' : 'Aktifkan'}
                   </button>
                 )}
               </div>

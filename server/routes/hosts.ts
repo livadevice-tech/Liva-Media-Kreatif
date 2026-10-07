@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import type { Express, Request, Response } from "express";
+import webpush from "web-push";
 import { execute, queryMany, queryOne } from "../db";
 import { asyncHandler, genId } from "../http";
 import { hashPasswordForStorage } from "../auth";
@@ -6,6 +8,17 @@ import {
   normalizeHostStudioLocation,
   resolveHostPasswordHash,
 } from "../../src/shared/utils/hostCredentials";
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BIq6BHumL139GKslJlzd3jOtyJpSqdMVSDuJ-2K3svWJH1Z-0oXUYmk1-oJq_llETVHKXzDlLz1yWRfMvHc0Wek";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "yo31pkm_J4d4kJ0yRJoKRtc78uqxlagl44P15vT5oOk";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:admin@livaagency.com";
+
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  console.log("✅ Web Push: VAPID details terkonfigurasi.");
+} catch (e: any) {
+  console.warn("Web Push VAPID warning:", e?.message);
+}
 
 function mapHost(host: any) {
   host.employeeId = host.employee_id;
@@ -243,6 +256,7 @@ export function registerHostRoutes(app: Express) {
       return res.status(400).json({ error: "Data broadcast tidak lengkap." });
     }
 
+    // 1. Insert In-App notifications into database
     for (const hId of hostIds) {
       const notifId = `hnotif_${Date.now()}_${hId}_${Math.random().toString(36).substring(2, 6)}`;
       await execute(`
@@ -251,7 +265,54 @@ export function registerHostRoutes(app: Express) {
       `, [notifId, hId, title, message, dateRangeStr || null]);
     }
 
-    res.json({ success: true, count: hostIds.length });
+    // 2. Broadcast via Native Web Push (Google FCM / Apple APNS) to all hosts' subscribed devices
+    let pushedDeviceCount = 0;
+    try {
+      const placeholders = hostIds.map(() => "?").join(",");
+      const subRows = await queryMany(`
+        SELECT id, host_id, endpoint, p256dh, auth 
+        FROM host_push_subscriptions 
+        WHERE host_id IN (${placeholders})
+      `, hostIds);
+
+      if (subRows && subRows.length > 0) {
+        await Promise.allSettled(
+          subRows.map(async (sub: any) => {
+            const pushData = JSON.stringify({
+              title,
+              body: message,
+              icon: "/icons/icon-192.png",
+              badge: "/icons/icon-192.png",
+              tag: `liva-sched-${Date.now()}`,
+              data: {
+                url: "/login/host",
+                dateRangeStr,
+              },
+            });
+
+            try {
+              await webpush.sendNotification({
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: sub.p256dh,
+                  auth: sub.auth,
+                },
+              }, pushData);
+              pushedDeviceCount++;
+            } catch (err: any) {
+              if (err?.statusCode === 404 || err?.statusCode === 410) {
+                // Subscription has expired on device, delete from DB
+                execute(`DELETE FROM host_push_subscriptions WHERE id = ?`, [sub.id]).catch(() => {});
+              }
+            }
+          })
+        );
+      }
+    } catch (pushErr: any) {
+      console.warn("Web Push broadcast warning:", pushErr?.message);
+    }
+
+    res.json({ success: true, count: hostIds.length, pushedDeviceCount });
   }));
 
   app.put("/api/host-notifications/mark-read", asyncHandler(async (req: Request, res: Response) => {
@@ -262,5 +323,80 @@ export function registerHostRoutes(app: Express) {
       await execute(`UPDATE host_notifications SET is_read = 1 WHERE host_id = ?`, [hostId]);
     }
     res.json({ success: true });
+  }));
+
+  // ==================================================================
+  // WEB PUSH SUBSCRIPTIONS (PWA HP LOCK-SCREEN PUSH)
+  // ==================================================================
+  app.get("/api/web-push/public-key", (req: Request, res: Response) => {
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+  });
+
+  app.post("/api/web-push/subscribe", asyncHandler(async (req: Request, res: Response) => {
+    const { hostId, subscription, userAgent } = req.body;
+    if (!hostId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+      return res.status(400).json({ error: "Data subscription Web Push tidak valid." });
+    }
+
+    const endpointHash = crypto.createHash("md5").update(subscription.endpoint).digest("hex");
+    const subId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    await execute(`
+      INSERT INTO host_push_subscriptions (id, host_id, endpoint, endpoint_hash, p256dh, auth, user_agent)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE 
+        host_id = VALUES(host_id), 
+        p256dh = VALUES(p256dh), 
+        auth = VALUES(auth), 
+        user_agent = VALUES(user_agent),
+        updated_at = CURRENT_TIMESTAMP
+    `, [
+      subId,
+      hostId,
+      subscription.endpoint,
+      endpointHash,
+      subscription.keys.p256dh,
+      subscription.keys.auth,
+      userAgent || req.headers["user-agent"] || null,
+    ]);
+
+    // Send a welcome test push to the phone immediately!
+    try {
+      await webpush.sendNotification({
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+      }, JSON.stringify({
+        title: "🔔 Notifikasi HP Aktif!",
+        body: "Perangkat kamu kini siap menerima pemberitahuan jadwal siaran Liva Agency langsung di HP.",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: "welcome-push",
+        data: { url: "/login/host" },
+      }));
+    } catch (testErr: any) {
+      console.warn("Welcome push notice:", testErr?.message);
+    }
+
+    res.json({ success: true, message: "Perangkat berhasil didaftarkan ke Web Push." });
+  }));
+
+  app.post("/api/web-push/unsubscribe", asyncHandler(async (req: Request, res: Response) => {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      const endpointHash = crypto.createHash("md5").update(endpoint).digest("hex");
+      await execute(`DELETE FROM host_push_subscriptions WHERE endpoint_hash = ?`, [endpointHash]);
+    }
+    res.json({ success: true });
+  }));
+
+  app.get("/api/web-push/subscribers-count", asyncHandler(async (req: Request, res: Response) => {
+    const row = await queryOne(`SELECT COUNT(DISTINCT host_id) as hostCount, COUNT(*) as deviceCount FROM host_push_subscriptions`, []);
+    res.json({
+      hostsSubscribed: Number(row?.hostCount || 0),
+      devicesSubscribed: Number(row?.deviceCount || 0),
+    });
   }));
 }

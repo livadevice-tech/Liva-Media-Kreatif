@@ -294,10 +294,25 @@ export const hostNotificationsApi = {
     return request<any[]>('GET', `/host-notifications${qs}`);
   },
   broadcast: (payload: { hostIds: string[]; title: string; message: string; dateRangeStr?: string }) =>
-    request<{ success: boolean; count: number }>('POST', '/host-notifications/broadcast', payload),
+    request<{ success: boolean; count: number; pushedDeviceCount?: number }>('POST', '/host-notifications/broadcast', payload),
   markRead: (params: { hostId?: string; id?: string }) =>
     request<{ success: boolean }>('PUT', '/host-notifications/mark-read', params),
 };
+
+// ==================================================================
+// WEB PUSH NOTIFICATIONS (PWA HP LOCK-SCREEN PUSH)
+// ==================================================================
+export const webPushApi = {
+  getPublicKey: () =>
+    request<{ publicKey: string }>('GET', '/web-push/public-key'),
+  subscribe: (payload: { hostId: string; subscription: any; userAgent?: string }) =>
+    request<{ success: boolean; message?: string }>('POST', '/web-push/subscribe', payload),
+  unsubscribe: (endpoint: string) =>
+    request<{ success: boolean }>('POST', '/web-push/unsubscribe', { endpoint }),
+  getSubscribersCount: () =>
+    request<{ hostsSubscribed: number; devicesSubscribed: number }>('GET', '/web-push/subscribers-count'),
+};
+
 
 // ==================================================================
 // CLIENT REPORTING

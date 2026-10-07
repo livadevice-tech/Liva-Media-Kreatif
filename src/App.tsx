@@ -2508,14 +2508,21 @@ export default function App() {
       const { hostIds, title, message, dateRangeStr, sendWebPush, sendInApp, playSound } = payload;
       const nowIso = new Date().toISOString();
 
-      // 1. Persist to MySQL Backend Database for all hosts
+      // 1. Persist to MySQL Backend Database for all hosts & send Web Push to their mobile devices
+      let broadcastResult: { count: number; pushedDeviceCount?: number } = { count: hostIds.length, pushedDeviceCount: 0 };
       try {
-        await hostNotificationsApi.broadcast({
+        const res = await hostNotificationsApi.broadcast({
           hostIds,
           title,
           message,
           dateRangeStr,
         });
+        if (res) {
+          broadcastResult = {
+            count: res.count ?? hostIds.length,
+            pushedDeviceCount: res.pushedDeviceCount ?? 0,
+          };
+        }
       } catch (err) {
         console.warn("Simpan notifikasi ke database:", err);
       }
@@ -2566,7 +2573,7 @@ export default function App() {
         count: hostIds.length,
       });
 
-      // 5. Native Browser / PWA Push Notification
+      // 5. Native Browser / PWA Push Notification on admin sender machine
       if (sendWebPush && typeof window !== "undefined" && "Notification" in window) {
         try {
           if (Notification.permission === "granted") {
@@ -2574,8 +2581,8 @@ export default function App() {
               const reg = await navigator.serviceWorker.ready;
               reg.showNotification(title, {
                 body: message,
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
+                icon: "/icons/icon-192.png",
+                badge: "/icons/icon-192.png",
                 tag: `schedule-push-${Date.now()}`,
                 vibrate: [200, 100, 200],
                 data: {
@@ -2586,7 +2593,7 @@ export default function App() {
             } else {
               new Notification(title, {
                 body: message,
-                icon: "/pwa-192x192.png",
+                icon: "/icons/icon-192.png",
               });
             }
           }
@@ -2603,6 +2610,7 @@ export default function App() {
             action: "BROADCAST_SCHEDULE_NOTIFICATION",
             details: {
               targetHostsCount: hostIds.length,
+              pushedDeviceCount: broadcastResult.pushedDeviceCount,
               dateRangeStr,
               title,
               sender: authSession?.role === "master" ? "Master Admin" : "Administrator",
@@ -2612,14 +2620,17 @@ export default function App() {
       } catch {}
 
       // 7. In-App Toast
+      const pushedText = (broadcastResult.pushedDeviceCount ?? 0) > 0
+        ? ` (${broadcastResult.pushedDeviceCount} HP terkirim Web Push langsung)`
+        : '';
       addNotification(
         "Push Notifikasi Terkirim",
-        `Berhasil mengirim jadwal siaran (${dateRangeStr}) ke ${hostIds.length} akun host PWA.`,
+        `Berhasil mengirim jadwal siaran (${dateRangeStr}) ke ${hostIds.length} akun host${pushedText}.`,
         "success",
         "jadwal"
       );
 
-      return { count: hostIds.length };
+      return broadcastResult;
     },
     [setHostNotifications, authSession, addNotification],
   );

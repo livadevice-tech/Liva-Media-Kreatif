@@ -914,6 +914,28 @@ async function runMigrations() {
   }
 
   try {
+    // Create host_push_subscriptions table
+    await execute(`
+      CREATE TABLE IF NOT EXISTS host_push_subscriptions (
+        id VARCHAR(100) PRIMARY KEY,
+        host_id VARCHAR(100) NOT NULL,
+        endpoint TEXT NOT NULL,
+        endpoint_hash VARCHAR(64) NOT NULL,
+        p256dh VARCHAR(255) NOT NULL,
+        auth VARCHAR(255) NOT NULL,
+        user_agent VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_endpoint_hash (endpoint_hash),
+        INDEX idx_host_id (host_id)
+      )
+    `, []);
+    console.log('✅ Migration: Tabel host_push_subscriptions dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration host_push_subscriptions warning:', e?.message);
+  }
+
+  try {
     // Tambah kolom studio ke shift_schedules jika belum ada
     // Tidak pakai IF NOT EXISTS karena MySQL lama (sebelum 8.0) tidak support
     await execute(`ALTER TABLE shift_schedules ADD COLUMN studio VARCHAR(255) NULL`, []);

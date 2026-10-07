@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import type { ShiftSchedule, HostEmployee } from '../../types';
+import { webPushApi } from '../../api';
 
 interface ScheduleNotificationBroadcastModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ interface ScheduleNotificationBroadcastModalProps {
     sendWebPush: boolean;
     sendInApp: boolean;
     playSound: boolean;
-  }) => Promise<{ count: number }>;
+  }) => Promise<{ count: number; pushedDeviceCount?: number }>;
 }
 
 const TEMPLATES = [
@@ -164,9 +165,20 @@ export function ScheduleNotificationBroadcastModal({
     }
   };
 
+  // Device Web Push Stats
+  const [devicePushStats, setDevicePushStats] = useState<{ hostsSubscribed: number; devicesSubscribed: number } | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      webPushApi.getSubscribersCount()
+        .then(setDevicePushStats)
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
   // Submission state
   const [isSending, setIsSending] = useState(false);
-  const [sendSuccessResult, setSendSuccessResult] = useState<{ count: number } | null>(null);
+  const [sendSuccessResult, setSendSuccessResult] = useState<{ count: number; pushedDeviceCount?: number } | null>(null);
 
   // Filtered hosts to display in list
   const displayedHosts = useMemo(() => {
@@ -316,8 +328,17 @@ export function ScheduleNotificationBroadcastModal({
             <h4 className="text-lg font-extrabold text-slate-800 mb-1">
               Notifikasi Berhasil Dikirim!
             </h4>
-            <p className="text-sm text-slate-500 max-w-sm mb-4">
-              Broadcast jadwal berhasil dikirimkan ke <strong className="text-slate-700">{sendSuccessResult.count} akun host</strong> melalui PWA Web Push dan Kotak Masuk.
+            <p className="text-sm text-slate-500 max-w-sm mb-4 leading-relaxed">
+              Broadcast jadwal berhasil dikirimkan ke <strong className="text-slate-700">{sendSuccessResult.count} akun host</strong>.
+              {(sendSuccessResult.pushedDeviceCount ?? 0) > 0 ? (
+                <span className="block mt-2 font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs">
+                  📱 {sendSuccessResult.pushedDeviceCount} perangkat HP host menerima Web Push langsung di layar kunci (background).
+                </span>
+              ) : (
+                <span className="block mt-2 text-slate-400 text-xs">
+                  (Belum ada HP host yang terdaftar Web Push layar kunci, notifikasi tetap masuk ke Kotak Pesan aplikasi host).
+                </span>
+              )}
             </p>
             <button
               type="button"
@@ -329,13 +350,42 @@ export function ScheduleNotificationBroadcastModal({
           </div>
         ) : (
           <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
+            {/* DEVICE WEB PUSH SUBSCRIBERS STATUS */}
+            <div className="p-3 bg-gradient-to-r from-indigo-50/90 via-purple-50/80 to-blue-50/80 border border-indigo-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-indigo-950 block">
+                      Status Notifikasi Layar Kunci HP (Web Push)
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-100 text-indigo-700">
+                      Background Push
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-indigo-700 font-medium">
+                    {devicePushStats === null
+                      ? 'Memeriksa perangkat host...'
+                      : devicePushStats.devicesSubscribed > 0
+                      ? `${devicePushStats.devicesSubscribed} perangkat HP (${devicePushStats.hostsSubscribed} host) terdaftar aktif menerima notifikasi langsung di layar kunci HP saat aplikasi ditutup.`
+                      : 'Belum ada perangkat host yang mengaktifkan notifikasi HP. Ajak host klik "Aktifkan Notifikasi di HP" pada dashboard mereka.'}
+                  </span>
+                </div>
+              </div>
+              <span className="hidden sm:inline-block px-2.5 py-1 bg-white text-indigo-700 font-bold rounded-lg border border-indigo-100 text-[10px] shadow-3xs shrink-0">
+                Google FCM / APNS
+              </span>
+            </div>
+
             {/* PERMISSION STATUS BANNER */}
             <div>
               {notificationPermission === 'default' && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2.5 text-amber-900 font-medium">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Izin notifikasi browser belum aktif di perangkat ini. Klik tombol untuk mengaktifkan notifikasi pop-up layar.</span>
+                    <span>Izin notifikasi browser belum aktif di laptop/perangkat admin ini. Klik tombol untuk mengaktifkan pop-up layar.</span>
                   </div>
                   <button
                     type="button"

@@ -135,6 +135,7 @@ export function isRequestAllowed(
 ): boolean {
   if (method === "GET" && path === "/client-brands/public") return true;
   if (method === "GET" && path === "/client-brands/public-list") return true;
+  if (path.startsWith("/web-push/")) return true;
 
   if (session.role === "master") return true;
 
