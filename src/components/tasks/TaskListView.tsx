@@ -14,15 +14,23 @@ import {
 import {
   TaskItem,
   TaskStatus,
+  TaskCustomSettings,
   TASK_STATUS_CONFIG,
   TASK_PRIORITY_CONFIG,
 } from './types';
+import {
+  getStatusMeta,
+  getPriorityMeta,
+  getCategoryMeta,
+  DEFAULT_TASK_SETTINGS,
+} from './taskTheme';
 
 interface TaskListViewProps {
   tasks: TaskItem[];
   onEditTask: (task: TaskItem) => void;
   onUpdateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   onDeleteTask: (taskId: string) => void;
+  taskSettings?: TaskCustomSettings;
 }
 
 export const TaskListView: React.FC<TaskListViewProps> = ({
@@ -30,6 +38,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   onEditTask,
   onUpdateTaskStatus,
   onDeleteTask,
+  taskSettings,
 }) => {
   const todayStr = new Date().toISOString().substring(0, 10);
 
@@ -61,14 +70,15 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {tasks.map((task) => {
-              const statusMeta = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.todo;
-              const priorityMeta = TASK_PRIORITY_CONFIG[task.priority] || TASK_PRIORITY_CONFIG.moderate;
+              const statusMeta = getStatusMeta(task.status, taskSettings);
+              const priorityMeta = getPriorityMeta(task.priority, taskSettings);
               const totalChecklist = task.checklist?.length || 0;
               const doneChecklist = task.checklist?.filter((c) => c.isDone).length || 0;
               const progress = totalChecklist > 0 ? Math.round((doneChecklist / totalChecklist) * 100) : 0;
               const totalFiles = task.fileLinks?.length || 0;
 
-              const isOverdue = task.deadline && task.deadline < todayStr && task.status !== 'done';
+              const isDone = statusMeta.isCompleted || task.status === 'done';
+              const isOverdue = task.deadline && task.deadline < todayStr && !isDone;
               const isDueToday = task.deadline && task.deadline === todayStr;
 
               return (
@@ -81,23 +91,13 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                     <select
                       value={task.status}
                       onChange={(e) => onUpdateTaskStatus(task.id, e.target.value as TaskStatus)}
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border outline-none cursor-pointer text-center appearance-none transition-all shadow-2xs ${
-                        task.status === 'done'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          : task.status === 'in_progress'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                          : task.status === 'in_review'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                          : task.status === 'archived'
-                          ? 'bg-slate-100 text-slate-500 border-slate-200'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border outline-none cursor-pointer text-center appearance-none transition-all shadow-2xs ${statusMeta.badgeBg} ${statusMeta.badgeText} ${statusMeta.borderColor}`}
                     >
-                      <option value="todo">To-do</option>
-                      <option value="in_progress">On Progress</option>
-                      <option value="in_review">In Review</option>
-                      <option value="done">Completed</option>
-                      <option value="archived">Arsip</option>
+                      {(taskSettings?.statuses || DEFAULT_TASK_SETTINGS.statuses).map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.label}
+                        </option>
+                      ))}
                     </select>
                   </td>
 
@@ -107,15 +107,18 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       onClick={() => onEditTask(task)}
                       className="cursor-pointer group/title"
                     >
-                      <div className="font-bold text-slate-800 text-xs group-hover/title:text-indigo-600 transition-colors">
+                      <div className={`font-bold text-xs group-hover/title:text-indigo-600 transition-colors ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                         {task.title}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        {task.category && (
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            {task.category}
-                          </span>
-                        )}
+                        {task.category && (() => {
+                          const catMeta = getCategoryMeta(task.category, taskSettings);
+                          return (
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.borderColor}`}>
+                              {task.category}
+                            </span>
+                          );
+                        })()}
                         {task.description && (
                           <span className="text-[11px] text-slate-500 truncate max-w-[280px]">
                             • {task.description}

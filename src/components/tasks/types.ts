@@ -1,6 +1,68 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'archived';
+export type TaskStatus =
+  | 'todo'
+  | 'in_progress'
+  | 'in_review'
+  | 'done'
+  | 'archived'
+  | (string & {});
 
-export type TaskPriority = 'urgent' | 'moderate' | 'low';
+export type TaskPriority =
+  | 'urgent'
+  | 'moderate'
+  | 'low'
+  | (string & {});
+
+export type TaskThemeColor =
+  | 'slate'
+  | 'blue'
+  | 'indigo'
+  | 'purple'
+  | 'pink'
+  | 'rose'
+  | 'amber'
+  | 'orange'
+  | 'emerald'
+  | 'teal'
+  | 'cyan';
+
+export interface ThemeColorStyle {
+  id: TaskThemeColor;
+  label: string;
+  badgeBg: string;
+  badgeText: string;
+  borderColor: string;
+  dotColor: string;
+  columnBg: string;
+  headerBorder: string;
+  headerText: string;
+}
+
+export interface CustomTaskStatus {
+  id: string;
+  label: string;
+  color: TaskThemeColor;
+  isCompleted?: boolean;
+  isArchived?: boolean;
+  isDefault?: boolean;
+}
+
+export interface CustomTaskPriority {
+  id: string;
+  label: string;
+  color: TaskThemeColor;
+}
+
+export interface CustomTaskCategory {
+  id: string;
+  name: string;
+  color?: TaskThemeColor;
+}
+
+export interface TaskCustomSettings {
+  statuses: CustomTaskStatus[];
+  priorities: CustomTaskPriority[];
+  categories: CustomTaskCategory[];
+}
 
 export interface TaskChecklistItem {
   id: string;
@@ -44,7 +106,7 @@ export interface TaskFilterState {
   includeArchived: boolean;
 }
 
-export const TASK_STATUS_CONFIG: Record<TaskStatus, {
+export const TASK_STATUS_CONFIG: Record<string, {
   label: string;
   badgeBg: string;
   badgeText: string;
@@ -94,7 +156,7 @@ export const TASK_STATUS_CONFIG: Record<TaskStatus, {
   },
 };
 
-export const TASK_PRIORITY_CONFIG: Record<TaskPriority, {
+export const TASK_PRIORITY_CONFIG: Record<string, {
   label: string;
   badgeBg: string;
   badgeText: string;

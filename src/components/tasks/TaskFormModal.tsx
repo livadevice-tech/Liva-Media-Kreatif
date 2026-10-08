@@ -21,6 +21,7 @@ import {
   Minimize2,
   PanelRightClose,
   GripVertical,
+  Settings,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -28,9 +29,16 @@ import {
   TaskPriority,
   TaskChecklistItem,
   TaskFileLink,
+  TaskCustomSettings,
   TASK_STATUS_CONFIG,
   TASK_PRIORITY_CONFIG,
 } from './types';
+import {
+  getStatusMeta,
+  getPriorityMeta,
+  getCategoryMeta,
+  DEFAULT_TASK_SETTINGS,
+} from './taskTheme';
 import { detectLinkPlatform } from './taskStorage';
 
 interface PICCandidate {
@@ -48,6 +56,8 @@ interface TaskFormModalProps {
   initialTask?: TaskItem | null;
   defaultStatus?: TaskStatus;
   availablePICs: PICCandidate[];
+  taskSettings?: TaskCustomSettings;
+  onOpenSettings?: (tab?: 'status' | 'priority' | 'category') => void;
 }
 
 const SIDEBAR_STORAGE_KEY = 'liva_task_sidebar_width';
@@ -62,6 +72,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   initialTask,
   defaultStatus = 'todo',
   availablePICs,
+  taskSettings,
+  onOpenSettings,
 }) => {
   // Sidebar Width State with LocalStorage Persistence
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -440,70 +452,152 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             />
           </div>
 
-          {/* Row 2: Status, Priority, Category */}
+          {/* Row 2: Status, Priority, Category (Customizable & Persisted in MySQL) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Status */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="todo">To-do</option>
-                <option value="in_progress">On Progress</option>
-                <option value="in_review">In Review</option>
-                <option value="done">Completed (Done)</option>
-                <option value="archived">Arsip (Archived)</option>
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                  Status
+                </label>
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSettings('status')}
+                    title="Kustomisasi opsi status di database"
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5 hover:underline cursor-pointer"
+                  >
+                    <Settings className="w-2.5 h-2.5" /> Kelola
+                  </button>
+                )}
+              </div>
+              {(() => {
+                const meta = getStatusMeta(status, taskSettings);
+                const statusesList = taskSettings?.statuses || DEFAULT_TASK_SETTINGS.statuses;
+                return (
+                  <select
+                    value={status}
+                    onChange={(e) => {
+                      if (e.target.value === '__MANAGE__') {
+                        onOpenSettings?.('status');
+                      } else {
+                        setStatus(e.target.value as TaskStatus);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs transition-all ${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`}
+                  >
+                    {statusesList.map((st) => (
+                      <option key={st.id} value={st.id} className="bg-white text-slate-800">
+                        {st.label}
+                      </option>
+                    ))}
+                    <option value="__MANAGE__" className="bg-indigo-50 text-indigo-700 font-black">
+                      ⚙️ + Kelola Status di Database...
+                    </option>
+                  </select>
+                );
+              })()}
             </div>
 
             {/* Priority */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1">
-                Prioritas
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className={`w-full px-3 py-2 rounded-xl border font-bold text-xs focus:outline-none focus:border-indigo-500 cursor-pointer ${
-                  priority === 'urgent'
-                    ? 'border-rose-300 bg-rose-50/60 text-rose-700'
-                    : priority === 'moderate'
-                    ? 'border-amber-300 bg-amber-50/60 text-amber-700'
-                    : 'border-emerald-300 bg-emerald-50/60 text-emerald-700'
-                }`}
-              >
-                <option value="urgent">🔴 Urgent Priority</option>
-                <option value="moderate">🟡 Moderate Priority</option>
-                <option value="low">🟢 Low Priority</option>
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                  Prioritas
+                </label>
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSettings('priority')}
+                    title="Kustomisasi opsi prioritas di database"
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5 hover:underline cursor-pointer"
+                  >
+                    <Settings className="w-2.5 h-2.5" /> Kelola
+                  </button>
+                )}
+              </div>
+              {(() => {
+                const meta = getPriorityMeta(priority, taskSettings);
+                const prioritiesList = taskSettings?.priorities || DEFAULT_TASK_SETTINGS.priorities;
+                return (
+                  <select
+                    value={priority}
+                    onChange={(e) => {
+                      if (e.target.value === '__MANAGE__') {
+                        onOpenSettings?.('priority');
+                      } else {
+                        setPriority(e.target.value as TaskPriority);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs transition-all ${meta.badgeBg} ${meta.badgeText} ${meta.badgeBorder}`}
+                  >
+                    {prioritiesList.map((pr) => (
+                      <option key={pr.id} value={pr.id} className="bg-white text-slate-800">
+                        {pr.label}
+                      </option>
+                    ))}
+                    <option value="__MANAGE__" className="bg-amber-50 text-amber-800 font-black">
+                      ⚙️ + Kelola Prioritas di Database...
+                    </option>
+                  </select>
+                );
+              })()}
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1">
-                Kategori
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                  Kategori
+                </label>
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSettings('category')}
+                    title="Kustomisasi daftar kategori di database"
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5 hover:underline cursor-pointer"
+                  >
+                    <Settings className="w-2.5 h-2.5" /> Kelola
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 list="category-suggestions"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Live Production"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                placeholder="Pilih atau ketik kategori..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
               />
               <datalist id="category-suggestions">
-                <option value="Live Production" />
-                <option value="Desain & Kreatif" />
-                <option value="Marketing" />
-                <option value="Quality Assurance" />
-                <option value="Reporting & Admin" />
-                <option value="Operasional Studio" />
+                {(taskSettings?.categories || DEFAULT_TASK_SETTINGS.categories).map((cat) => (
+                  <option key={cat.id} value={cat.name} />
+                ))}
               </datalist>
             </div>
+          </div>
+
+          {/* Quick Category Suggestions Chips */}
+          <div className="flex flex-wrap items-center gap-1.5 -mt-1 pt-1">
+            <span className="text-[10px] text-slate-400 font-medium">Pilihan cepat:</span>
+            {(taskSettings?.categories || DEFAULT_TASK_SETTINGS.categories).slice(0, 6).map((c) => {
+              const meta = getCategoryMeta(c.name, taskSettings);
+              const isSelected = category.toLowerCase() === c.name.toLowerCase();
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategory(c.name)}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                    isSelected
+                      ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor} ring-1 ring-indigo-300 font-black shadow-2xs`
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              );
+            })}
           </div>
 
           {/* Row 3: Deadline & PIC Selection */}

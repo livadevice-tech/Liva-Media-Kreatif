@@ -14,6 +14,7 @@ import {
   Sparkles,
   Users,
   X,
+  Settings,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -21,12 +22,20 @@ import {
   TaskPriority,
   TaskViewMode,
   TaskFilterState,
+  TaskCustomSettings,
 } from './types';
 import { TaskKanbanView } from './TaskKanbanView';
 import { TaskListView } from './TaskListView';
 import { TaskCalendarView } from './TaskCalendarView';
 import { TaskFormModal } from './TaskFormModal';
-import { loadTasksFromStorage, saveTasksToStorage } from './taskStorage';
+import { TaskSettingsModal } from './TaskSettingsModal';
+import {
+  loadTasksFromStorage,
+  saveTasksToStorage,
+  loadTaskSettingsFromStorage,
+  saveTaskSettingsToStorage,
+} from './taskStorage';
+import { getStatusMeta, DEFAULT_TASK_SETTINGS } from './taskTheme';
 
 interface TaskManagerProps {
   hosts?: { id: string; name: string }[];
@@ -57,13 +66,23 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [defaultStatusForNew, setDefaultStatusForNew] = useState<TaskStatus>('todo');
 
-  // Load tasks on mount
+  // Task Settings State (Custom Status, Priority, Category synced to MySQL database)
+  const [taskSettings, setTaskSettings] = useState<TaskCustomSettings>(DEFAULT_TASK_SETTINGS);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'status' | 'priority' | 'category'>('status');
+
+  // Load tasks & settings on mount
   useEffect(() => {
     let isMounted = true;
     loadTasksFromStorage().then((data) => {
       if (isMounted) {
         setTasks(data);
         setIsLoading(false);
+      }
+    });
+    loadTaskSettingsFromStorage().then((settings) => {
+      if (isMounted && settings) {
+        setTaskSettings(settings);
       }
     });
     return () => {
@@ -75,6 +94,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const updateTasksState = (newTasks: TaskItem[]) => {
     setTasks(newTasks);
     saveTasksToStorage(newTasks);
+  };
+
+  // Sync settings changes to MySQL database & storage
+  const handleUpdateSettings = (newSettings: TaskCustomSettings) => {
+    setTaskSettings(newSettings);
+    saveTaskSettingsToStorage(newSettings);
+  };
+
+  const handleOpenSettingsModal = (tab: 'status' | 'priority' | 'category' = 'status') => {
+    setSettingsInitialTab(tab);
+    setIsSettingsModalOpen(true);
   };
 
   // Prepare PIC candidates from hosts and adminAccounts
@@ -102,14 +132,15 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     return list;
   }, [hosts, adminAccounts]);
 
-  // Extract distinct categories
+  // Extract distinct categories (custom settings categories + task categories)
   const availableCategories = useMemo(() => {
     const cats = new Set<string>();
+    taskSettings.categories.forEach((c) => cats.add(c.name));
     tasks.forEach((t) => {
       if (t.category) cats.add(t.category);
     });
     return Array.from(cats);
-  }, [tasks]);
+  }, [tasks, taskSettings]);
 
   // Extract distinct PIC names from tasks
   const availablePICNames = useMemo(() => {
@@ -168,14 +199,22 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   // Metrics KPI Calculation
   const metrics = useMemo(() => {
     const todayStr = new Date().toISOString().substring(0, 10);
-    const activeTasks = tasks.filter((t) => t.status !== 'archived');
+    const activeTasks = tasks.filter((t) => {
+      const meta = getStatusMeta(t.status, taskSettings);
+      return !meta.isArchived && t.status !== 'archived';
+    });
     const todo = activeTasks.filter((t) => t.status === 'todo').length;
     const inProgress = activeTasks.filter((t) => t.status === 'in_progress').length;
     const inReview = activeTasks.filter((t) => t.status === 'in_review').length;
-    const done = activeTasks.filter((t) => t.status === 'done').length;
-    const overdue = activeTasks.filter(
-      (t) => t.deadline && t.deadline < todayStr && t.status !== 'done'
-    ).length;
+    const done = tasks.filter((t) => {
+      const meta = getStatusMeta(t.status, taskSettings);
+      return meta.isCompleted || t.status === 'done';
+    }).length;
+    const overdue = activeTasks.filter((t) => {
+      const meta = getStatusMeta(t.status, taskSettings);
+      const isFinished = meta.isCompleted || t.status === 'done';
+      return t.deadline && t.deadline < todayStr && !isFinished;
+    }).length;
 
     return {
       total: activeTasks.length,
@@ -185,7 +224,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       done,
       overdue,
     };
-  }, [tasks]);
+  }, [tasks, taskSettings]);
 
   // CRUD Handlers
   const handleCreateNewTask = (prefillStatus: TaskStatus = 'todo', prefillDate?: string) => {
@@ -410,12 +449,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   <select
                     value={filterPriority}
                     onChange={(e) => setFilterPriority(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer"
                   >
                     <option value="all">Semua Prioritas</option>
-                    <option value="urgent">Urgent Priority</option>
-                    <option value="moderate">Moderate Priority</option>
-                    <option value="low">Low Priority</option>
+                    {taskSettings.priorities.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -425,14 +466,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer"
                   >
                     <option value="all">Semua Status</option>
-                    <option value="todo">To-do</option>
-                    <option value="in_progress">On Progress</option>
-                    <option value="in_review">In Review</option>
-                    <option value="done">Completed</option>
-                    <option value="archived">Arsip</option>
+                    {taskSettings.statuses.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -442,7 +483,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer"
                   >
                     <option value="all">Semua Kategori</option>
                     {availableCategories.map((c) => (
@@ -457,7 +498,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   <select
                     value={filterPIC}
                     onChange={(e) => setFilterPIC(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer"
                   >
                     <option value="all">Semua PIC</option>
                     {availablePICNames.map((p) => (
@@ -480,6 +521,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             )}
           </div>
 
+          {/* "Kustomisasi Opsi" Button (Opens MySQL Settings Modal) */}
+          <button
+            type="button"
+            onClick={() => handleOpenSettingsModal('status')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer hover:border-indigo-300"
+            title="Kustomisasi Status, Prioritas & Kategori di Database"
+          >
+            <Settings className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Kustomisasi Opsi</span>
+          </button>
+
           {/* "+ New Task" Button */}
           <button
             type="button"
@@ -501,6 +553,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           onUpdateTaskStatus={handleUpdateTaskStatus}
           onDeleteTask={handleDeleteTask}
           showArchivedColumn={showArchived}
+          taskSettings={taskSettings}
         />
       )}
 
@@ -510,6 +563,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           onEditTask={handleEditTask}
           onUpdateTaskStatus={handleUpdateTaskStatus}
           onDeleteTask={handleDeleteTask}
+          taskSettings={taskSettings}
         />
       )}
 
@@ -518,10 +572,11 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           tasks={filteredTasks}
           onEditTask={handleEditTask}
           onAddTaskWithDate={(dateStr) => handleCreateNewTask('todo', dateStr)}
+          taskSettings={taskSettings}
         />
       )}
 
-      {/* Task CRUD Modal */}
+      {/* Task CRUD Modal (Sidebar Drawer) */}
       <TaskFormModal
         isOpen={isFormModalOpen}
         onClose={() => {
@@ -533,6 +588,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
         initialTask={editingTask}
         defaultStatus={defaultStatusForNew}
         availablePICs={availablePICs}
+        taskSettings={taskSettings}
+        onOpenSettings={handleOpenSettingsModal}
+      />
+
+      {/* Task Custom Settings Modal (Persisted in MySQL DB) */}
+      <TaskSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        settings={taskSettings}
+        onSaveSettings={handleUpdateSettings}
+        initialTab={settingsInitialTab}
       />
     </div>
   );

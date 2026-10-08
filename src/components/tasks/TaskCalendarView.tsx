@@ -11,14 +11,20 @@ import {
 import {
   TaskItem,
   TaskStatus,
+  TaskCustomSettings,
   TASK_STATUS_CONFIG,
   TASK_PRIORITY_CONFIG,
 } from './types';
+import {
+  getStatusMeta,
+  getPriorityMeta,
+} from './taskTheme';
 
 interface TaskCalendarViewProps {
   tasks: TaskItem[];
   onEditTask: (task: TaskItem) => void;
   onAddTaskWithDate: (dateStr: string) => void;
+  taskSettings?: TaskCustomSettings;
 }
 
 const INDONESIAN_MONTHS = [
@@ -32,6 +38,7 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   tasks,
   onEditTask,
   onAddTaskWithDate,
+  taskSettings,
 }) => {
   const [currentDate, setCurrentDate] = useState(() => new Date());
 
@@ -200,8 +207,9 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
               {/* Tasks in this day */}
               <div className="flex-1 space-y-1 overflow-y-auto max-h-[85px] sm:max-h-[95px] pr-0.5 no-scrollbar">
                 {dayTasks.map((t) => {
-                  const statusMeta = TASK_STATUS_CONFIG[t.status] || TASK_STATUS_CONFIG.todo;
-                  const isDone = t.status === 'done';
+                  const statusMeta = getStatusMeta(t.status, taskSettings);
+                  const priorityMeta = getPriorityMeta(t.priority, taskSettings);
+                  const isDone = statusMeta.isCompleted || t.status === 'done';
 
                   return (
                     <div
@@ -214,21 +222,11 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
                       className={`px-1.5 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer truncate flex items-center gap-1 ${
                         isDone
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200 line-through opacity-75'
-                          : t.priority === 'urgent'
-                          ? 'bg-rose-50 text-rose-800 border-rose-200'
-                          : t.status === 'in_progress'
-                          ? 'bg-blue-50 text-blue-800 border-blue-200'
-                          : 'bg-slate-50 text-slate-800 border-slate-200'
+                          : `${statusMeta.badgeBg} ${statusMeta.badgeText} ${statusMeta.borderColor}`
                       }`}
                     >
                       <div
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          t.priority === 'urgent'
-                            ? 'bg-rose-500'
-                            : t.priority === 'moderate'
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                        }`}
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${priorityMeta.dotColor}`}
                       />
                       <span className="truncate flex-1">{t.title}</span>
                     </div>

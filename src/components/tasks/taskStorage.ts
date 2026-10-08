@@ -1,7 +1,12 @@
-import { TaskItem, TaskFileLink } from './types';
+import { TaskItem, TaskFileLink, TaskCustomSettings } from './types';
+import { DEFAULT_TASK_SETTINGS } from './taskTheme';
 
 const STORAGE_KEY = 'liva_tasks_v1';
 const API_URL = '/api/settings/liva_tasks';
+
+const SETTINGS_STORAGE_KEY = 'liva_task_settings_v1';
+const SETTINGS_API_URL = '/api/settings/liva_task_settings';
+
 
 export function detectLinkPlatform(url: string): TaskFileLink['platform'] {
   const lower = (url || '').toLowerCase();
@@ -187,3 +192,78 @@ export async function saveTasksToStorage(tasks: TaskItem[]): Promise<boolean> {
     return false;
   }
 }
+
+// ==================================================================
+// TASK CUSTOM SETTINGS (STATUS, PRIORITY, CATEGORY) PERSISTENCE
+// ==================================================================
+
+export async function loadTaskSettingsFromStorage(): Promise<TaskCustomSettings> {
+  // 1. Try to fetch from Backend MySQL API
+  try {
+    const res = await fetch(SETTINGS_API_URL, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (
+        data &&
+        typeof data === 'object' &&
+        Array.isArray(data.statuses) &&
+        data.statuses.length > 0
+      ) {
+        // Cache to localStorage
+        try {
+          localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+        } catch {}
+        return data as TaskCustomSettings;
+      }
+    }
+  } catch (err) {
+    console.warn('[TaskStorage] Failed to fetch task settings from MySQL API, checking localStorage:', err);
+  }
+
+  // 2. Fallback to LocalStorage
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.statuses) && parsed.statuses.length > 0) {
+        return parsed as TaskCustomSettings;
+      }
+    }
+  } catch (err) {
+    console.warn('[TaskStorage] Failed to parse local task settings:', err);
+  }
+
+  // 3. Fallback to default settings & persist
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_TASK_SETTINGS));
+    saveTaskSettingsToStorage(DEFAULT_TASK_SETTINGS).catch(() => {});
+  } catch {}
+
+  return DEFAULT_TASK_SETTINGS;
+}
+
+export async function saveTaskSettingsToStorage(settings: TaskCustomSettings): Promise<boolean> {
+  // 1. Optimistic save to localStorage
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (err) {
+    console.error('[TaskStorage] Error saving task settings to localStorage:', err);
+  }
+
+  // 2. Persist to MySQL database (global_settings)
+  try {
+    const res = await fetch(SETTINGS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[TaskStorage] Error syncing task settings to MySQL API:', err);
+    return false;
+  }
+}
+

@@ -16,9 +16,16 @@ import {
 import {
   TaskItem,
   TaskStatus,
+  TaskCustomSettings,
   TASK_STATUS_CONFIG,
   TASK_PRIORITY_CONFIG,
 } from './types';
+import {
+  getStatusMeta,
+  getPriorityMeta,
+  getCategoryMeta,
+  DEFAULT_TASK_SETTINGS,
+} from './taskTheme';
 
 interface TaskKanbanViewProps {
   tasks: TaskItem[];
@@ -27,14 +34,8 @@ interface TaskKanbanViewProps {
   onUpdateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   onDeleteTask: (taskId: string) => void;
   showArchivedColumn?: boolean;
+  taskSettings?: TaskCustomSettings;
 }
-
-const KANBAN_COLUMNS: { status: TaskStatus; label: string; headerColor: string; dotColor: string }[] = [
-  { status: 'todo', label: 'To-do', headerColor: 'text-slate-800', dotColor: 'bg-slate-400' },
-  { status: 'in_progress', label: 'On Progress', headerColor: 'text-blue-900', dotColor: 'bg-blue-500' },
-  { status: 'in_review', label: 'In Review', headerColor: 'text-amber-900', dotColor: 'bg-amber-500' },
-  { status: 'done', label: 'Completed', headerColor: 'text-emerald-900', dotColor: 'bg-emerald-500' },
-];
 
 export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
   tasks,
@@ -43,17 +44,26 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
   onUpdateTaskStatus,
   onDeleteTask,
   showArchivedColumn = false,
+  taskSettings,
 }) => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
   const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null);
 
-  const columns = showArchivedColumn
-    ? [
-        ...KANBAN_COLUMNS,
-        { status: 'archived' as TaskStatus, label: 'Arsip (Archived)', headerColor: 'text-slate-600', dotColor: 'bg-slate-300' },
-      ]
-    : KANBAN_COLUMNS;
+  const statusesList = taskSettings?.statuses || DEFAULT_TASK_SETTINGS.statuses;
+  const filteredStatuses = statusesList.filter((s) => showArchivedColumn || !s.isArchived);
+
+  const columns = filteredStatuses.map((st) => {
+    const meta = getStatusMeta(st.id, taskSettings);
+    return {
+      status: st.id as TaskStatus,
+      label: st.label,
+      headerColor: meta.headerText,
+      dotColor: meta.dotColor,
+      columnBg: meta.columnBg,
+      headerBorder: meta.headerBorder,
+    };
+  });
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId);
@@ -129,7 +139,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
               {/* Card List in Column */}
               <div className="p-2.5 space-y-2.5 min-h-[140px] flex-1">
                 {colTasks.map((task) => {
-                  const priorityMeta = TASK_PRIORITY_CONFIG[task.priority] || TASK_PRIORITY_CONFIG.moderate;
+                  const priorityMeta = getPriorityMeta(task.priority, taskSettings);
                   const totalChecklist = task.checklist?.length || 0;
                   const doneChecklist = task.checklist?.filter((c) => c.isDone).length || 0;
                   const progress = totalChecklist > 0 ? Math.round((doneChecklist / totalChecklist) * 100) : 0;
@@ -218,11 +228,18 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                       </div>
 
                       {/* Category Label */}
-                      {task.category && (
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">
-                          {task.category}
-                        </div>
-                      )}
+                      {task.category && (() => {
+                        const catMeta = getCategoryMeta(task.category, taskSettings);
+                        return (
+                          <div className="mb-1">
+                            <span
+                              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border inline-block max-w-full truncate ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.borderColor}`}
+                            >
+                              {task.category}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Task Title */}
                       <h4 className="text-xs font-black text-slate-800 leading-snug mb-1.5 line-clamp-2">
