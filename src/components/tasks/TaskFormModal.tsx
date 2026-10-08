@@ -22,6 +22,10 @@ import {
   PanelRightClose,
   GripVertical,
   Settings,
+  Search,
+  Check,
+  ChevronDown,
+  UserPlus,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -103,6 +107,33 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [selectedPICs, setSelectedPICs] = useState<string[]>([]);
   const [customPICInput, setCustomPICInput] = useState('');
 
+  // PIC Searchable Dropdown States
+  const [isPICDropdownOpen, setIsPICDropdownOpen] = useState(false);
+  const [picSearchQuery, setPicSearchQuery] = useState('');
+  const picDropdownRef = useRef<HTMLDivElement>(null);
+  const picSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close PIC dropdown on outside click
+  useEffect(() => {
+    if (!isPICDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (picDropdownRef.current && !picDropdownRef.current.contains(e.target as Node)) {
+        setIsPICDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPICDropdownOpen]);
+
+  // Auto-focus search input when PIC dropdown opens
+  useEffect(() => {
+    if (isPICDropdownOpen && picSearchInputRef.current) {
+      picSearchInputRef.current.focus();
+    }
+  }, [isPICDropdownOpen]);
+
   // Checklist / To-do list
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
   const [newSubtaskText, setNewSubtaskText] = useState('');
@@ -140,6 +171,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setNewLinkTitle('');
     setNewLinkUrl('');
     setCustomPICInput('');
+    setIsPICDropdownOpen(false);
+    setPicSearchQuery('');
   }, [initialTask, defaultStatus, isOpen]);
 
   // Close on Escape key
@@ -615,32 +648,188 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               />
             </div>
 
-            {/* PIC Selector */}
-            <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-slate-400" /> PIC (Person In Charge)
-              </label>
-              <div className="flex gap-1.5">
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleTogglePIC(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                  defaultValue=""
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                >
-                  <option value="" disabled>
-                    + Pilih PIC dari Tim...
-                  </option>
-                  {availablePICs.map((pic) => (
-                    <option key={pic.id} value={pic.name}>
-                      {pic.name} {pic.role ? `(${pic.role})` : ''}
-                    </option>
-                  ))}
-                </select>
+            {/* PIC Selector (Searchable Dropdown) */}
+            <div className="relative" ref={picDropdownRef}>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-400" /> PIC (Person In Charge)
+                </label>
+                {selectedPICs.length > 0 && (
+                  <span className="text-[10px] font-bold text-indigo-600">
+                    {selectedPICs.length} dipilih
+                  </span>
+                )}
               </div>
+
+              {/* Trigger Button (Matches User Screenshot Style) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPICDropdownOpen(!isPICDropdownOpen);
+                  if (!isPICDropdownOpen) setPicSearchQuery('');
+                }}
+                className={`w-full px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between shadow-2xs cursor-pointer ${
+                  isPICDropdownOpen
+                    ? 'border-indigo-500 bg-white ring-2 ring-indigo-100 text-slate-800'
+                    : selectedPICs.length > 0
+                    ? 'border-indigo-200 bg-indigo-50/40 text-indigo-900 hover:bg-indigo-50/70'
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-white text-slate-800'
+                }`}
+              >
+                <span className="truncate">
+                  {selectedPICs.length > 0
+                    ? `+ Pilih PIC dari Tim... (${selectedPICs.length} dipilih)`
+                    : '+ Pilih PIC dari Tim...'}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${
+                    isPICDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Searchable Floating Menu */}
+              {isPICDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-40 animate-fadeIn space-y-2">
+                  {/* Search Input with Icon */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      ref={picSearchInputRef}
+                      type="text"
+                      placeholder="Cari nama host / admin..."
+                      value={picSearchQuery}
+                      onChange={(e) => setPicSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const trimmed = picSearchQuery.trim();
+                          if (trimmed) {
+                            const exact = availablePICs.find(
+                              (p) => p.name.toLowerCase() === trimmed.toLowerCase()
+                            );
+                            if (exact) {
+                              handleTogglePIC(exact.name);
+                            } else if (!selectedPICs.includes(trimmed)) {
+                              setSelectedPICs([...selectedPICs, trimmed]);
+                            }
+                            setPicSearchQuery('');
+                          }
+                        }
+                      }}
+                      className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white shadow-2xs"
+                    />
+                    {picSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setPicSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filtered PIC List */}
+                  {(() => {
+                    const q = picSearchQuery.toLowerCase().trim();
+                    const filtered = availablePICs.filter(
+                      (p) =>
+                        !q ||
+                        p.name.toLowerCase().includes(q) ||
+                        (p.role && p.role.toLowerCase().includes(q))
+                    );
+
+                    return (
+                      <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                        {filtered.length === 0 ? (
+                          <div className="py-3 px-2 text-center text-xs space-y-2">
+                            <p className="text-slate-400">
+                              Tidak ditemukan anggota &quot;<strong>{picSearchQuery}</strong>&quot;
+                            </p>
+                            {picSearchQuery.trim() && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const trimmed = picSearchQuery.trim();
+                                  if (trimmed && !selectedPICs.includes(trimmed)) {
+                                    setSelectedPICs([...selectedPICs, trimmed]);
+                                  }
+                                  setPicSearchQuery('');
+                                }}
+                                className="w-full py-1.5 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Tambahkan &quot;{picSearchQuery.trim()}&quot; sebagai PIC
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          filtered.map((pic) => {
+                            const isSelected = selectedPICs.includes(pic.name);
+                            const isRoleAdmin = pic.role?.toLowerCase().includes('admin');
+                            return (
+                              <div
+                                key={pic.id}
+                                onClick={() => handleTogglePIC(pic.name)}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? 'bg-indigo-50 text-indigo-900 border border-indigo-200/80 shadow-2xs font-bold'
+                                    : 'hover:bg-slate-50 text-slate-700 border border-transparent font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                      isRoleAdmin
+                                        ? 'bg-indigo-600 text-white shadow-2xs'
+                                        : 'bg-purple-600 text-white shadow-2xs'
+                                    }`}
+                                  >
+                                    {pic.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="truncate leading-tight text-slate-800">{pic.name}</div>
+                                    {pic.role && (
+                                      <div className="text-[10px] text-slate-400 font-normal truncate">
+                                        {pic.role}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0">
+                                  {isSelected ? (
+                                    <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center">
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-md border border-slate-300 hover:border-indigo-400" />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Dropdown Footer Actions */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>
+                      {selectedPICs.length > 0 ? `${selectedPICs.length} PIC dipilih` : 'Klik nama untuk memilih'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsPICDropdownOpen(false)}
+                      className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                    >
+                      Selesai
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
