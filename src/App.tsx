@@ -10,6 +10,7 @@ import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
 import { MobileWeeklySchedule } from './components/admin/MobileWeeklySchedule';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import { InvoiceDashboard } from './components/InvoiceDashboard';
+import { TaskManager } from './components/tasks/TaskManager';
 import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt';
 import React, {
   useState,
@@ -44,6 +45,7 @@ import {
   LayoutDashboard,
   Users,
   ClipboardList,
+  CheckSquare,
   MessageSquare,
   AlertTriangle,
   Plus,
@@ -2031,6 +2033,7 @@ export default function App() {
   const [credentialsSubTab, setCredentialsSubTab] = useState<"host_list" | "activity_logs" | "violations">("host_list");
   const [operatorTab, setOperatorTab] = useState<
     | "dashboard_utama"
+    | "task_management"
     | "absensi"
     | "rekap_gaji"
     | "database"
@@ -2038,6 +2041,7 @@ export default function App() {
     | "settings"
     | "data_brand"
     | "reporting_brand"
+    | "invoice"
     | "leads"
     | "admin_privacy"
   >("dashboard_utama");
@@ -3630,6 +3634,7 @@ export default function App() {
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({
+    "cat-tasks": true,
     "cat-host": true,
     "cat-client": true,
     "cat-system": true,
@@ -4964,6 +4969,8 @@ export default function App() {
   const adminNavItems = useMemo(() => {
     const allItems = [
       { tabId: "dashboard_utama", label: "Dashboard Utama", icon: LayoutDashboard },
+      { type: "header", label: "Tugas & Tim", key: "cat-tasks" },
+      { tabId: "task_management", label: "Task Management", icon: CheckSquare, category: "cat-tasks" },
       { type: "header", label: "Manajemen Host", key: "cat-host" },
       { tabId: "absensi", label: "Calender Kerja Host", icon: Calendar, category: "cat-host" },
       { tabId: "rekap_gaji", label: "Absen & Payroll", icon: DollarSign, category: "cat-host" },
@@ -6317,6 +6324,9 @@ export default function App() {
                     {operatorTab === "reporting_brand" && (
                       <span>Reporting Eksternal Brand</span>
                     )}
+                    {operatorTab === "task_management" && (
+                      <span>Task Management & Operasional Tim</span>
+                    )}
                     {operatorTab === "invoice" && (
                       <span>Manajemen Invoice & Penagihan</span>
                     )}
@@ -6560,8 +6570,8 @@ export default function App() {
               {/* WORKSPACE AREA CONTAINER */}
               <div
                 className={`w-full mx-auto flex-1 pb-24 relative min-w-0 ${
-                  operatorTab === "reporting_brand" || operatorTab === "invoice"
-                    ? "p-0 w-full max-w-none"
+                  operatorTab === "reporting_brand" || operatorTab === "invoice" || operatorTab === "task_management"
+                    ? "p-4 md:p-6 w-full max-w-none"
                     : operatorTab === "absensi"
                     ? "p-0 md:px-4 md:py-3 w-full max-w-none md:space-y-4"
                     : operatorTab === "dashboard_utama"
@@ -13030,6 +13040,14 @@ export default function App() {
                     />
                   </div>
                 )}
+                {/* ==================== SUBTAB: TASK MANAGEMENT 📋 ==================== */}
+                {operatorTab === "task_management" && (
+                  <TaskManager
+                    hosts={hosts}
+                    adminAccounts={adminAccounts}
+                    clientBrands={clientBrands}
+                  />
+                )}
                 {/* ==================== SUBTAB: INVOICE & PENAGIHAN 📄 ==================== */}
                 {operatorTab === "invoice" && (
                   <InvoiceDashboard
@@ -13339,6 +13357,10 @@ export default function App() {
                                     {
                                       id: "reporting_brand",
                                       label: "Reporting Brand (Upload)",
+                                    },
+                                    {
+                                      id: "task_management",
+                                      label: "Task Management",
                                     },
                                     {
                                       id: "invoice",
