@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Plus,
@@ -17,6 +17,10 @@ import {
   Archive,
   RotateCcw,
   Sparkles,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  GripVertical,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -46,6 +50,10 @@ interface TaskFormModalProps {
   availablePICs: PICCandidate[];
 }
 
+const SIDEBAR_STORAGE_KEY = 'liva_task_sidebar_width';
+const DEFAULT_SIDEBAR_WIDTH = 620;
+const MIN_SIDEBAR_WIDTH = 420;
+
 export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   isOpen,
   onClose,
@@ -55,6 +63,25 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   defaultStatus = 'todo',
   availablePICs,
 }) => {
+  // Sidebar Width State with LocalStorage Persistence
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!Number.isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH) {
+          return Math.min(parsed, typeof window !== 'undefined' ? window.innerWidth - 40 : 1200);
+        }
+      }
+    } catch {}
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const preMaximizeWidthRef = useRef<number>(DEFAULT_SIDEBAR_WIDTH);
+
+  // Form States
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
@@ -91,7 +118,6 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setStatus(defaultStatus);
       setPriority('moderate');
       setCategory('Live Production');
-      // Default deadline to tomorrow
       const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
       setDeadline(tomorrow);
       setSelectedPICs([]);
@@ -103,6 +129,71 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setNewLinkUrl('');
     setCustomPICInput('');
   }, [initialTask, defaultStatus, isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Drag-to-Resize Logic
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    setIsMaximized(false);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const windowWidth = window.innerWidth;
+      const newWidth = windowWidth - moveEvent.clientX;
+      const clampedWidth = Math.min(
+        Math.max(newWidth, MIN_SIDEBAR_WIDTH),
+        windowWidth - 40
+      );
+      setSidebarWidth(clampedWidth);
+    };
+
+    const onMouseUp = () => {
+      setIsResizing(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+
+      setSidebarWidth((curr) => {
+        try {
+          localStorage.setItem(SIDEBAR_STORAGE_KEY, String(curr));
+        } catch {}
+        return curr;
+      });
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }, []);
+
+  // Quick Preset Width Buttons
+  const setPresetWidth = (targetWidth: number) => {
+    setIsMaximized(false);
+    const clamped = Math.min(Math.max(targetWidth, MIN_SIDEBAR_WIDTH), window.innerWidth - 40);
+    setSidebarWidth(clamped);
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(clamped));
+    } catch {}
+  };
+
+  const toggleMaximize = () => {
+    if (isMaximized) {
+      setIsMaximized(false);
+      setSidebarWidth(preMaximizeWidthRef.current);
+    } else {
+      preMaximizeWidthRef.current = sidebarWidth;
+      setIsMaximized(true);
+      setSidebarWidth(window.innerWidth - 40);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -216,34 +307,124 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fadeIn font-sans">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto">
-        {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+    <div className="fixed inset-0 z-[120] overflow-hidden font-sans">
+      {/* 1. Backdrop Overlay (click to close) */}
+      <div
+        className="fixed inset-0 bg-slate-900/35 backdrop-blur-xs transition-opacity duration-300 animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* 2. Adjustable Sidebar Drawer (slides in from right) */}
+      <aside
+        style={{
+          width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100vw' : `${sidebarWidth}px`,
+        }}
+        className={`fixed top-0 right-0 bottom-0 z-[121] bg-white h-screen flex flex-col shadow-[-12px_0_35px_rgba(0,0,0,0.12)] border-l border-slate-200 animate-slideInRight max-w-full ${
+          isResizing ? 'select-none' : ''
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Draggable Resize Handle on Left Edge (Desktop) */}
+        <div
+          onMouseDown={startResizing}
+          title="Tarik ke kiri atau kanan untuk mengatur lebar sidebar"
+          className="hidden sm:flex absolute -left-2.5 top-0 bottom-0 w-5 cursor-ew-resize items-center justify-center z-30 group"
+        >
+          <div
+            className={`w-1 h-14 rounded-full transition-all shadow-xs ${
+              isResizing
+                ? 'bg-indigo-600 w-1.5 ring-4 ring-indigo-200'
+                : 'bg-slate-300 group-hover:bg-indigo-500 group-hover:w-1.5'
+            }`}
+          />
+        </div>
+
+        {/* Sidebar Header */}
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
               <CheckSquare className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-black text-slate-800 leading-tight">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-black text-slate-800 leading-tight truncate">
                 {initialTask ? 'Edit Detail Task' : 'Tambah Task Baru'}
               </h3>
-              <p className="text-xs text-slate-400 font-medium">
-                {initialTask ? 'Perbarui informasi brief, subtask, dan status' : 'Buat task manajemen tugas tim dan operasional'}
+              <p className="text-[11px] text-slate-400 font-medium truncate">
+                {initialTask ? 'Perbarui informasi brief, subtask, dan status' : 'Buat task manajemen tugas tim'}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          {/* Header Controls: Width Presets & Close */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Quick Width Presets (Desktop) */}
+            <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-lg mr-1 text-[10px] font-bold text-slate-600">
+              <button
+                type="button"
+                onClick={() => setPresetWidth(480)}
+                title="Lebar Standar (480px)"
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  sidebarWidth <= 520 && !isMaximized
+                    ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                Kompak
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresetWidth(640)}
+                title="Lebar Sedang (640px)"
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  sidebarWidth > 520 && sidebarWidth <= 720 && !isMaximized
+                    ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                Sedang
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresetWidth(860)}
+                title="Lebar Luas (860px)"
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  sidebarWidth > 720 && !isMaximized
+                    ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                Lebar
+              </button>
+            </div>
+
+            {/* Maximize / Minimize toggle */}
+            <button
+              type="button"
+              onClick={toggleMaximize}
+              title={isMaximized ? 'Kembalikan Ukuran' : 'Maksimalkan Layar'}
+              className="hidden sm:flex w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 items-center justify-center transition-colors cursor-pointer"
+            >
+              {isMaximized ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {/* Close Sidebar Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              title="Tutup Sidebar (Esc)"
+              className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+        {/* Sidebar Body (Scrollable Form) */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
           {/* Row 1: Nama Task */}
           <div>
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1">
@@ -428,7 +609,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               <FileText className="w-3.5 h-3.5 text-slate-400" /> Detail Brief & Catatan Task
             </label>
             <textarea
-              rows={3}
+              rows={4}
               placeholder="Tuliskan instruksi detail, poin-poin brief siaran, target pencapaian, atau catatan teknis di sini..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -463,7 +644,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             )}
 
             {/* Subtask items list */}
-            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {checklist.map((item) => (
                 <div
                   key={item.id}
@@ -540,7 +721,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             </div>
 
             {/* Existing file links */}
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {fileLinks.map((link) => (
                 <div
                   key={link.id}
@@ -603,8 +784,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             </div>
           </div>
 
-          {/* Modal Footer */}
-          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          {/* Sidebar Footer */}
+          <div className="pt-3 pb-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 sticky bottom-0 bg-white/95 backdrop-blur-sm -mx-4 -mb-4 px-5 py-3">
             <div>
               {initialTask && onDelete && (
                 <button
@@ -633,7 +814,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <CheckSquare className="w-4 h-4" />
                 {initialTask ? 'Simpan Perubahan' : 'Buat Task'}
@@ -641,7 +822,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
+      </aside>
     </div>
   );
 };
