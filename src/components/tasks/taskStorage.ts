@@ -141,7 +141,7 @@ export async function loadTasksFromStorage(): Promise<TaskItem[]> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         return data;
       }
@@ -153,9 +153,9 @@ export async function loadTasksFromStorage(): Promise<TaskItem[]> {
   // 2. Fallback to LocalStorage
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -163,7 +163,7 @@ export async function loadTasksFromStorage(): Promise<TaskItem[]> {
     console.warn('[TaskStorage] Failed to parse local storage tasks:', err);
   }
 
-  // 3. Fallback to initial seeds and persist
+  // 3. Fallback to initial seeds and persist only if never initialized before
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SEED_TASKS));
     saveTasksToStorage(INITIAL_SEED_TASKS).catch(() => {});

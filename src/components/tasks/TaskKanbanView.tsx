@@ -215,9 +215,11 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                                 type="button"
                                 onClick={() => {
                                   setActiveMenuTaskId(null);
-                                  onDeleteTask(task.id);
+                                  if (confirm(`Yakin ingin menghapus task "${task.title}"?`)) {
+                                    onDeleteTask(task.id);
+                                  }
                                 }}
-                                className="w-full px-3 py-1.5 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-2"
+                                className="w-full px-3 py-1.5 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-2 cursor-pointer"
                               >
                                 <Trash2 className="w-3 h-3" />
                                 Hapus Task

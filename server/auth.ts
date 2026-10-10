@@ -122,6 +122,9 @@ function getAdminRequiredTabs(path: string): readonly string[] | null {
   if (isPathUnder(path, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
   if (isPathUnder(path, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
   if (isPathUnder(path, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
+  if (isPathUnder(path, "/settings/liva_tasks") || isPathUnder(path, "/settings/liva_task_settings")) {
+    return MODULE_TAB_REQUIREMENTS.tasks;
+  }
   if (isPathUnder(path, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
   if (isPathUnder(path, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
   if (isPathUnder(path, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;

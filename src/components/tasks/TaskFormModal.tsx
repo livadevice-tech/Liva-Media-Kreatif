@@ -1070,7 +1070,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           {/* Sidebar Footer */}
           <div className="pt-3 pb-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 sticky bottom-0 bg-white/95 backdrop-blur-sm -mx-4 -mb-4 px-5 py-3">
             <div>
-              {initialTask && onDelete && (
+              {initialTask && initialTask.id && onDelete && (
                 <button
                   type="button"
                   onClick={() => {
