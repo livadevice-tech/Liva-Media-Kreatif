@@ -69,6 +69,18 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
     }
   }, [isOpen, settings, initialTab]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Persist helper
@@ -221,49 +233,65 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[150] overflow-y-auto font-sans flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Dialog Card */}
-      <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-200 z-10 flex flex-col max-h-[92vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-800 leading-tight">
-                Kustomisasi Status, Prioritas & Kategori
-              </h3>
-              <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
+    <div className="fixed inset-0 z-[150] bg-slate-50 font-sans flex flex-col w-full h-full overflow-hidden animate-fadeIn">
+      {/* Full Width Top Header */}
+      <div className="px-5 sm:px-8 py-3.5 sm:py-4 border-b border-slate-200/90 bg-white flex items-center justify-between shrink-0 shadow-2xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                Pengaturan Operasional
+              </span>
+              <span className="text-slate-300">•</span>
+              <p className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-indigo-500" />
-                Tersimpan di database MySQL & sinkron di semua device
+                Database MySQL Realtime
               </p>
             </div>
+            <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight mt-0.5">
+              Kustomisasi Status, Prioritas & Kategori Task
+            </h3>
           </div>
+        </div>
+
+        {/* Close Button */}
+        <div className="flex items-center gap-2.5">
+          {savedBadge && (
+            <span className="hidden md:flex text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-fadeIn">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan ke Database
+            </span>
+          )}
+          {isSaving && (
+            <span className="hidden md:flex text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-pulse">
+              Menyimpan...
+            </span>
+          )}
+
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold text-xs transition-all cursor-pointer border border-slate-200 bg-white shadow-2xs"
+            title="Tutup (Esc)"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-slate-500" />
+            <span className="hidden sm:inline">Tutup (Esc)</span>
           </button>
         </div>
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center border-b border-slate-200/80 px-6 bg-slate-50/50 shrink-0 gap-2">
+      {/* Tab Navigation (Pinned below header) */}
+      <div className="bg-white border-b border-slate-200/80 px-5 sm:px-8 shrink-0 flex items-center justify-between">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('status')}
             className={`py-3 px-4 text-xs font-black border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'status'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-indigo-600 text-indigo-600 bg-indigo-50/40'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             }`}
           >
             <Tag className="w-4 h-4" />
@@ -274,8 +302,8 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
             onClick={() => setActiveTab('priority')}
             className={`py-3 px-4 text-xs font-black border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'priority'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-indigo-600 text-indigo-600 bg-indigo-50/40'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             }`}
           >
             <AlertCircle className="w-4 h-4" />
@@ -286,21 +314,23 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
             onClick={() => setActiveTab('category')}
             className={`py-3 px-4 text-xs font-black border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'category'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-indigo-600 text-indigo-600 bg-indigo-50/40'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             }`}
           >
             <Folder className="w-4 h-4" />
             Kategori ({localSettings.categories.length})
           </button>
         </div>
+      </div>
 
-        {/* Tab Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+      {/* Tab Content Body */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-8 bg-slate-50/60">
+        <div className="max-w-4xl mx-auto space-y-6 text-xs">
           {/* ================= TAB 1: STATUS ================= */}
           {activeTab === 'status' && (
             <div className="space-y-4">
-              <div className="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-[11px] text-indigo-900 leading-relaxed">
+              <div className="bg-indigo-50/60 border border-indigo-100 p-3.5 rounded-xl text-xs text-indigo-900 leading-relaxed">
                 Status task menentukan tahapan alur kerja di Kanban Card dan list filter. Anda bisa menambahkan tahapan custom baru (misal: <em>Revisi Script, Menunggu Client, Approval</em>) dan memilih tema warnanya.
               </div>
 
@@ -309,7 +339,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Daftar Status Saat Ini
                 </label>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-2.5">
                   {localSettings.statuses.map((item) => {
                     const meta = getStatusMeta(item.id, localSettings);
                     return (
@@ -448,7 +478,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Daftar Prioritas Saat Ini
                 </label>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-2.5">
                   {localSettings.priorities.map((item) => {
                     const meta = getPriorityMeta(item.id, localSettings);
                     return (
@@ -563,7 +593,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Daftar Kategori Saat Ini
                 </label>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-2.5">
                   {localSettings.categories.map((item) => {
                     const meta = getCategoryMeta(item.name, localSettings);
                     return (
@@ -665,39 +695,29 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleResetToDefaults}
-              className="text-xs text-slate-500 hover:text-slate-800 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-200/60 transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset ke Standar
-            </button>
+      {/* Full Width Footer */}
+      <div className="px-5 sm:px-8 py-3.5 border-t border-slate-200/90 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetToDefaults}
+            className="text-xs text-slate-500 hover:text-slate-800 font-bold flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-all cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Reset ke Standar
+          </button>
+        </div>
 
-            {savedBadge && (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 animate-fadeIn">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan ke Database
-              </span>
-            )}
-            {isSaving && (
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1 animate-pulse">
-                Menyimpan...
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer"
-            >
-              Selesai & Tutup
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Check className="w-4 h-4" />
+            <span>Selesai & Tutup</span>
+          </button>
         </div>
       </div>
     </div>
