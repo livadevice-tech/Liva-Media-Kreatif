@@ -4,7 +4,7 @@ import {
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
   DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
-  Smartphone, Sparkles, ShieldCheck, Download
+  Smartphone, Sparkles, ShieldCheck, Download, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -372,6 +372,54 @@ export default function HostDashboard({
     }
   }, [activeHostObj?.id]);
 
+  const getSchedulePlatform = (schedule: any): string => {
+    if (!schedule) return '-';
+    if (schedule.platform && typeof schedule.platform === 'string' && schedule.platform.trim()) {
+      return schedule.platform.trim();
+    }
+    const brandName = schedule.brandHandled || schedule.brand;
+    const schedShift = schedule.timeSlot || schedule.shift;
+    if (brandName && clientBrands && clientBrands.length > 0) {
+      const cb = clientBrands.find(
+        (c: any) => 
+          (c.name || '').trim().toLowerCase() === (brandName || '').trim().toLowerCase() || 
+          c.id === brandName
+      );
+      if (cb) {
+        if (Array.isArray(cb.sessions) && cb.sessions.length > 0) {
+          const matchedSession = cb.sessions.find(
+            (sess: any) => sess.shift && schedShift && (
+              sess.shift.trim().toLowerCase() === schedShift.trim().toLowerCase() ||
+              schedShift.includes(sess.shift) ||
+              sess.shift.includes(schedShift)
+            )
+          );
+          if (matchedSession?.platform && matchedSession.platform.trim()) {
+            return matchedSession.platform.trim();
+          }
+          if (cb.sessions[0]?.platform && cb.sessions[0].platform.trim()) {
+            return cb.sessions[0].platform.trim();
+          }
+        }
+        if (cb.platform && typeof cb.platform === 'string' && cb.platform.trim()) {
+          return cb.platform.trim();
+        }
+      }
+    }
+    if (brandName && brands && brands.length > 0) {
+      const b = brands.find(
+        (br: any) => (br.name || '').trim().toLowerCase() === (brandName || '').trim().toLowerCase()
+      );
+      if (b?.platform && typeof b.platform === 'string' && b.platform.trim()) {
+        return b.platform.trim();
+      }
+    }
+    if (Array.isArray(activeHostObj?.platforms) && activeHostObj.platforms.length === 1) {
+      return activeHostObj.platforms[0];
+    }
+    return '-';
+  };
+
   useEffect(() => {
     if (!activeHostObj || !computedSchedules) return;
     if (hasAutoFilled) return;
@@ -384,9 +432,10 @@ export default function HostDashboard({
     );
 
     if (todaySchedule) {
+      const resolvedPlatform = todaySchedule.platform || getSchedulePlatform(todaySchedule);
       setHostForm({
         brand: todaySchedule.brandHandled || todaySchedule.brand || '',
-        platform: todaySchedule.platform || '',
+        platform: (resolvedPlatform && resolvedPlatform !== '-') ? resolvedPlatform : '',
         shift: todaySchedule.timeSlot || todaySchedule.shift || '',
         studio: todaySchedule.studio || activeHostObj.studio || ''
       });
@@ -520,6 +569,7 @@ export default function HostDashboard({
         reason,
         earlyMinutes,
         checkInTime: log.checkInTime,
+        platform: log.platform || '',
       });
     });
 
@@ -536,6 +586,7 @@ export default function HostDashboard({
       const hasLog = history.some(h => h.date === schedule.date && h.shift === schedShift && (h.brand === schedule.brandHandled || h.brand === schedule.brand));
       
       if (!hasLog) {
+        const schedPlatform = schedule.platform || getSchedulePlatform(schedule);
         history.push({
           date: schedule.date,
           brand: schedule.brandHandled || schedule.brand || '',
@@ -545,6 +596,7 @@ export default function HostDashboard({
           reason: 'Belum Absen',
           earlyMinutes: 0,
           checkInTime: '-',
+          platform: (schedPlatform && schedPlatform !== '-') ? schedPlatform : '',
         });
       }
     });
@@ -978,27 +1030,53 @@ export default function HostDashboard({
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
             
             <div className="relative z-10">
-              <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">{upcomingLabel}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">{upcomingLabel}</span>
+                {getSchedulePlatform(upcomingSchedule) !== '-' && (
+                  <span className="bg-white/15 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-1.5 border border-white/20 shadow-xs">
+                    <Radio size={11} className="text-emerald-300 animate-pulse shrink-0" />
+                    <span>{getSchedulePlatform(upcomingSchedule)}</span>
+                  </span>
+                )}
+              </div>
               
-              <div className="grid grid-cols-3 gap-2 mt-5 mb-7">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3.5 mt-4 mb-6">
                 <div>
                   <div className="text-[11px] text-white/80 font-medium mb-0.5">Brand</div>
                   <div className="font-bold text-[14px] leading-tight pr-1">{upcomingSchedule.brandHandled || upcomingSchedule.brand}</div>
                 </div>
                 <div>
+                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Platform</div>
+                  <div className="font-bold text-[14px] leading-tight pr-1 flex items-center gap-1.5">
+                    <span>{getSchedulePlatform(upcomingSchedule)}</span>
+                  </div>
+                </div>
+                <div>
                   <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
                   <div className="font-bold text-[14px] leading-tight pr-1">{upcomingSchedule.timeSlot || upcomingSchedule.shift}</div>
                 </div>
-                <div className="text-right">
+                <div>
                   <div className="text-[11px] text-white/80 font-medium mb-0.5">Studio</div>
-                  <div className="font-bold text-[14px] leading-tight">{upcomingSchedule.studio}</div>
+                  <div className="font-bold text-[14px] leading-tight">{upcomingSchedule.studio || '-'}</div>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
                 <button 
-                  onClick={() => setIsAbsenModalOpen(true)}
-                  className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                  onClick={() => {
+                    if (upcomingSchedule) {
+                      const plat = upcomingSchedule.platform || getSchedulePlatform(upcomingSchedule);
+                      setHostForm((prev: any) => ({
+                        ...prev,
+                        brand: upcomingSchedule.brandHandled || upcomingSchedule.brand || prev.brand,
+                        platform: (plat && plat !== '-') ? plat : prev.platform,
+                        shift: upcomingSchedule.timeSlot || upcomingSchedule.shift || prev.shift,
+                        studio: upcomingSchedule.studio || prev.studio,
+                      }));
+                    }
+                    setIsAbsenModalOpen(true);
+                  }}
+                  className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                 >
                   <Clock size={16} className="text-blue-500" /> {hasCheckedInSelectedDate ? 'Sudah Absen' : 'Belum Absen'}
                 </button>
@@ -1048,7 +1126,11 @@ export default function HostDashboard({
                     </span>
                   </div>
                   <div className="font-bold text-xs text-slate-800">
-                    {nextUpcomingScheduleObj.brandHandled || nextUpcomingScheduleObj.brand} • {nextUpcomingScheduleObj.studio}
+                    {nextUpcomingScheduleObj.brandHandled || nextUpcomingScheduleObj.brand}
+                    {getSchedulePlatform(nextUpcomingScheduleObj) !== '-' && (
+                      <span className="text-blue-600 font-semibold"> • {getSchedulePlatform(nextUpcomingScheduleObj)}</span>
+                    )}
+                    {nextUpcomingScheduleObj.studio && ` • ${nextUpcomingScheduleObj.studio}`}
                   </div>
                   <div className="text-[11px] text-slate-500 font-medium">
                     {nextUpcomingScheduleObj.timeSlot || nextUpcomingScheduleObj.shift}
@@ -1106,7 +1188,14 @@ export default function HostDashboard({
                      <CalendarIcon size={20} strokeWidth={1.5} />
                    </div>
                    <div className="flex-1">
-                     <div className="font-bold text-slate-800 text-sm mb-0.5">{log.brand}</div>
+                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                       <span className="font-bold text-slate-800 text-sm">{log.brand}</span>
+                       {log.platform && log.platform !== '-' && (
+                         <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md">
+                           {log.platform}
+                         </span>
+                       )}
+                     </div>
                      <div className="text-[11px] text-slate-500 font-medium mb-0.5">{log.shift}</div>
                      <div className="text-[10px] text-slate-400 font-medium">{new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                    </div>
@@ -1293,7 +1382,7 @@ export default function HostDashboard({
                   </div>
                 </div>
 
-                <div className="flex items-start justify-between mb-1 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-1">
                   <div className="flex items-start gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
                       <Home className="w-3.5 h-3.5 text-indigo-400" />
@@ -1301,6 +1390,16 @@ export default function HostDashboard({
                     <div>
                       <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Brand</div>
                       <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.brandHandled || selectedSchedule.brand}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
+                      <Radio className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Platform</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{getSchedulePlatform(selectedSchedule)}</div>
                     </div>
                   </div>
 
@@ -1320,7 +1419,7 @@ export default function HostDashboard({
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Studio</div>
-                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.studio}</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.studio || '-'}</div>
                     </div>
                   </div>
                 </div>
@@ -1490,6 +1589,19 @@ export default function HostDashboard({
                       )}
                     </div>
                   </div>
+                  {activeHostObj?.platforms && activeHostObj.platforms.length > 0 && (
+                    <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
+                      <span className="text-sm font-bold text-slate-500">Platform Live</span>
+                      <div className="flex flex-wrap gap-2">
+                        {activeHostObj.platforms.map((p: string, idx: number) => (
+                          <span key={idx} className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 flex items-center gap-1">
+                            <Radio size={10} className="text-blue-500" />
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button 
