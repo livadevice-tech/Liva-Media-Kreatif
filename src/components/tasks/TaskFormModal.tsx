@@ -44,6 +44,7 @@ import {
   DEFAULT_TASK_SETTINGS,
 } from './taskTheme';
 import { detectLinkPlatform } from './taskStorage';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
 
 interface PICCandidate {
   id: string;
@@ -107,17 +108,70 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [selectedPICs, setSelectedPICs] = useState<string[]>([]);
   const [customPICInput, setCustomPICInput] = useState('');
 
+  // Custom Dropdown Open States
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+
   // PIC Searchable Dropdown States
   const [isPICDropdownOpen, setIsPICDropdownOpen] = useState(false);
   const [picSearchQuery, setPicSearchQuery] = useState('');
+
+  // Dropdown Refs
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const priorityDropdownRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const categorySearchInputRef = useRef<HTMLInputElement>(null);
   const picDropdownRef = useRef<HTMLDivElement>(null);
   const picSearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Close PIC dropdown on outside click
+  // Toggle Dropdown helpers (mutually exclusive)
+  const toggleStatusDropdown = () => {
+    setIsPriorityDropdownOpen(false);
+    setIsCategoryDropdownOpen(false);
+    setIsPICDropdownOpen(false);
+    setIsStatusDropdownOpen((prev) => !prev);
+  };
+
+  const togglePriorityDropdown = () => {
+    setIsStatusDropdownOpen(false);
+    setIsCategoryDropdownOpen(false);
+    setIsPICDropdownOpen(false);
+    setIsPriorityDropdownOpen((prev) => !prev);
+  };
+
+  const toggleCategoryDropdown = () => {
+    setIsStatusDropdownOpen(false);
+    setIsPriorityDropdownOpen(false);
+    setIsPICDropdownOpen(false);
+    setIsCategoryDropdownOpen((prev) => !prev);
+  };
+
+  const togglePICDropdown = () => {
+    setIsStatusDropdownOpen(false);
+    setIsPriorityDropdownOpen(false);
+    setIsCategoryDropdownOpen(false);
+    setIsPICDropdownOpen((prev) => {
+      if (!prev) setPicSearchQuery('');
+      return !prev;
+    });
+  };
+
+  // Close all dropdowns on outside click
   useEffect(() => {
-    if (!isPICDropdownOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (picDropdownRef.current && !picDropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(target)) {
+        setIsStatusDropdownOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(target)) {
+        setIsPriorityDropdownOpen(false);
+      }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+      if (picDropdownRef.current && !picDropdownRef.current.contains(target)) {
         setIsPICDropdownOpen(false);
       }
     };
@@ -125,7 +179,16 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isPICDropdownOpen]);
+  }, []);
+
+  // Auto-focus category search input when category dropdown opens
+  useEffect(() => {
+    if (isCategoryDropdownOpen && categorySearchInputRef.current) {
+      categorySearchInputRef.current.focus();
+    } else if (!isCategoryDropdownOpen) {
+      setCategorySearchQuery('');
+    }
+  }, [isCategoryDropdownOpen]);
 
   // Auto-focus search input when PIC dropdown opens
   useEffect(() => {
@@ -133,6 +196,21 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       picSearchInputRef.current.focus();
     }
   }, [isPICDropdownOpen]);
+
+  // Helper date formatter: DD Mon YYYY
+  const formatIndonesianDateShort = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    const day = parseInt(parts[2], 10);
+    const month = months[parseInt(parts[1], 10) - 1] || '';
+    const year = parts[0];
+    return `${day} ${month} ${year}`;
+  };
 
   // Checklist / To-do list
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
@@ -173,18 +251,29 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setCustomPICInput('');
     setIsPICDropdownOpen(false);
     setPicSearchQuery('');
+    setIsStatusDropdownOpen(false);
+    setIsPriorityDropdownOpen(false);
+    setIsCategoryDropdownOpen(false);
+    setCategorySearchQuery('');
   }, [initialTask, defaultStatus, isOpen]);
 
-  // Close on Escape key
+  // Close on Escape key (close active dropdown first, or close modal)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
+        if (isStatusDropdownOpen || isPriorityDropdownOpen || isCategoryDropdownOpen || isPICDropdownOpen) {
+          setIsStatusDropdownOpen(false);
+          setIsPriorityDropdownOpen(false);
+          setIsCategoryDropdownOpen(false);
+          setIsPICDropdownOpen(false);
+          return;
+        }
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isStatusDropdownOpen, isPriorityDropdownOpen, isCategoryDropdownOpen, isPICDropdownOpen]);
 
   // Drag-to-Resize Logic
   const startResizing = useCallback((e: React.MouseEvent) => {
@@ -486,9 +575,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           </div>
 
           {/* Row 2: Status, Priority, Category (Customizable & Persisted in MySQL) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-20">
             {/* Status */}
-            <div>
+            <div className={`relative ${isStatusDropdownOpen ? 'z-30' : 'z-10'}`} ref={statusDropdownRef}>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Status
@@ -508,32 +597,79 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                 const meta = getStatusMeta(status, taskSettings);
                 const statusesList = taskSettings?.statuses || DEFAULT_TASK_SETTINGS.statuses;
                 return (
-                  <select
-                    value={status}
-                    onChange={(e) => {
-                      if (e.target.value === '__MANAGE__') {
-                        onOpenSettings?.('status');
-                      } else {
-                        setStatus(e.target.value as TaskStatus);
-                      }
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs transition-all ${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`}
-                  >
-                    {statusesList.map((st) => (
-                      <option key={st.id} value={st.id} className="bg-white text-slate-800">
-                        {st.label}
-                      </option>
-                    ))}
-                    <option value="__MANAGE__" className="bg-indigo-50 text-indigo-700 font-black">
-                      ⚙️ + Kelola Status di Database...
-                    </option>
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={toggleStatusDropdown}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between cursor-pointer shadow-2xs ${meta.badgeBg} ${meta.badgeText} ${meta.borderColor} hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-indigo-200`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        <span className={`w-2.5 h-2.5 rounded-full ${meta.dotColor} shrink-0 ring-2 ring-white/80 shadow-2xs`} />
+                        <span className="truncate">{meta.label}</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          isStatusDropdownOpen ? 'rotate-180 text-indigo-600' : 'opacity-60'
+                        }`}
+                      />
+                    </button>
+
+                    {isStatusDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-fadeIn min-w-[210px] sm:min-w-full space-y-0.5">
+                        <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar pr-0.5">
+                          {statusesList.map((st) => {
+                            const stMeta = getStatusMeta(st.id, taskSettings);
+                            const isSelected = status === st.id;
+                            return (
+                              <button
+                                key={st.id}
+                                type="button"
+                                onClick={() => {
+                                  setStatus(st.id as TaskStatus);
+                                  setIsStatusDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                                  isSelected
+                                    ? `${stMeta.badgeBg} ${stMeta.badgeText} font-black shadow-2xs ring-1 ring-inset ${stMeta.borderColor}`
+                                    : 'text-slate-700 hover:bg-slate-50 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0 truncate">
+                                  <span className={`w-2.5 h-2.5 rounded-full ${stMeta.dotColor} shrink-0 ring-2 ring-white shadow-2xs`} />
+                                  <span className="truncate">{st.label}</span>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-indigo-600 stroke-[2.5] shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {onOpenSettings && (
+                          <>
+                            <div className="border-t border-slate-100 my-1" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsStatusDropdownOpen(false);
+                                onOpenSettings('status');
+                              }}
+                              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50/80 flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                              <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="truncate">+ Kelola Status di Database...</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
             </div>
 
             {/* Priority */}
-            <div>
+            <div className={`relative ${isPriorityDropdownOpen ? 'z-30' : 'z-10'}`} ref={priorityDropdownRef}>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Prioritas
@@ -553,32 +689,79 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                 const meta = getPriorityMeta(priority, taskSettings);
                 const prioritiesList = taskSettings?.priorities || DEFAULT_TASK_SETTINGS.priorities;
                 return (
-                  <select
-                    value={priority}
-                    onChange={(e) => {
-                      if (e.target.value === '__MANAGE__') {
-                        onOpenSettings?.('priority');
-                      } else {
-                        setPriority(e.target.value as TaskPriority);
-                      }
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs transition-all ${meta.badgeBg} ${meta.badgeText} ${meta.badgeBorder}`}
-                  >
-                    {prioritiesList.map((pr) => (
-                      <option key={pr.id} value={pr.id} className="bg-white text-slate-800">
-                        {pr.label}
-                      </option>
-                    ))}
-                    <option value="__MANAGE__" className="bg-amber-50 text-amber-800 font-black">
-                      ⚙️ + Kelola Prioritas di Database...
-                    </option>
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={togglePriorityDropdown}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between cursor-pointer shadow-2xs ${meta.badgeBg} ${meta.badgeText} ${meta.badgeBorder} hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-indigo-200`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        <span className={`w-2.5 h-2.5 rounded-full ${meta.dotColor} shrink-0 ring-2 ring-white/80 shadow-2xs`} />
+                        <span className="truncate">{meta.label}</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          isPriorityDropdownOpen ? 'rotate-180 text-amber-600' : 'opacity-60'
+                        }`}
+                      />
+                    </button>
+
+                    {isPriorityDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-fadeIn min-w-[210px] sm:min-w-full space-y-0.5">
+                        <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar pr-0.5">
+                          {prioritiesList.map((pr) => {
+                            const prMeta = getPriorityMeta(pr.id, taskSettings);
+                            const isSelected = priority === pr.id;
+                            return (
+                              <button
+                                key={pr.id}
+                                type="button"
+                                onClick={() => {
+                                  setPriority(pr.id as TaskPriority);
+                                  setIsPriorityDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                                  isSelected
+                                    ? `${prMeta.badgeBg} ${prMeta.badgeText} font-black shadow-2xs ring-1 ring-inset ${prMeta.badgeBorder}`
+                                    : 'text-slate-700 hover:bg-slate-50 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0 truncate">
+                                  <span className={`w-2.5 h-2.5 rounded-full ${prMeta.dotColor} shrink-0 ring-2 ring-white shadow-2xs`} />
+                                  <span className="truncate">{pr.label}</span>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-amber-600 stroke-[2.5] shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {onOpenSettings && (
+                          <>
+                            <div className="border-t border-slate-100 my-1" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsPriorityDropdownOpen(false);
+                                onOpenSettings('priority');
+                              }}
+                              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-bold text-amber-700 hover:bg-amber-50/80 flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                              <Settings className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span className="truncate">+ Kelola Prioritas di Database...</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
             </div>
 
             {/* Category */}
-            <div>
+            <div className={`relative ${isCategoryDropdownOpen ? 'z-30' : 'z-10'}`} ref={categoryDropdownRef}>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
                   Kategori
@@ -594,19 +777,146 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                   </button>
                 )}
               </div>
-              <input
-                type="text"
-                list="category-suggestions"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Pilih atau ketik kategori..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs"
-              />
-              <datalist id="category-suggestions">
-                {(taskSettings?.categories || DEFAULT_TASK_SETTINGS.categories).map((cat) => (
-                  <option key={cat.id} value={cat.name} />
-                ))}
-              </datalist>
+              {(() => {
+                const meta = getCategoryMeta(category, taskSettings);
+                const categoriesList = taskSettings?.categories || DEFAULT_TASK_SETTINGS.categories;
+                const filteredCategories = categoriesList.filter((c) =>
+                  c.name.toLowerCase().includes(categorySearchQuery.toLowerCase().trim())
+                );
+                const hasExactMatch = categoriesList.some(
+                  (c) => c.name.toLowerCase() === categorySearchQuery.toLowerCase().trim()
+                );
+
+                return (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={toggleCategoryDropdown}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between cursor-pointer shadow-2xs ${
+                        category
+                          ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`
+                          : 'bg-slate-50/50 border-slate-200 text-slate-700'
+                      } hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-indigo-200`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        <Tag className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                        <span className="truncate">{category || 'Pilih atau ketik kategori...'}</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          isCategoryDropdownOpen ? 'rotate-180 text-indigo-600' : 'opacity-60'
+                        }`}
+                      />
+                    </button>
+
+                    {isCategoryDropdownOpen && (
+                      <div className="absolute right-0 left-auto sm:left-0 sm:right-auto top-full mt-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-2 z-50 animate-fadeIn min-w-[240px] w-full max-w-sm space-y-1.5">
+                        {/* Search / Custom input */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            ref={categorySearchInputRef}
+                            type="text"
+                            value={categorySearchQuery}
+                            onChange={(e) => setCategorySearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const trimmed = categorySearchQuery.trim();
+                                if (trimmed) {
+                                  setCategory(trimmed);
+                                  setIsCategoryDropdownOpen(false);
+                                  setCategorySearchQuery('');
+                                }
+                              }
+                            }}
+                            placeholder="Cari atau ketik baru..."
+                            className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white shadow-2xs"
+                          />
+                          {categorySearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setCategorySearchQuery('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Custom Category Prompt when typing something new */}
+                        {categorySearchQuery.trim() && !hasExactMatch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategory(categorySearchQuery.trim());
+                              setIsCategoryDropdownOpen(false);
+                              setCategorySearchQuery('');
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold text-indigo-600 bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100 flex items-center gap-2 transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                            <span className="truncate">Gunakan &quot;{categorySearchQuery.trim()}&quot;</span>
+                          </button>
+                        )}
+
+                        {/* Existing Categories List */}
+                        <div className="max-h-48 overflow-y-auto space-y-0.5 custom-scrollbar pr-0.5">
+                          {filteredCategories.length === 0 && !categorySearchQuery.trim() ? (
+                            <div className="py-2 text-center text-xs text-slate-400">Belum ada kategori</div>
+                          ) : (
+                            filteredCategories.map((c) => {
+                              const cMeta = getCategoryMeta(c.name, taskSettings);
+                              const isSelected = category.toLowerCase() === c.name.toLowerCase();
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCategory(c.name);
+                                    setIsCategoryDropdownOpen(false);
+                                    setCategorySearchQuery('');
+                                  }}
+                                  className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                                    isSelected
+                                      ? `${cMeta.badgeBg} ${cMeta.badgeText} font-black shadow-2xs ring-1 ring-inset ${cMeta.borderColor}`
+                                      : 'text-slate-700 hover:bg-slate-50 font-medium'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 truncate">
+                                    <Tag className="w-3 h-3 opacity-60 shrink-0" />
+                                    <span className="truncate">{c.name}</span>
+                                  </div>
+                                  {isSelected && (
+                                    <Check className="w-4 h-4 text-indigo-600 stroke-[2.5] shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {onOpenSettings && (
+                          <>
+                            <div className="border-t border-slate-100 my-1" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoryDropdownOpen(false);
+                                onOpenSettings('category');
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50/80 flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                              <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="truncate">+ Kelola Kategori di Database...</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -640,12 +950,26 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" /> Deadline
               </label>
-              <input
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
-              />
+              <div className="relative">
+                <CustomDatePicker
+                  value={deadline}
+                  onChange={(val) => setDeadline(val)}
+                  formatDisplay={formatIndonesianDateShort}
+                  placeholder="Pilih tanggal deadline..."
+                  className="w-full text-xs font-bold"
+                  buttonClassName="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all flex items-center justify-between cursor-pointer shadow-2xs"
+                />
+                {deadline && (
+                  <button
+                    type="button"
+                    onClick={() => setDeadline('')}
+                    title="Hapus deadline"
+                    className="absolute right-9 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* PIC Selector (Searchable Dropdown) */}
@@ -664,10 +988,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               {/* Trigger Button (Matches User Screenshot Style) */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsPICDropdownOpen(!isPICDropdownOpen);
-                  if (!isPICDropdownOpen) setPicSearchQuery('');
-                }}
+                onClick={togglePICDropdown}
                 className={`w-full px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between shadow-2xs cursor-pointer ${
                   isPICDropdownOpen
                     ? 'border-indigo-500 bg-white ring-2 ring-indigo-100 text-slate-800'
