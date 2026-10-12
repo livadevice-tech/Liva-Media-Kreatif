@@ -10,6 +10,7 @@ export type AdminTab =
   | "credentials"
   | "settings"
   | "data_brand"
+  | "brand_resources"
   | "reporting_brand"
   | "invoice"
   | "leads"
@@ -22,7 +23,7 @@ export const MODULE_TAB_REQUIREMENTS = {
   logs: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
   schedules: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
   alerts: ["dashboard_utama", "copilot"],
-  clientBrands: ["dashboard_utama", "data_brand", "reporting_brand", "invoice"],
+  clientBrands: ["dashboard_utama", "data_brand", "brand_resources", "reporting_brand", "invoice"],
   clientLeads: ["leads"],
   clientReporting: ["reporting_brand"],
   reportingBrand: ["reporting_brand"],

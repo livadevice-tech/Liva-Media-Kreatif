@@ -2040,6 +2040,7 @@ export default function App() {
     | "credentials"
     | "settings"
     | "data_brand"
+    | "brand_resources"
     | "reporting_brand"
     | "invoice"
     | "leads"
@@ -13127,7 +13128,7 @@ export default function App() {
                 )}
 
                 {/* ==================== SUBTAB: PRIVASI MASTER ADMIN ==================== */}
-                {!loggedInAdminId && operatorTab === "admin_privacy" && (
+                {(!loggedInAdminId || authSession?.accessTabs?.includes("admin_privacy") || (loggedInAdminId && adminAccounts.find((a) => a.id === loggedInAdminId)?.accessTabs.includes("admin_privacy"))) && operatorTab === "admin_privacy" && (
                   <div
                     className="space-y-6 animate-fadeIn"
                     id="operator_admin_privacy_content"
@@ -13329,77 +13330,230 @@ export default function App() {
                                 </div>
                               </div>
 
-                              <div className="mb-5">
-                                <label className="block text-[11px] font-bold text-slate-600 mb-2">
-                                  Pilih Hak Akses Halaman (Centang fitur yang
-                                  diperbolehkan):
-                                </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                              <div className="mb-6">
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-700">
+                                      Pilih Hak Akses Menu Sidebar
+                                    </label>
+                                    <p className="text-[11px] text-slate-500 font-medium">
+                                      Centang menu-menu yang diperbolehkan diakses oleh akun admin ini:
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const allSidebarTabIds = [
+                                          "dashboard_utama",
+                                          "task_management",
+                                          "absensi",
+                                          "rekap_gaji",
+                                          "database",
+                                          "credentials",
+                                          "data_brand",
+                                          "brand_resources",
+                                          "reporting_brand",
+                                          "invoice",
+                                          "settings",
+                                          "admin_privacy",
+                                        ];
+                                        setNewAdminAccess(allSidebarTabIds);
+                                      }}
+                                      className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-white hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
+                                    >
+                                      Pilih Semua
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setNewAdminAccess([])}
+                                      className="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border border-slate-200 shadow-2xs"
+                                    >
+                                      Hapus Semua
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3.5">
                                   {[
                                     {
-                                      id: "dashboard_utama",
-                                      label: "Dashboard Utama",
+                                      categoryTitle: "DASHBOARD",
+                                      items: [
+                                        {
+                                          id: "dashboard_utama",
+                                          label: "Dashboard Utama",
+                                          icon: LayoutDashboard,
+                                        },
+                                      ],
                                     },
                                     {
-                                      id: "absensi",
-                                      label: "Calender Kerja Host",
+                                      categoryTitle: "TUGAS & TIM",
+                                      items: [
+                                        {
+                                          id: "task_management",
+                                          label: "Task Management",
+                                          icon: CheckSquare,
+                                        },
+                                      ],
                                     },
                                     {
-                                      id: "rekap_gaji",
-                                      label: "Absen & Payroll",
+                                      categoryTitle: "MANAJEMEN HOST",
+                                      items: [
+                                        {
+                                          id: "absensi",
+                                          label: "Calender Kerja Host",
+                                          icon: Calendar,
+                                        },
+                                        {
+                                          id: "rekap_gaji",
+                                          label: "Absen & Payroll",
+                                          icon: DollarSign,
+                                        },
+                                        {
+                                          id: "database",
+                                          label: "Database Absen",
+                                          icon: ClipboardList,
+                                        },
+                                        {
+                                          id: "credentials",
+                                          label: "Kredensial Host",
+                                          icon: ShieldCheck,
+                                        },
+                                      ],
                                     },
-                                    { id: "database", label: "Database Absen" },
                                     {
-                                      id: "credentials",
-                                      label: "Kredensial Host",
+                                      categoryTitle: "MANAJEMEN CLIENT",
+                                      items: [
+                                        {
+                                          id: "data_brand",
+                                          label: "Data Brand",
+                                          icon: Briefcase,
+                                        },
+                                        {
+                                          id: "brand_resources",
+                                          label: "Panduan & Script",
+                                          icon: BookOpen,
+                                        },
+                                        {
+                                          id: "reporting_brand",
+                                          label: "Reporting Brand (Upload)",
+                                          icon: LineChart,
+                                        },
+                                        {
+                                          id: "invoice",
+                                          label: "Invoice",
+                                          icon: FileText,
+                                        },
+                                      ],
                                     },
-                                    { id: "data_brand", label: "Data Brand" },
                                     {
-                                      id: "reporting_brand",
-                                      label: "Reporting Brand (Upload)",
+                                      categoryTitle: "SISTEM & INTEGRASI",
+                                      items: [
+                                        {
+                                          id: "settings",
+                                          label: "Platform & Shift",
+                                          icon: Sliders,
+                                        },
+                                      ],
                                     },
                                     {
-                                      id: "task_management",
-                                      label: "Task Management",
+                                      categoryTitle: "KEAMANAN AKUN",
+                                      items: [
+                                        {
+                                          id: "admin_privacy",
+                                          label: "Privasi Master Admin",
+                                          icon: Lock,
+                                        },
+                                      ],
                                     },
-                                    {
-                                      id: "invoice",
-                                      label: "Invoice & Penagihan",
-                                    },
-                                    {
-                                      id: "settings",
-                                      label: "Platform & Shift",
-                                    },
-                                  ].map((tab) => (
-                                    <label
-                                      key={tab.id}
-                                      className="flex items-center gap-2 p-2.5 bg-white border border-slate-100 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={newAdminAccess.includes(
-                                          tab.id,
-                                        )}
-                                        onChange={(e) => {
-                                          if (e.target.checked)
-                                            setNewAdminAccess([
-                                              ...newAdminAccess,
-                                              tab.id,
-                                            ]);
-                                          else
-                                            setNewAdminAccess(
-                                              newAdminAccess.filter(
-                                                (id) => id !== tab.id,
-                                              ),
+                                  ].map((group) => {
+                                    const groupItemIds = group.items.map((i) => i.id);
+                                    const isGroupAllSelected = groupItemIds.every((id) =>
+                                      newAdminAccess.includes(id),
+                                    );
+
+                                    return (
+                                      <div
+                                        key={group.categoryTitle}
+                                        className="bg-white rounded-xl p-3 border border-indigo-100 shadow-2xs"
+                                      >
+                                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
+                                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                            {group.categoryTitle}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (isGroupAllSelected) {
+                                                setNewAdminAccess(
+                                                  newAdminAccess.filter(
+                                                    (id) => !groupItemIds.includes(id),
+                                                  ),
+                                                );
+                                              } else {
+                                                const merged = Array.from(
+                                                  new Set([...newAdminAccess, ...groupItemIds]),
+                                                );
+                                                setNewAdminAccess(merged);
+                                              }
+                                            }}
+                                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                                          >
+                                            {isGroupAllSelected
+                                              ? "Batal Pilih"
+                                              : "Pilih Kategori"}
+                                          </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                                          {group.items.map((tab) => {
+                                            const Icon = tab.icon;
+                                            const isChecked = newAdminAccess.includes(tab.id);
+
+                                            return (
+                                              <label
+                                                key={tab.id}
+                                                className={`flex items-center gap-2.5 p-2.5 rounded-lg border transition-all cursor-pointer ${
+                                                  isChecked
+                                                    ? "bg-indigo-50/70 border-indigo-300 text-indigo-900 shadow-2xs"
+                                                    : "bg-white border-slate-200/80 hover:border-indigo-200 text-slate-700"
+                                                }`}
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={isChecked}
+                                                  onChange={(e) => {
+                                                    if (e.target.checked)
+                                                      setNewAdminAccess([
+                                                        ...newAdminAccess,
+                                                        tab.id,
+                                                      ]);
+                                                    else
+                                                      setNewAdminAccess(
+                                                        newAdminAccess.filter(
+                                                          (id) => id !== tab.id,
+                                                        ),
+                                                      );
+                                                  }}
+                                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                                />
+                                                <Icon
+                                                  className={`w-4 h-4 shrink-0 ${
+                                                    isChecked
+                                                      ? "text-indigo-600"
+                                                      : "text-slate-400"
+                                                  }`}
+                                                />
+                                                <span className="text-xs font-semibold leading-tight select-none">
+                                                  {tab.label}
+                                                </span>
+                                              </label>
                                             );
-                                        }}
-                                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                                      />
-                                      <span className="text-[11px] font-semibold text-slate-700">
-                                        {tab.label}
-                                      </span>
-                                    </label>
-                                  ))}
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
 
@@ -13480,14 +13634,30 @@ export default function App() {
                                       Tidak ada akses
                                     </span>
                                   ) : (
-                                    ad.accessTabs.map((tab) => (
-                                      <span
-                                        key={tab}
-                                        className="text-[9px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-semibold"
-                                      >
-                                        {tab.replace(/_/g, " ")}
-                                      </span>
-                                    ))
+                                    ad.accessTabs.map((tab) => {
+                                      const labelMap: Record<string, string> = {
+                                        dashboard_utama: "Dashboard Utama",
+                                        task_management: "Task Management",
+                                        absensi: "Calender Kerja Host",
+                                        rekap_gaji: "Absen & Payroll",
+                                        database: "Database Absen",
+                                        credentials: "Kredensial Host",
+                                        data_brand: "Data Brand",
+                                        brand_resources: "Panduan & Script",
+                                        reporting_brand: "Reporting Brand (Upload)",
+                                        invoice: "Invoice",
+                                        settings: "Platform & Shift",
+                                        admin_privacy: "Privasi Master Admin",
+                                      };
+                                      return (
+                                        <span
+                                          key={tab}
+                                          className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100/70 px-2 py-0.5 rounded font-semibold"
+                                        >
+                                          {labelMap[tab] || tab.replace(/_/g, " ")}
+                                        </span>
+                                      );
+                                    })
                                   )}
                                 </div>
                               </div>
