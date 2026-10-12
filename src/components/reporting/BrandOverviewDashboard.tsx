@@ -598,7 +598,6 @@ export function BrandOverviewDashboard({
   );
 
   const availableMetricOptions = useMemo(() => {
-    const isPlatformShopee = isShopee;
     const list: Array<{
       key: string;
       label: string;
@@ -607,164 +606,351 @@ export function BrandOverviewDashboard({
       yAxisId: "left" | "right";
       platforms: ("tiktok" | "shopee")[];
       formatValue: (val: number) => string;
-    }> = [
-      // Sale Metrics
-      {
-        key: "gmv",
-        label: "GMV",
-        category: "Sale Metrics",
-        color: "#10b981",
-        yAxisId: "left",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => formatCurrency(v),
-      },
-      {
-        key: "orders",
-        label: isPlatformShopee ? "Purchase" : "Orders",
-        category: "Sale Metrics",
-        color: "#6366f1",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} ${isPlatformShopee ? "pembelian" : "pesanan"}`,
-      },
-      {
-        key: "itemsSold",
-        label: "Item Sold",
-        category: "Sale Metrics",
-        color: "#f59e0b",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} item`,
-      },
-      {
-        key: "clicks",
-        label: isPlatformShopee ? "Add To Cart" : "Product Clicks",
-        category: "Sale Metrics",
-        color: "#0d9488",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} klik`,
-      },
-      {
-        key: "buyers",
-        label: "Customer",
-        category: "Sale Metrics",
-        color: "#db2777",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} pembeli`,
-      },
-      {
-        key: "gmvPerHour",
-        label: "GMV/Hours",
-        category: "Sale Metrics",
-        color: "#8b5cf6",
-        yAxisId: "left",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCurrency(v)}/jam`,
-      },
-      {
-        key: "durationHours",
-        label: "Durasi Live",
-        category: "Sale Metrics",
-        color: "#a855f7",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${v} jam`,
-      },
-      {
-        key: "productImpressions",
-        label: "Product Impressions",
-        category: "Sale Metrics",
-        color: "#ea580c",
-        yAxisId: "right",
-        platforms: ["tiktok"],
-        formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
-      },
-      {
-        key: "conversionRate",
-        label: "Conversion Rate",
-        category: "Sale Metrics",
-        color: "#06b6d4",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${Number(v).toFixed(2)}%`,
-      },
+    }> = isShopee
+      ? [
+          // Shopee Sale Metrics
+          {
+            key: "gmv",
+            label: "GMV",
+            category: "Sale Metrics",
+            color: "#10b981",
+            yAxisId: "left",
+            platforms: ["shopee"],
+            formatValue: (v) => formatCurrency(v),
+          },
+          {
+            key: "orders",
+            label: "Purchase",
+            category: "Sale Metrics",
+            color: "#6366f1",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} pembelian`,
+          },
+          {
+            key: "itemsSold",
+            label: "Item Sold",
+            category: "Sale Metrics",
+            color: "#f59e0b",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} item`,
+          },
+          {
+            key: "aov",
+            label: "AOV",
+            category: "Sale Metrics",
+            color: "#f43f5e",
+            yAxisId: "left",
+            platforms: ["shopee"],
+            formatValue: (v) => formatCurrency(v),
+          },
+          {
+            key: "clicks",
+            label: "Add to Cart",
+            category: "Sale Metrics",
+            color: "#0d9488",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} klik`,
+          },
+          {
+            key: "avgViewDuration",
+            label: "Avg. View Duration",
+            category: "Sale Metrics",
+            color: "#6366f1",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${Number(v).toFixed(1)}s`,
+          },
+          {
+            key: "liveVisits",
+            label: "Viewer Active",
+            category: "Sale Metrics",
+            color: "#06b6d4",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} viewer`,
+          },
+          {
+            key: "gmvPerHour",
+            label: "GMV/Hours",
+            category: "Sale Metrics",
+            color: "#8b5cf6",
+            yAxisId: "left",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCurrency(v)}/jam`,
+          },
+          {
+            key: "durationHours",
+            label: "Durasi Live",
+            category: "Sale Metrics",
+            color: "#a855f7",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${v} jam`,
+          },
+          {
+            key: "conversionRate",
+            label: "Conversion Rate",
+            category: "Sale Metrics",
+            color: "#14b8a6",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${Number(v).toFixed(2)}%`,
+          },
 
-      // Engagement Metrics
-      {
-        key: "penonton",
-        label: isPlatformShopee ? "Views" : "Live Viewer",
-        category: "Engagement Metrics",
-        color: "#0284c7",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} penonton`,
-      },
-      {
-        key: "impressions",
-        label: "Live Impressions",
-        category: "Engagement Metrics",
-        color: "#38bdf8",
-        yAxisId: "right",
-        platforms: ["tiktok"],
-        formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
-      },
-      {
-        key: "likes",
-        label: "Likes",
-        category: "Engagement Metrics",
-        color: "#ef4444",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} likes`,
-      },
-      {
-        key: "comments",
-        label: "Comments",
-        category: "Engagement Metrics",
-        color: "#eab308",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} komen`,
-      },
-      {
-        key: "shares",
-        label: "Shares",
-        category: "Engagement Metrics",
-        color: "#84cc16",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} share`,
-      },
-      {
-        key: "followers",
-        label: "New Followers",
-        category: "Engagement Metrics",
-        color: "#d946ef",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${formatCompactNumber(v)} followers`,
-      },
-      {
-        key: "err",
-        label: "ERR %",
-        category: "Engagement Metrics",
-        color: "#14b8a6",
-        yAxisId: "right",
-        platforms: ["tiktok", "shopee"],
-        formatValue: (v) => `${Number(v).toFixed(2)}%`,
-      },
-    ];
+          // Shopee Engagement & Customer Metrics
+          {
+            key: "penonton",
+            label: "Views",
+            category: "Engagement Metrics",
+            color: "#0284c7",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} penonton`,
+          },
+          {
+            key: "peakViewers",
+            label: "Peak Viewer",
+            category: "Engagement Metrics",
+            color: "#0891b2",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} penonton`,
+          },
+          {
+            key: "shopVouchers",
+            label: "Voucher Claim",
+            category: "Engagement Metrics",
+            color: "#d97706",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} voucher`,
+          },
+          {
+            key: "buyers",
+            label: "Customer",
+            category: "Engagement Metrics",
+            color: "#db2777",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} pembeli`,
+          },
+          {
+            key: "likes",
+            label: "Likes",
+            category: "Engagement Metrics",
+            color: "#ef4444",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} likes`,
+          },
+          {
+            key: "comments",
+            label: "Comments",
+            category: "Engagement Metrics",
+            color: "#eab308",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} komen`,
+          },
+          {
+            key: "shares",
+            label: "Shares",
+            category: "Engagement Metrics",
+            color: "#84cc16",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${formatCompactNumber(v)} share`,
+          },
+          {
+            key: "err",
+            label: "ERR %",
+            category: "Engagement Metrics",
+            color: "#10b981",
+            yAxisId: "right",
+            platforms: ["shopee"],
+            formatValue: (v) => `${Number(v).toFixed(2)}%`,
+          },
+        ]
+      : [
+          // TikTok Sale Metrics
+          {
+            key: "gmv",
+            label: "GMV",
+            category: "Sale Metrics",
+            color: "#10b981",
+            yAxisId: "left",
+            platforms: ["tiktok"],
+            formatValue: (v) => formatCurrency(v),
+          },
+          {
+            key: "orders",
+            label: "Orders",
+            category: "Sale Metrics",
+            color: "#6366f1",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} pesanan`,
+          },
+          {
+            key: "itemsSold",
+            label: "Item Sold",
+            category: "Sale Metrics",
+            color: "#f59e0b",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} item`,
+          },
+          {
+            key: "aov",
+            label: "AOV",
+            category: "Sale Metrics",
+            color: "#f43f5e",
+            yAxisId: "left",
+            platforms: ["tiktok"],
+            formatValue: (v) => formatCurrency(v),
+          },
+          {
+            key: "buyers",
+            label: "Customer",
+            category: "Sale Metrics",
+            color: "#db2777",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} pembeli`,
+          },
+          {
+            key: "productImpressions",
+            label: "Product Impressions",
+            category: "Sale Metrics",
+            color: "#ea580c",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
+          },
+          {
+            key: "clicks",
+            label: "Product Clicks",
+            category: "Sale Metrics",
+            color: "#0d9488",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} klik`,
+          },
+          {
+            key: "gmvPerHour",
+            label: "GMV/Hours",
+            category: "Sale Metrics",
+            color: "#8b5cf6",
+            yAxisId: "left",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCurrency(v)}/jam`,
+          },
+          {
+            key: "durationHours",
+            label: "Durasi Live",
+            category: "Sale Metrics",
+            color: "#a855f7",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${v} jam`,
+          },
+          {
+            key: "conversionRate",
+            label: "Conversion Rate",
+            category: "Sale Metrics",
+            color: "#06b6d4",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${Number(v).toFixed(2)}%`,
+          },
 
-    const currentPlatform = isShopee ? "shopee" : "tiktok";
-    return list.filter((m) => m.platforms.includes(currentPlatform));
+          // TikTok Engagement Metrics
+          {
+            key: "impressions",
+            label: "Live Impressions",
+            category: "Engagement Metrics",
+            color: "#38bdf8",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} tayangan`,
+          },
+          {
+            key: "penonton",
+            label: "Live Viewer",
+            category: "Engagement Metrics",
+            color: "#0284c7",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} penonton`,
+          },
+          {
+            key: "likes",
+            label: "Likes",
+            category: "Engagement Metrics",
+            color: "#ef4444",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} likes`,
+          },
+          {
+            key: "comments",
+            label: "Comments",
+            category: "Engagement Metrics",
+            color: "#eab308",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} komen`,
+          },
+          {
+            key: "shares",
+            label: "Shares",
+            category: "Engagement Metrics",
+            color: "#84cc16",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} share`,
+          },
+          {
+            key: "followers",
+            label: "New Followers",
+            category: "Engagement Metrics",
+            color: "#d946ef",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${formatCompactNumber(v)} followers`,
+          },
+          {
+            key: "avgViewDuration",
+            label: "Avg. View Duration",
+            category: "Engagement Metrics",
+            color: "#6366f1",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${Number(v).toFixed(1)}s`,
+          },
+          {
+            key: "err",
+            label: "ERR %",
+            category: "Engagement Metrics",
+            color: "#14b8a6",
+            yAxisId: "right",
+            platforms: ["tiktok"],
+            formatValue: (v) => `${Number(v).toFixed(2)}%`,
+          },
+        ];
+
+    return list;
   }, [isShopee]);
 
   const isMetricActive = (key: string) => {
     if (activeMetrics.includes(key)) return true;
     if (key === "penonton" && (activeMetrics.includes("views") || activeMetrics.includes("penonton"))) return true;
     if (key === "views" && (activeMetrics.includes("views") || activeMetrics.includes("penonton"))) return true;
+    if (key === "liveVisits" && (activeMetrics.includes("viewerActive") || activeMetrics.includes("liveVisits"))) return true;
+    if (key === "viewerActive" && (activeMetrics.includes("viewerActive") || activeMetrics.includes("liveVisits"))) return true;
     return false;
   };
 
@@ -790,7 +976,9 @@ export function BrandOverviewDashboard({
         (m) =>
           m !== key &&
           !(key === "penonton" && m === "views") &&
-          !(key === "views" && m === "penonton")
+          !(key === "views" && m === "penonton") &&
+          !(key === "liveVisits" && m === "viewerActive") &&
+          !(key === "viewerActive" && m === "liveVisits")
       );
       setActiveMetrics(next);
     } else {
@@ -849,6 +1037,16 @@ export function BrandOverviewDashboard({
       const sessionsCount = point.sessionsCount || 0;
       const avgViewDurationSum = point.avgViewDurationSum || 0;
       const liveVisits = point.liveVisits || 0;
+      const peakViewers = point.peakViewers || 0;
+      const shopVouchers = point.shopVouchers || 0;
+
+      const aov = orders > 0 ? Math.round(gmv / orders) : 0;
+      const avgViewDuration =
+        sessionsCount > 0
+          ? Number((avgViewDurationSum / sessionsCount).toFixed(1))
+          : point.avgViewDuration
+          ? Number(Number(point.avgViewDuration).toFixed(1))
+          : 0;
 
       let conversionRate = 0;
       if (clicks > 0) conversionRate = (orders / clicks) * 100;
@@ -879,6 +1077,12 @@ export function BrandOverviewDashboard({
         conversionRate,
         gmvPerHour,
         err,
+        aov,
+        peakViewers,
+        shopVouchers,
+        liveVisits,
+        viewerActive: liveVisits,
+        avgViewDuration,
       };
     });
   }, [chartData, granularity, isShopee]);
@@ -1225,7 +1429,7 @@ export function BrandOverviewDashboard({
                     {/* Engagement Metrics */}
                     <div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-                        Engagement Metrics
+                        {isShopee ? "Engagement & Customer Metrics" : "Engagement Metrics"}
                       </div>
                       <div className="space-y-0.5">
                         {engagementMetricOptions.map((opt) => {

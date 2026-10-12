@@ -151,6 +151,20 @@ export const liveChartMetricOptions = [
 
   // --- Engagement Metrics (Shopee specific) ---
   {
+    key: "peakViewers",
+    label: "Peak Viewer",
+    color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    category: "Engagement Metrics",
+    platforms: ["shopee"],
+  },
+  {
+    key: "shopVouchers",
+    label: "Voucher Claim",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+    category: "Engagement Metrics",
+    platforms: ["shopee"],
+  },
+  {
     key: "liveVisits",
     label: "Viewer Active",
     color: "bg-blue-50 text-blue-700 border-blue-200",
