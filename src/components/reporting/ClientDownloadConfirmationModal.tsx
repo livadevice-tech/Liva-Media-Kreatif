@@ -153,9 +153,12 @@ export function ClientDownloadConfirmationModal({
   const [isMaximized, setIsMaximized] = useState(false);
   const preMaximizeWidthRef = useRef<number>(DEFAULT_EXPORT_SIDEBAR_WIDTH);
 
-  // Synchronize on modal open or incoming props
+  const prevIsOpenRef = useRef(false);
+
+  // Synchronize ONLY when the modal opens (transitions from closed to open)
+  // This prevents background polling / re-renders from resetting the user's custom date/shift choices
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       const initialPlat =
         !platform || platform === "all" || platform === "Semua Platform"
           ? "Semua Platform"
@@ -173,6 +176,7 @@ export function ClientDownloadConfirmationModal({
       setNewRuleDate(startDate || "");
       setNewRuleShift(cleanedShiftsList[0] || "");
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, startDate, endDate, platform, initialShiftFilters, cleanedShiftsList]);
 
   // Keep newRuleShift updated if empty
