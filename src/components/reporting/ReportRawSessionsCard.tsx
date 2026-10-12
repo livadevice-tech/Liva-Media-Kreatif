@@ -1,10 +1,17 @@
 import React from "react";
+import * as XLSX from "xlsx";
 import { ReportRawTableControls } from "./ReportRawTableControls";
 import { ReportRawSessionsTable } from "./ReportRawSessionsTable";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
+import { formatDisplayDate } from "../../shared/utils/appUi";
+import {
+  formatLiveSessionDuration,
+  getLiveSessionMetrics,
+} from "../../shared/utils/liveSessionsTable";
 import type { BrandDashboardSettings } from "../../types";
 
 interface ReportRawSessionsCardProps {
+  brandName?: string;
   reportingShopeeRawTab: "day" | "shift" | "dayOfWeek" | "raw";
   setReportingShopeeRawTab: (
     value: "day" | "shift" | "dayOfWeek" | "raw",
@@ -54,6 +61,7 @@ function getGroupedFirstHeader(tab: "day" | "shift" | "dayOfWeek") {
 }
 
 export function ReportRawSessionsCard({
+  brandName,
   reportingShopeeRawTab,
   setReportingShopeeRawTab,
   shifts,
@@ -80,6 +88,173 @@ export function ReportRawSessionsCard({
   const hc = brandDashboardSettings?.hiddenColumns || [];
   const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
 
+  const handleExportTableExcel = () => {
+    if (!sortedTableLogs || sortedTableLogs.length === 0) return;
+
+    let rows: any[] = [];
+    const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
+
+    if (reportingShopeeRawTab === "raw") {
+      // Export per session (saat di-start)
+      rows = sortedTableLogs.map((log, idx) => {
+        const metrics = getLiveSessionMetrics(log);
+        const startFormatted = formatDisplayDate(log.dateTime || log.date, log.platform);
+        return {
+          "No": idx + 1,
+          "Tanggal & Jam Mulai": startFormatted || log.dateTime || log.date || "-",
+          "Durasi": formatLiveSessionDuration(log.duration || 0),
+          "Viewer": metrics.viewer,
+          "GMV (Rp)": log.gmv || 0,
+          "Items Sold": log.products_sold || log.items_sold || 0,
+          "Avg. View Duration (detik)": Number((log.avgViewDuration || 0).toFixed(2)),
+          "Orders": metrics.customers,
+          "Conversion Rate (%)": Number(metrics.conversionRate.toFixed(2)),
+          "Platform": log.platform || (isShopee ? "Shopee Live" : "TikTok Live"),
+          "Shift": log.shift || "-",
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sesi Live");
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Sesi_Live_Per_Start.xlsx`);
+    } else if (reportingShopeeRawTab === "day") {
+      // Export Akumulasi Harian
+      const groups: Record<string, any> = {};
+      sortedTableLogs.forEach((log) => {
+        const dStr = String(log.dateTime || log.date || "");
+        const dPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
+        let key = dPart;
+        const dSplit = dPart.split("-");
+        if (dSplit.length === 3) {
+          key = dSplit[0].length === 4 ? `${dSplit[2]}-${dSplit[1]}-${dSplit[0]}` : `${dSplit[0]}-${dSplit[1]}-${dSplit[2]}`;
+        }
+        if (!groups[key]) {
+          groups[key] = { label: key, rawDate: dPart, sessionCount: 0, duration: 0, viewer: 0, gmv: 0, itemsSold: 0, orders: 0, clicks: 0, avgViewDurationSum: 0 };
+        }
+        const g = groups[key];
+        const m = getLiveSessionMetrics(log);
+        g.sessionCount += 1;
+        g.duration += (log.duration || 0);
+        g.viewer += m.viewer;
+        g.gmv += (log.gmv || 0);
+        g.itemsSold += (log.products_sold || log.items_sold || 0);
+        g.orders += m.customers;
+        g.clicks += m.clicks;
+        g.avgViewDurationSum += (log.avgViewDuration || 0);
+      });
+      const sortedGroups = Object.values(groups).sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
+      rows = sortedGroups.map((g, idx) => {
+        const avgView = g.sessionCount > 0 ? g.avgViewDurationSum / g.sessionCount : 0;
+        const cr = isShopee ? (g.viewer > 0 ? (g.orders / g.viewer) * 100 : 0) : (g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0);
+        return {
+          "No": idx + 1,
+          "Tanggal": g.label,
+          "Jumlah Sesi": g.sessionCount,
+          "Total Durasi": formatLiveSessionDuration(g.duration),
+          "Viewer": g.viewer,
+          "GMV (Rp)": g.gmv,
+          "Items Sold": g.itemsSold,
+          "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
+          "Orders": g.orders,
+          "Conversion Rate (%)": Number(cr.toFixed(2)),
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Akumulasi Harian");
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Akumulasi_Harian.xlsx`);
+    } else if (reportingShopeeRawTab === "shift") {
+      // Export per shift
+      const groups: Record<string, any> = {};
+      sortedTableLogs.forEach((log) => {
+        const key = log.shift || "Lainnya";
+        if (adminShiftChecklist.length > 0 && !adminShiftChecklist.includes(key)) return;
+        if (!groups[key]) {
+          groups[key] = { label: key, sessionCount: 0, duration: 0, viewer: 0, gmv: 0, itemsSold: 0, orders: 0, clicks: 0, avgViewDurationSum: 0 };
+        }
+        const g = groups[key];
+        const m = getLiveSessionMetrics(log);
+        g.sessionCount += 1;
+        g.duration += (log.duration || 0);
+        g.viewer += m.viewer;
+        g.gmv += (log.gmv || 0);
+        g.itemsSold += (log.products_sold || log.items_sold || 0);
+        g.orders += m.customers;
+        g.clicks += m.clicks;
+        g.avgViewDurationSum += (log.avgViewDuration || 0);
+      });
+      rows = Object.values(groups).map((g, idx) => {
+        const avgView = g.sessionCount > 0 ? g.avgViewDurationSum / g.sessionCount : 0;
+        const cr = isShopee ? (g.viewer > 0 ? (g.orders / g.viewer) * 100 : 0) : (g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0);
+        return {
+          "No": idx + 1,
+          "Shift": g.label,
+          "Jumlah Sesi": g.sessionCount,
+          "Total Durasi": formatLiveSessionDuration(g.duration),
+          "Viewer": g.viewer,
+          "GMV (Rp)": g.gmv,
+          "Items Sold": g.itemsSold,
+          "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
+          "Orders": g.orders,
+          "Conversion Rate (%)": Number(cr.toFixed(2)),
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Per Shift");
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Per_Shift.xlsx`);
+    } else {
+      // Export per hari dalam seminggu
+      const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      const groups: Record<string, any> = {};
+      sortedTableLogs.forEach((log) => {
+        const dStr = String(log.dateTime || log.date || "");
+        const dPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
+        const dSplit = dPart.split("-");
+        let dayName = "Unknown";
+        if (dSplit.length === 3) {
+          const dateObj = dSplit[0].length === 4 ? new Date(dPart) : new Date(`${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`);
+          if (!Number.isNaN(dateObj.getTime())) {
+            dayName = DAYS[dateObj.getDay()];
+          }
+        }
+        if (!groups[dayName]) {
+          groups[dayName] = { label: dayName, sessionCount: 0, duration: 0, viewer: 0, gmv: 0, itemsSold: 0, orders: 0, clicks: 0, avgViewDurationSum: 0 };
+        }
+        const g = groups[dayName];
+        const m = getLiveSessionMetrics(log);
+        g.sessionCount += 1;
+        g.duration += (log.duration || 0);
+        g.viewer += m.viewer;
+        g.gmv += (log.gmv || 0);
+        g.itemsSold += (log.products_sold || log.items_sold || 0);
+        g.orders += m.customers;
+        g.clicks += m.clicks;
+        g.avgViewDurationSum += (log.avgViewDuration || 0);
+      });
+      rows = Object.values(groups).map((g, idx) => {
+        const avgView = g.sessionCount > 0 ? g.avgViewDurationSum / g.sessionCount : 0;
+        const cr = isShopee ? (g.viewer > 0 ? (g.orders / g.viewer) * 100 : 0) : (g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0);
+        return {
+          "No": idx + 1,
+          "Hari": g.label,
+          "Jumlah Sesi": g.sessionCount,
+          "Total Durasi": formatLiveSessionDuration(g.duration),
+          "Viewer": g.viewer,
+          "GMV (Rp)": g.gmv,
+          "Items Sold": g.itemsSold,
+          "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
+          "Orders": g.orders,
+          "Conversion Rate (%)": Number(cr.toFixed(2)),
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Per Hari");
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Per_Hari.xlsx`);
+    }
+  };
+
   return (
     <>
       {!hideControls && (
@@ -91,6 +266,7 @@ export function ReportRawSessionsCard({
           setAdminShiftChecklist={setAdminShiftChecklist}
           title={isShopee ? "Performa Shopee Live Harian" : "Performa TikTok Live Harian"}
           isClientView={isClientView}
+          onExportTable={handleExportTableExcel}
         />
       )}
 

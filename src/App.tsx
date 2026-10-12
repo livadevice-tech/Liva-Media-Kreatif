@@ -5732,6 +5732,7 @@ export default function App() {
                         setIsClientCalendarOpen(false);
                       }}
                       onCancelCustom={() => setIsClientCalendarOpen(false)}
+                      onExport={() => setIsDownloadModalOpen(true)}
                       periodLabel={
                         clientDateFilterType === "latest"
                           ? (() => {
@@ -6022,6 +6023,7 @@ export default function App() {
                     dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
                     selectedLatestDate: params.startDate,
                     platformFilter: params.platform,
+                    exportMode: params.exportMode,
                   });
                 }}
                 onDownloadPdf={(params) => {
@@ -6083,6 +6085,7 @@ export default function App() {
                     dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
                     selectedLatestDate: params.startDate,
                     platformFilter: params.platform,
+                    exportMode: params.exportMode,
                   });
                 }}
               />
@@ -12972,6 +12975,7 @@ export default function App() {
                           dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
                           selectedLatestDate: params.startDate,
                           platformFilter: params.platform,
+                          exportMode: params.exportMode,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
@@ -13035,6 +13039,7 @@ export default function App() {
                           dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
                           selectedLatestDate: params.startDate,
                           platformFilter: params.platform,
+                          exportMode: params.exportMode,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}

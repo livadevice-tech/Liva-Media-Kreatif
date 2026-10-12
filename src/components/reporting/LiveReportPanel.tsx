@@ -172,6 +172,7 @@ export function LiveReportPanel({
         />
 
         <ReportRawSessionsCard
+        brandName={brandName || activeReportBrandId}
         reportingShopeeRawTab={reportingShopeeRawTab}
         setReportingShopeeRawTab={setReportingShopeeRawTab}
         shifts={shifts}

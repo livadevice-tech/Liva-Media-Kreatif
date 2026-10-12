@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatDisplayDate } from "./appUi";
+import { formatLiveSessionDuration, getLiveSessionMetrics } from "./liveSessionsTable";
 
 export function exportReportToPdf({
   reportType,
@@ -11,6 +13,7 @@ export function exportReportToPdf({
   dateFilterType,
   selectedLatestDate,
   platformFilter,
+  exportMode = "sessions",
 }: {
   reportType: "live" | "product" | "engagement" | "pipeline";
   selectedMetrics: string[];
@@ -21,136 +24,139 @@ export function exportReportToPdf({
   dateFilterType?: string;
   selectedLatestDate?: string;
   platformFilter?: string;
+  exportMode?: "sessions" | "daily";
 }) {
   let dataToExport: any[] = [];
+  const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
 
   if (reportType === "live" && liveReportView) {
-    dataToExport = liveReportView.filteredDb.map((log: any) => {
-      const row: any = {};
-      const isTikTok = String(log.platform || "").toLowerCase().includes("tiktok");
-      const isShopee = String(log.platform || "").toLowerCase().includes("shopee");
+    const rawLogs = (liveReportView.tableLogs && liveReportView.tableLogs.length > 0)
+      ? liveReportView.tableLogs
+      : (liveReportView.filteredDb || []);
 
-      if (selectedMetrics.includes("date"))
-        row["Tanggal"] = log.date || log.dateTime?.split(" ")[0] || "-";
-      if (selectedMetrics.includes("time"))
-        row["Jam Mulai"] = log.dateTime?.includes(" ")
-          ? log.dateTime.split(" ")[1]
-          : "-";
-      if (selectedMetrics.includes("platform")) row["Platform"] = log.platform || "-";
-      if (selectedMetrics.includes("shift")) row["Shift"] = log.shift || "-";
-      if (selectedMetrics.includes("duration") || selectedMetrics.includes("duration_hours")) {
-        const sec = log.duration || log.liveDuration || 0;
-        const h = Math.floor(sec / 3600);
-        const m = Math.round((sec % 3600) / 60);
-        row["Durasi Live"] = `${h}h ${m}m (${sec}s)`;
-      }
+    if (exportMode === "daily") {
+      // Group by date (Akumulasi Per Hari)
+      const groups: Record<string, any> = {};
+      rawLogs.forEach((log: any) => {
+        const dStr = String(log.dateTime || log.date || "");
+        const dPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
+        let key = dPart;
+        const dSplit = dPart.split("-");
+        if (dSplit.length === 3) {
+          if (dSplit[0].length === 4) {
+            key = `${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`;
+          } else {
+            key = `${dSplit[0]}-${dSplit[1]}-${dSplit[2]}`;
+          }
+        }
+        if (!groups[key]) {
+          groups[key] = {
+            dateKey: key,
+            rawDate: dPart,
+            sessionCount: 0,
+            duration: 0,
+            viewer: 0,
+            gmv: 0,
+            itemsSold: 0,
+            orders: 0,
+            buyers: 0,
+            clicks: 0,
+            avgViewDurationSum: 0,
+            platform: log.platform || "-",
+          };
+        }
+        const g = groups[key];
+        const m = getLiveSessionMetrics(log);
+        g.sessionCount += 1;
+        g.duration += (log.duration || 0);
+        g.viewer += m.viewer;
+        g.gmv += (log.gmv || 0);
+        g.itemsSold += (log.products_sold || log.items_sold || 0);
+        g.orders += m.orders;
+        g.buyers += m.customers;
+        g.clicks += m.clicks;
+        g.avgViewDurationSum += (log.avgViewDuration || 0);
+      });
 
-      // Sales Metrics
-      if (selectedMetrics.includes("gmv")) row["GMV (Rp)"] = log.gmv || 0;
-      if (selectedMetrics.includes("items_sold") || selectedMetrics.includes("products_sold"))
-        row["Item Terjual"] = log.products_sold || log.items_sold || 0;
-      if (selectedMetrics.includes("orders"))
-        row["Orders"] = log.orders || 0;
-      if (selectedMetrics.includes("buyers") || selectedMetrics.includes("viewers"))
-        row["Customer / Pembeli"] = log.buyers || log.orders || 0;
-      if (selectedMetrics.includes("aov"))
-        row["AOV (Rp)"] = log.aov || (log.orders > 0 ? Math.round(log.gmv / log.orders) : 0);
-      if (selectedMetrics.includes("est_income")) {
-        const sec = log.duration || log.liveDuration || 0;
-        row["GMV / Jam (Rp)"] = sec > 0 ? Math.round(((log.gmv || 0) / sec) * 3600) : 0;
-      }
+      const sortedGroups = Object.values(groups).sort((a, b) => {
+        return new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime();
+      });
 
-      // Funnel & View Metrics
-      if (selectedMetrics.includes("impressions"))
-        row[isTikTok ? "Live Impressions" : "View"] = log.impressions || log.views || 0;
-      if (selectedMetrics.includes("live_viewer"))
-        row["Viewer Active"] = log.liveVisits || log.views || log.penonton || 0;
-      if (selectedMetrics.includes("penonton"))
-        row["Penonton (Total)"] = Math.max(log.impressions || 0, log.views || 0, log.liveVisits || 0, log.penonton || 0);
-      if (selectedMetrics.includes("product_impressions"))
-        row["Product Impressions"] = log.productImpressions || 0;
-      if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks"))
-        row[isShopee ? "Add to Cart" : "Product Clicks"] = log.clicks || 0;
-      if (selectedMetrics.includes("shop_vouchers"))
-        row["Voucher Claim"] = log.shopVouchers || 0;
-      if (selectedMetrics.includes("conversion_rate")) {
-        const v = Math.max(log.impressions || 0, log.views || 0, log.liveVisits || 0, log.penonton || 0);
-        const b = log.buyers || log.orders || 0;
-        row["Conversion Rate (%)"] = v > 0 ? ((b / v) * 100).toFixed(2) : "0.00";
-      }
+      dataToExport = sortedGroups.map((g, idx) => {
+        const row: any = {};
+        const avgViewSec = g.sessionCount > 0 ? g.avgViewDurationSum / g.sessionCount : 0;
+        const convRate = g.viewer > 0 ? (g.buyers / g.viewer) * 100 : 0;
 
-      // Engagement Metrics
-      if (selectedMetrics.includes("likes")) row["Total Likes"] = log.likes || 0;
-      if (selectedMetrics.includes("comments")) row["Total Komentar"] = log.comments || 0;
-      if (selectedMetrics.includes("shares")) row["Total Shares"] = log.shares || 0;
-      if (selectedMetrics.includes("new_followers") || selectedMetrics.includes("followers"))
-        row["Pengikut Baru"] = log.followers || log.newFollowers || 0;
-      if (selectedMetrics.includes("avg_view_duration"))
-        row["Rata-rata Waktu Tonton (detik)"] = log.avgViewDuration || 0;
-      if (selectedMetrics.includes("peak_viewers"))
-        row["Peak Viewers"] = log.peakViewers || 0;
-      if (selectedMetrics.includes("err") || selectedMetrics.includes("engagement_rate")) {
-        const totalEng = (log.likes || 0) + (log.comments || 0) + (log.shares || 0);
-        const imp = log.impressions || log.views || 0;
-        row["ERR (%)"] = imp > 0 ? ((totalEng / imp) * 100).toFixed(2) : "0.00";
-      }
+        row["No"] = idx + 1;
+        row["Tanggal"] = g.dateKey;
+        row["Jumlah Sesi"] = g.sessionCount;
+        row["Durasi Total"] = formatLiveSessionDuration(g.duration);
+        row["Platform"] = g.platform;
+        row["Viewer"] = new Intl.NumberFormat("id-ID").format(g.viewer);
+        row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(g.gmv);
+        row["Item Terjual"] = new Intl.NumberFormat("id-ID").format(g.itemsSold);
+        row["Avg. View"] = `${avgViewSec.toFixed(1)}s`;
+        row["Orders"] = new Intl.NumberFormat("id-ID").format(g.orders);
+        row["CR (%)"] = `${convRate.toFixed(2)}%`;
+        return row;
+      });
+    } else {
+      // PER SESI LIVE SAAT DI-START (INDIVIDUAL)
+      const sortedLogs = [...rawLogs].sort((a, b) => {
+        const timeA = new Date(a.dateTime || a.date || 0).getTime();
+        const timeB = new Date(b.dateTime || b.date || 0).getTime();
+        return timeB - timeA;
+      });
 
-      return row;
-    });
+      dataToExport = sortedLogs.map((log: any, idx: number) => {
+        const row: any = {};
+        const m = getLiveSessionMetrics(log);
+        const formattedStart = formatDisplayDate(log.dateTime || log.date, log.platform);
+
+        row["No"] = idx + 1;
+        row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
+        row["Platform"] = log.platform || "-";
+        row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
+        row["Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
+        row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
+        row["Items Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
+        row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
+        row["Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
+        row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
+
+        return row;
+      });
+    }
   } else if (reportType === "product" && productReportView) {
-    dataToExport = productReportView.aggregatedSkus.map((sku: any) => {
+    dataToExport = productReportView.aggregatedSkus.map((sku: any, idx: number) => {
       const row: any = {};
-      if (selectedMetrics.includes("date")) {
-        row["Tanggal"] =
-          dateFilterType === "latest" ? selectedLatestDate || "-" : dateFilterType === "monthly" ? "Bulanan" : "-";
-      }
-      if (selectedMetrics.includes("platform")) {
-        row["Platform"] =
-          platformFilter === "all" ? "Semua Platform" : platformFilter || "Shopee Live";
-      }
-      if (selectedMetrics.includes("sku")) row["SKU"] = sku.sku;
-      if (selectedMetrics.includes("product_name") || selectedMetrics.includes("name")) row["Nama Produk"] = sku.productName || sku.name || "-";
-      if (selectedMetrics.includes("items_sold") || selectedMetrics.includes("sold")) row["Jumlah Terjual"] = sku.sold;
-      if (selectedMetrics.includes("revenue"))
-        row["GMV / Revenue (Rp)"] = sku.revenue;
+      row["No"] = idx + 1;
+      row["SKU"] = sku.sku;
+      row["Nama Produk"] = sku.productName || sku.name || "-";
+      row["Terjual"] = sku.sold;
+      row["Revenue (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(sku.revenue || 0);
       return row;
     });
   } else if (reportType === "engagement" && engagementReportView) {
-    dataToExport = engagementReportView.filteredDb.map((log: any) => {
+    const rawEngLogs = (engagementReportView.tableLogs && engagementReportView.tableLogs.length > 0)
+      ? engagementReportView.tableLogs
+      : (engagementReportView.filteredDb || []);
+
+    dataToExport = rawEngLogs.map((log: any, idx: number) => {
       const row: any = {};
-      if (selectedMetrics.includes("date"))
-        row["Tanggal"] = log.date || log.dateTime?.split(" ")[0] || "-";
-      if (selectedMetrics.includes("time"))
-        row["Jam Mulai"] = log.dateTime?.includes(" ")
-          ? log.dateTime.split(" ")[1]
-          : "-";
-      if (selectedMetrics.includes("platform")) row["Platform"] = log.platform || "-";
-      if (selectedMetrics.includes("shift")) row["Shift"] = log.shift || "-";
-      if (selectedMetrics.includes("views") || selectedMetrics.includes("viewers"))
-        row["Views / Penonton"] = Math.max(
-          log.impressions || 0,
-          log.views || 0,
-          log.liveVisits || 0,
-          log.penonton || 0
-        );
-      if (selectedMetrics.includes("new_followers") || selectedMetrics.includes("followers"))
-        row["Pengikut Baru"] = log.newFollowers || log.followers || 0;
-      if (selectedMetrics.includes("comments"))
-        row["Komentar"] = log.comments || 0;
-      if (selectedMetrics.includes("shares"))
-        row["Total Shares"] = log.shares || 0;
-      if (selectedMetrics.includes("likes")) row["Total Likes"] = log.likes || 0;
-      if (selectedMetrics.includes("peak_viewers"))
-        row["Peak Viewers"] = log.peakViewers || 0;
-      if (selectedMetrics.includes("engagement_rate") || selectedMetrics.includes("err")) {
-        const totalEng = (log.likes || 0) + (log.comments || 0) + (log.shares || 0);
-        const imp = log.impressions || log.views || 0;
-        row["Engagement Rate (%)"] = imp > 0 ? ((totalEng / imp) * 100).toFixed(2) : "0.00";
-      }
+      row["No"] = idx + 1;
+      const formattedDate = formatDisplayDate(log.dateTime || log.date, log.platform);
+      row["Tanggal & Jam Mulai"] = formattedDate || log.dateTime || log.date || "-";
+      row["Platform"] = log.platform || "-";
+      row["Views"] = new Intl.NumberFormat("id-ID").format(
+        Math.max(log.impressions || 0, log.views || 0, log.liveVisits || 0, log.penonton || 0)
+      );
+      row["Pengikut Baru"] = new Intl.NumberFormat("id-ID").format(log.newFollowers || log.followers || 0);
+      row["Komentar"] = new Intl.NumberFormat("id-ID").format(log.comments || 0);
+      row["Shares"] = new Intl.NumberFormat("id-ID").format(log.shares || 0);
+      row["Likes"] = new Intl.NumberFormat("id-ID").format(log.likes || 0);
       return row;
     });
-  } else if (reportType === "pipeline") {
-    // Implement if needed in the future
   }
 
   if (dataToExport.length === 0) return;
@@ -167,7 +173,9 @@ export function exportReportToPdf({
   const getTitle = () => {
     switch (reportType) {
       case "live":
-        return `Live Report - ${brandName}`;
+        return exportMode === "sessions"
+          ? `Laporan Live Per Sesi (Start Time) - ${brandName}`
+          : `Laporan Live Akumulasi Harian - ${brandName}`;
       case "product":
         return `Product Report - ${brandName}`;
       case "engagement":
@@ -182,16 +190,20 @@ export function exportReportToPdf({
   doc.setFontSize(16);
   doc.text(getTitle(), 14, 15);
   doc.setFontSize(10);
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+  doc.text(`Generated on: ${new Date().toLocaleDateString("id-ID")}`, 14, 22);
 
   autoTable(doc, {
     head: [headers],
     body: data,
-    startY: 30,
+    startY: 28,
     theme: "striped",
     headStyles: { fillColor: [86, 0, 224] },
     styles: { fontSize: 8 },
   });
 
-  doc.save(`${brandName}_${reportType}_report.pdf`);
+  const modeSuffix = exportMode === "sessions" ? "_Per_Sesi" : "_Akumulasi_Harian";
+  const fileName = reportType === "live"
+    ? `${cleanBrand}_live${modeSuffix}_report.pdf`
+    : `${cleanBrand}_${reportType}_report.pdf`;
+  doc.save(fileName);
 }

@@ -21,6 +21,7 @@ export interface ExportDownloadParams {
   endDate: string;
   platform: string;
   shiftFilters?: string[];
+  exportMode?: "sessions" | "daily";
 }
 
 interface ClientDownloadConfirmationModalProps {
@@ -94,6 +95,7 @@ export function ClientDownloadConfirmationModal({
   const [customEnd, setCustomEnd] = useState<string>("");
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [exportMode, setExportMode] = useState<"sessions" | "daily">("sessions");
 
   // Synchronize on modal open or incoming props
   useEffect(() => {
@@ -107,6 +109,7 @@ export function ClientDownloadConfirmationModal({
       setCustomEnd(endDate || startDate || "");
       setDateMode("preset");
       setSelectedShifts(initialShiftFilters ? [...initialShiftFilters] : []);
+      setExportMode("sessions");
     }
   }, [isOpen, startDate, endDate, platform, initialShiftFilters]);
 
@@ -291,6 +294,7 @@ export function ClientDownloadConfirmationModal({
       endDate: effectiveEndDate,
       platform: selectedPlatform === "Semua Platform" ? "all" : selectedPlatform,
       shiftFilters: selectedShifts,
+      exportMode,
     };
 
     if (format === "excel") {
@@ -348,6 +352,59 @@ export function ClientDownloadConfirmationModal({
           {/* Scrollable Configuration Body */}
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 text-left">
             
+            {/* 0. EXPORT DATA MODE (PER SESI VS AKUMULASI HARIAN) */}
+            {reportType === "live" && (
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
+                  Mode Data Ekspor
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setExportMode("sessions")}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      exportMode === "sessions"
+                        ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-300 text-slate-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-slate-900">Per Sesi (Start Time)</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
+                        {exportMode === "sessions" ? "Dipilih" : "Rekomendasi"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Ekspor data per sesi live saat di-start dengan jam mulai individual (bukan akumulasi).
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExportMode("daily")}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      exportMode === "daily"
+                        ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-300 text-slate-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-slate-900">Akumulasi Per Hari</span>
+                      {exportMode === "daily" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
+                          Dipilih
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Total performa digabungkan dan diakumulasi menjadi satu baris per hari.
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 1. PLATFORM SELECTION */}
             <div className="space-y-2">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
