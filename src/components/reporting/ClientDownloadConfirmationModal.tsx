@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Download,
   X,
@@ -20,10 +20,16 @@ import {
   ArrowUpNarrowWide,
   Plus,
   CalendarClock,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
+
+const EXPORT_SIDEBAR_STORAGE_KEY = "liva_export_sidebar_width";
+const DEFAULT_EXPORT_SIDEBAR_WIDTH = 580;
+const MIN_EXPORT_SIDEBAR_WIDTH = 440;
 
 export interface DateSpecificShiftRule {
   id: string;
@@ -126,6 +132,26 @@ export function ClientDownloadConfirmationModal({
   const [dateShiftScope, setDateShiftScope] = useState<"specific_only" | "merged">("merged");
   const [newRuleDate, setNewRuleDate] = useState<string>("");
   const [newRuleShift, setNewRuleShift] = useState<string>("");
+
+  // Sidebar Width State with LocalStorage Persistence
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(EXPORT_SIDEBAR_STORAGE_KEY);
+        if (saved) {
+          const parsed = parseInt(saved, 10);
+          if (!Number.isNaN(parsed) && parsed >= MIN_EXPORT_SIDEBAR_WIDTH) {
+            return Math.min(parsed, window.innerWidth - 20);
+          }
+        }
+      }
+    } catch {}
+    return DEFAULT_EXPORT_SIDEBAR_WIDTH;
+  });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const preMaximizeWidthRef = useRef<number>(DEFAULT_EXPORT_SIDEBAR_WIDTH);
 
   // Synchronize on modal open or incoming props
   useEffect(() => {
@@ -495,6 +521,62 @@ export function ClientDownloadConfirmationModal({
     { key: "engagement", title: "Interaksi & Komunitas" },
   ];
 
+  // Drag-to-Resize Logic
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    setIsMaximized(false);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const windowWidth = window.innerWidth;
+      const newWidth = windowWidth - moveEvent.clientX;
+      const clampedWidth = Math.min(
+        Math.max(newWidth, MIN_EXPORT_SIDEBAR_WIDTH),
+        windowWidth - 20
+      );
+      setSidebarWidth(clampedWidth);
+    };
+
+    const onMouseUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+
+      setSidebarWidth((curr) => {
+        try {
+          localStorage.setItem(EXPORT_SIDEBAR_STORAGE_KEY, String(curr));
+        } catch {}
+        return curr;
+      });
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, []);
+
+  // Quick Preset Width Buttons
+  const setPresetWidth = (targetWidth: number) => {
+    setIsMaximized(false);
+    const maxAllowed = typeof window !== "undefined" ? window.innerWidth - 20 : 1200;
+    const clamped = Math.min(Math.max(targetWidth, MIN_EXPORT_SIDEBAR_WIDTH), maxAllowed);
+    setSidebarWidth(clamped);
+    try {
+      localStorage.setItem(EXPORT_SIDEBAR_STORAGE_KEY, String(clamped));
+    } catch {}
+  };
+
+  const toggleMaximize = () => {
+    if (isMaximized) {
+      setIsMaximized(false);
+      setSidebarWidth(preMaximizeWidthRef.current);
+    } else {
+      preMaximizeWidthRef.current = sidebarWidth;
+      setIsMaximized(true);
+      const maxAllowed = typeof window !== "undefined" ? window.innerWidth - 20 : 1200;
+      setSidebarWidth(maxAllowed);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -507,30 +589,115 @@ export function ClientDownloadConfirmationModal({
       />
 
       {/* Slide-over panel from right */}
-      <div className="fixed inset-y-0 right-0 flex max-w-full pl-6 sm:pl-10">
-        <div className="w-screen max-w-lg bg-white shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out border-l border-slate-100">
-          
+      <div className="fixed inset-y-0 right-0 flex max-w-full pointer-events-none">
+        <aside
+          style={{
+            width: typeof window !== "undefined" && window.innerWidth < 640 ? "100vw" : `${sidebarWidth}px`,
+          }}
+          className={`pointer-events-auto h-screen bg-white shadow-[-16px_0_40px_rgba(0,0,0,0.15)] flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out border-l border-slate-200 relative max-w-full ${
+            isResizing ? "select-none !transition-none" : "transition-[width] duration-150"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Draggable Resize Handle on Left Edge (Desktop) */}
+          <div
+            onMouseDown={startResizing}
+            title="Tarik ke kiri atau kanan untuk mengatur lebar sidebar"
+            className="hidden sm:flex absolute -left-3 top-0 bottom-0 w-6 cursor-ew-resize items-center justify-center z-30 group"
+          >
+            <div
+              className={`w-1 h-16 rounded-full transition-all shadow-xs ${
+                isResizing
+                  ? "bg-indigo-600 w-1.5 ring-4 ring-indigo-200"
+                  : "bg-slate-300 group-hover:bg-indigo-500 group-hover:w-1.5"
+              }`}
+            />
+          </div>
+
           {/* Header */}
-          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600">
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600 shrink-0">
                 <Download className="h-5 w-5" />
               </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Custom Export Laporan</h2>
-                <p className="text-xs text-slate-500 font-medium">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 truncate">Custom Export Laporan</h2>
+                  <span className="hidden md:inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    {Math.round(sidebarWidth)}px
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium truncate">
                   Sesuaikan rentang waktu, platform, & metriks data
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-2 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors"
-              aria-label="Tutup"
-            >
-              <X size={18} />
-            </button>
+
+            {/* Header Right: Presets, Maximize, Close */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Quick Width Presets (Desktop) */}
+              <div className="hidden sm:flex items-center bg-slate-200/70 p-0.5 rounded-lg text-[11px] font-semibold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setPresetWidth(480)}
+                  title="Ukuran Kompak (480px)"
+                  className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    sidebarWidth <= 520 && !isMaximized
+                      ? "bg-white text-indigo-700 shadow-xs font-bold"
+                      : "hover:text-slate-900"
+                  }`}
+                >
+                  Kompak
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetWidth(640)}
+                  title="Ukuran Sedang (640px)"
+                  className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    sidebarWidth > 520 && sidebarWidth <= 760 && !isMaximized
+                      ? "bg-white text-indigo-700 shadow-xs font-bold"
+                      : "hover:text-slate-900"
+                  }`}
+                >
+                  Sedang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetWidth(920)}
+                  title="Ukuran Lebar (920px)"
+                  className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    sidebarWidth > 760 && !isMaximized
+                      ? "bg-white text-indigo-700 shadow-xs font-bold"
+                      : "hover:text-slate-900"
+                  }`}
+                >
+                  Lebar
+                </button>
+              </div>
+
+              {/* Maximize / Restore Toggle */}
+              <button
+                type="button"
+                onClick={toggleMaximize}
+                title={isMaximized ? "Kembalikan Ukuran" : "Maksimalkan Lebar Sidebar"}
+                className="hidden sm:flex w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 items-center justify-center transition-colors cursor-pointer"
+              >
+                {isMaximized ? (
+                  <Minimize2 className="w-4 h-4" />
+                ) : (
+                  <Maximize2 className="w-4 h-4" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Scrollable Configuration Body */}
@@ -1285,7 +1452,7 @@ export function ClientDownloadConfirmationModal({
                       <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                         {grp.title}
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className={`grid gap-2 ${sidebarWidth >= 760 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
                         {grpMetrics.map((metric) => {
                           const isChecked = selectedMetrics.includes(metric.id);
                           return (
@@ -1397,7 +1564,7 @@ export function ClientDownloadConfirmationModal({
             </button>
           </div>
 
-        </div>
+        </aside>
       </div>
     </div>
   );
