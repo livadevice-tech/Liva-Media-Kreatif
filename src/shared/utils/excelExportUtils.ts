@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { formatDisplayDate } from "./appUi";
+import { formatDisplayDate, getLogTimestamp } from "./appUi";
 import { formatLiveSessionDuration, getLiveSessionMetrics } from "./liveSessionsTable";
 
 export function exportReportToExcel({
@@ -13,6 +13,7 @@ export function exportReportToExcel({
   selectedLatestDate,
   platformFilter,
   exportMode = "sessions",
+  sortOrder = "desc",
 }: {
   reportType: "live" | "product" | "engagement" | "pipeline";
   selectedMetrics: string[];
@@ -24,6 +25,7 @@ export function exportReportToExcel({
   selectedLatestDate?: string;
   platformFilter?: string;
   exportMode?: "sessions" | "daily";
+  sortOrder?: "desc" | "asc";
 }) {
   let dataToExport: any[] = [];
   const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
@@ -95,9 +97,11 @@ export function exportReportToExcel({
         g.liveVisits += (log.liveVisits || 0);
       });
 
-      // Sort descending by date
+      // Sort by date according to sortOrder (desc or asc)
       const sortedGroups = Object.values(groups).sort((a, b) => {
-        return new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime();
+        const timeA = new Date(a.rawDate).getTime();
+        const timeB = new Date(b.rawDate).getTime();
+        return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
       });
 
       dataToExport = sortedGroups.map((g, idx) => {
@@ -193,9 +197,9 @@ export function exportReportToExcel({
     } else {
       // PER SESI LIVE SAAT DI-START (DETAIL INDIVIDUAL SETIAP SESI)
       const sortedLogs = [...rawLogs].sort((a, b) => {
-        const timeA = new Date(a.dateTime || a.date || 0).getTime();
-        const timeB = new Date(b.dateTime || b.date || 0).getTime();
-        return timeB - timeA;
+        const timeA = getLogTimestamp(a);
+        const timeB = getLogTimestamp(b);
+        return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
       });
 
       dataToExport = sortedLogs.map((log: any, idx: number) => {
@@ -326,7 +330,13 @@ export function exportReportToExcel({
       ? engagementReportView.tableLogs
       : (engagementReportView.filteredDb || []);
 
-    dataToExport = rawEngLogs.map((log: any, idx: number) => {
+    const sortedEngLogs = [...rawEngLogs].sort((a, b) => {
+      const timeA = getLogTimestamp(a);
+      const timeB = getLogTimestamp(b);
+      return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+    });
+
+    dataToExport = sortedEngLogs.map((log: any, idx: number) => {
       const row: any = {};
       const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
       const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");

@@ -15,6 +15,9 @@ import {
   Zap,
   CalendarRange,
   Check,
+  ArrowUpDown,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
@@ -27,6 +30,7 @@ export interface ExportDownloadParams {
   platform: string;
   shiftFilters?: string[];
   exportMode?: "sessions" | "daily";
+  sortOrder?: "desc" | "asc";
 }
 
 interface ClientDownloadConfirmationModalProps {
@@ -103,6 +107,7 @@ export function ClientDownloadConfirmationModal({
   const shiftDropdownRef = useRef<HTMLDivElement>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [exportMode, setExportMode] = useState<"sessions" | "daily">("sessions");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   // Synchronize on modal open or incoming props
   useEffect(() => {
@@ -118,6 +123,7 @@ export function ClientDownloadConfirmationModal({
       setSelectedShifts(initialShiftFilters ? [...initialShiftFilters] : []);
       setIsShiftDropdownOpen(false);
       setExportMode("sessions");
+      setSortOrder("desc");
     }
   }, [isOpen, startDate, endDate, platform, initialShiftFilters]);
 
@@ -415,6 +421,7 @@ export function ClientDownloadConfirmationModal({
       platform: selectedPlatform === "Semua Platform" ? "all" : selectedPlatform,
       shiftFilters: selectedShifts,
       exportMode,
+      sortOrder,
     };
 
     if (format === "excel") {
@@ -713,7 +720,74 @@ export function ClientDownloadConfirmationModal({
               )}
             </div>
 
-            {/* 3. SHIFT / SESSION SELECTION (Multi-Select) */}
+            {/* 3. URUTAN TANGGAL & JAM MULAI (SORT ORDER) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600" />
+                  Urutan Data (Tanggal & Jam Mulai)
+                </label>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/60">
+                  {sortOrder === "desc" ? "DESC (Terbaru)" : "ASC (Terlama)"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Option DESC */}
+                <button
+                  type="button"
+                  onClick={() => setSortOrder("desc")}
+                  className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer relative ${
+                    sortOrder === "desc"
+                      ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 shadow-xs ring-1 ring-indigo-200"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-600"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
+                      <ArrowDownWideNarrow className="w-4 h-4 text-indigo-600" />
+                      <span>Terbaru → Terlama</span>
+                    </div>
+                    {sortOrder === "desc" && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-extrabold bg-indigo-600 text-white">
+                        DESC
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Tanggal & jam live terbaru di posisi baris paling atas.
+                  </p>
+                </button>
+
+                {/* Option ASC */}
+                <button
+                  type="button"
+                  onClick={() => setSortOrder("asc")}
+                  className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer relative ${
+                    sortOrder === "asc"
+                      ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 shadow-xs ring-1 ring-indigo-200"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-600"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
+                      <ArrowUpNarrowWide className="w-4 h-4 text-indigo-600" />
+                      <span>Terlama → Terbaru</span>
+                    </div>
+                    {sortOrder === "asc" && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-extrabold bg-indigo-600 text-white">
+                        ASC
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Urutan kronologis, tanggal & jam awal di posisi paling atas.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* 4. SHIFT / SESSION SELECTION (Multi-Select) */}
             {cleanedShiftsList.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

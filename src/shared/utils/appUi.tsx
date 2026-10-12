@@ -349,3 +349,51 @@ export const compareShiftsByTime = (a: string, b: string): number => {
   return (a || "").localeCompare(b || "", "id", { numeric: true, sensitivity: "base" });
 };
 
+/**
+ * Menghitung timestamp numerik (ms) dari log berdasarkan tanggal dan jam/waktu mulai.
+ * Digunakan untuk sorting kronologis (ASC / DESC).
+ */
+export const getLogTimestamp = (log: any): number => {
+  if (!log) return 0;
+  const raw = String(log.dateTime || log.date || "");
+  if (!raw) return 0;
+
+  const dateStr = normalizeDateYMD(raw);
+  let timeStr = "";
+
+  if (raw.includes("T")) {
+    timeStr = raw.split("T")[1]?.trim() || "";
+  } else if (raw.includes(" ")) {
+    const parts = raw.split(" ");
+    timeStr = parts.slice(1).join(" ").trim();
+  }
+
+  // Fallback: jika tidak ada time di dateTime/date, periksa shift (misal "14:00 - 18:00")
+  if (!timeStr && log.shift) {
+    const shiftMinutes = parseShiftStartTime(log.shift);
+    if (shiftMinutes !== 9999) {
+      const h = Math.floor(shiftMinutes / 60);
+      const m = shiftMinutes % 60;
+      timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+    }
+  }
+
+  if (dateStr) {
+    let normalizedTime = "00:00:00";
+    if (timeStr) {
+      const cleanTime = timeStr.replace(/\./g, ":");
+      const tParts = cleanTime.split(":");
+      const h = String(tParts[0] || "0").padStart(2, "0");
+      const m = String(tParts[1] || "0").padStart(2, "0");
+      const s = String(tParts[2] || "0").padStart(2, "0");
+      normalizedTime = `${h}:${m}:${s}`;
+    }
+    const iso = `${dateStr}T${normalizedTime}`;
+    const parsed = new Date(iso).getTime();
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+
+  const direct = new Date(raw.replace(" ", "T")).getTime();
+  return Number.isNaN(direct) ? 0 : direct;
+};
+

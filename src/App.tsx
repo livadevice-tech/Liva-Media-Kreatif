@@ -6024,6 +6024,7 @@ export default function App() {
                     selectedLatestDate: params.startDate,
                     platformFilter: params.platform,
                     exportMode: params.exportMode,
+                    sortOrder: params.sortOrder,
                   });
                 }}
                 onDownloadPdf={(params) => {
@@ -6086,6 +6087,7 @@ export default function App() {
                     selectedLatestDate: params.startDate,
                     platformFilter: params.platform,
                     exportMode: params.exportMode,
+                    sortOrder: params.sortOrder,
                   });
                 }}
               />
@@ -12976,6 +12978,7 @@ export default function App() {
                           selectedLatestDate: params.startDate,
                           platformFilter: params.platform,
                           exportMode: params.exportMode,
+                          sortOrder: params.sortOrder,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
@@ -13040,6 +13043,7 @@ export default function App() {
                           selectedLatestDate: params.startDate,
                           platformFilter: params.platform,
                           exportMode: params.exportMode,
+                          sortOrder: params.sortOrder,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
