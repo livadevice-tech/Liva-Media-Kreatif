@@ -83,6 +83,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     signatureSize: 65,
     signatureName: "Mufthi Ali",
     signatureTitle: "Direktur Utama PT Liva Media Kreatif",
+    meteraiUrl: "",
+    meteraiSize: 75,
     companyName: "PT. Liva Media Kreatif",
     companyAddress: "Villa Bukit Tirtayasa Blok G2 No.1, Kelurahaan Campang Raya, Kecamatan Sukabumi, Kota Bandar Lampung, Provinsi Lampung",
     companyEmail: "livamediakreatif@gmail.com",
@@ -396,6 +398,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         logoUrl: invoiceSettings.logoUrl,
         signatureUrl: invoiceSettings.signatureUrl,
         signatureSize: invoiceSettings.signatureSize || 65,
+        meteraiUrl: invoiceSettings.meteraiUrl,
+        meteraiSize: invoiceSettings.meteraiSize || 75,
         termsAndConditions: invoiceSettings.termsAndConditions,
       },
     });
@@ -437,7 +441,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "logoUrl" | "signatureUrl",
+    field: "logoUrl" | "signatureUrl" | "meteraiUrl",
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -691,11 +695,14 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
               logoUrl: invoiceSettings.logoUrl,
               signatureUrl: invoiceSettings.signatureUrl,
               signatureSize: invoiceSettings.signatureSize || 65,
+              meteraiUrl: invoiceSettings.meteraiUrl,
+              meteraiSize: invoiceSettings.meteraiSize || 75,
               termsAndConditions: invoiceSettings.termsAndConditions,
             }}
             onClose={() => setPreviewInvoiceData(null)}
             onPrint={() => handlePrint(previewInvoiceData.invoice, previewInvoiceData.brand.name)}
             onUpdateSignatureSize={(size) => saveSettings({ ...invoiceSettings, signatureSize: size })}
+            onUpdateMeteraiSize={(size) => saveSettings({ ...invoiceSettings, meteraiSize: size })}
           />
         )}
 

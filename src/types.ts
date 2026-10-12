@@ -234,6 +234,8 @@ export interface InvoiceCompanyProfile {
   logoUrl?: string;
   signatureUrl?: string;
   signatureSize?: number;
+  meteraiUrl?: string;
+  meteraiSize?: number;
   termsAndConditions?: string;
 }
 

@@ -13,6 +13,7 @@ interface InvoicePreviewModalProps {
   onClose: () => void;
   onPrint: () => void;
   onUpdateSignatureSize?: (size: number) => void;
+  onUpdateMeteraiSize?: (size: number) => void;
 }
 
 export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
@@ -23,6 +24,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   onClose,
   onPrint,
   onUpdateSignatureSize,
+  onUpdateMeteraiSize,
 }) => {
   const [waCopied, setWaCopied] = useState(false);
 
@@ -36,6 +38,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   const signeeName = companyProfile?.directorName || "Mufthi Ali";
   const signeeTitle = companyProfile?.directorTitle || "Direktur Utama PT Liva Media Kreatif";
   const signatureHeight = companyProfile?.signatureSize || 65;
+  const meteraiHeight = companyProfile?.meteraiSize || 75;
 
   // Bank Info
   const bankName = invoice.bankInfo?.bankName || bankAccount?.bankName || "Maybank Syariah";
@@ -145,6 +148,27 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                 />
                 <span className="font-mono font-bold text-indigo-700 text-[11px] min-w-[34px] text-right">
                   {companyProfile.signatureSize || 65}px
+                </span>
+              </div>
+            )}
+
+            {/* Quick Materai Size Adjustment */}
+            {companyProfile?.meteraiUrl && onUpdateMeteraiSize && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-rose-50/60 border border-rose-200 rounded-xl text-xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-rose-600" />
+                <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">Ukuran Materai:</span>
+                <input
+                  type="range"
+                  min="40"
+                  max="150"
+                  step="5"
+                  value={companyProfile.meteraiSize || 75}
+                  onChange={(e) => onUpdateMeteraiSize(Number(e.target.value))}
+                  className="w-16 accent-rose-600 cursor-pointer h-1.5 bg-rose-200 rounded-lg appearance-none"
+                  title="Geser untuk mengatur tinggi materai di PDF"
+                />
+                <span className="font-mono font-bold text-rose-700 text-[11px] min-w-[34px] text-right">
+                  {companyProfile.meteraiSize || 75}px
                 </span>
               </div>
             )}
@@ -451,8 +475,28 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                     Sincerely, {companyName}
                   </div>
 
-                  {/* Digital Stamp / Signature */}
-                  <div className="flex items-center justify-end my-1" style={{ minHeight: `${signatureHeight}px` }}>
+                  {/* Digital Stamp / Materai / Signature */}
+                  <div
+                    className="flex items-center justify-end gap-3 sm:gap-4 my-1"
+                    style={{ minHeight: `${Math.max(signatureHeight, companyProfile?.meteraiUrl ? meteraiHeight : 0)}px` }}
+                  >
+                    {/* Materai Elektronik (e-Meterai) */}
+                    {companyProfile?.meteraiUrl && (
+                      <div className="relative shrink-0 flex items-center justify-center">
+                        <img
+                          src={companyProfile.meteraiUrl}
+                          alt="e-Meterai"
+                          style={{
+                            height: `${meteraiHeight}px`,
+                            maxHeight: `${meteraiHeight}px`,
+                            width: 'auto',
+                          }}
+                          className="object-contain drop-shadow-2xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Signature & Stamp */}
                     {companyProfile?.signatureUrl ? (
                       <img
                         src={companyProfile.signatureUrl}

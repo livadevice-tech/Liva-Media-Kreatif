@@ -83,6 +83,12 @@ export function generateInvoicePrintHtml(params: {
     `;
 
   const signatureHeight = companyProfile?.signatureSize || 65;
+  const meteraiHeight = companyProfile?.meteraiSize || 75;
+
+  const meteraiHtml = companyProfile?.meteraiUrl
+    ? `<img src="${companyProfile.meteraiUrl}" style="height: ${meteraiHeight}px; max-height: ${meteraiHeight}px; width: auto; object-fit: contain;" alt="e-Meterai" />`
+    : '';
+
   const stampHtml = companyProfile?.signatureUrl
     ? `<img src="${companyProfile.signatureUrl}" style="height: ${signatureHeight}px; max-height: ${signatureHeight}px; max-width: 280px; object-fit: contain; margin: 4px 0;" />`
     : `
@@ -578,7 +584,10 @@ export function generateInvoicePrintHtml(params: {
           <div class="sign-right">
             <div class="sign-date">${signeeCity}, ${formattedInvoiceDate}</div>
             <div class="sign-company">Sincerely, ${companyName}</div>
-            <div>${stampHtml}</div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin: 4px 0;">
+              ${meteraiHtml}
+              ${stampHtml}
+            </div>
             <div class="sign-name">${signeeName}</div>
             <div class="sign-title">${signeeTitle}</div>
           </div>
