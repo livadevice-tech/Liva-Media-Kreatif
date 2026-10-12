@@ -18,10 +18,18 @@ import {
   ArrowUpDown,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
+  Plus,
+  CalendarClock,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
+
+export interface DateSpecificShiftRule {
+  id: string;
+  date: string; // YYYY-MM-DD
+  shift: string; // Shift name e.g. "Shift SA 1 (00.00-06.00)"
+}
 
 export interface ExportDownloadParams {
   selectedMetrics: string[];
@@ -31,6 +39,8 @@ export interface ExportDownloadParams {
   shiftFilters?: string[];
   exportMode?: "sessions" | "daily";
   sortOrder?: "desc" | "asc";
+  dateShiftRules?: DateSpecificShiftRule[];
+  dateShiftScope?: "specific_only" | "merged";
 }
 
 interface ClientDownloadConfirmationModalProps {
@@ -42,6 +52,7 @@ interface ClientDownloadConfirmationModalProps {
   availablePlatforms?: string[];
   availableShifts?: string[];
   initialShiftFilters?: string[];
+  availableDateSessions?: Array<{ date: string; shift: string; platform?: string }>;
   reportType?: "live" | "product" | "engagement" | "pipeline";
   onDownloadExcel: (params: ExportDownloadParams) => void;
   onDownloadPdf: (params: ExportDownloadParams) => void;
@@ -63,6 +74,7 @@ export function ClientDownloadConfirmationModal({
   availablePlatforms = ["Semua Platform", "TikTok Live", "Shopee Live"],
   availableShifts = [],
   initialShiftFilters = [],
+  availableDateSessions = [],
   reportType = "live",
   onDownloadExcel,
   onDownloadPdf,
@@ -109,6 +121,12 @@ export function ClientDownloadConfirmationModal({
   const [exportMode, setExportMode] = useState<"sessions" | "daily">("sessions");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
+  // State for date-specific shift rules (e.g. "8 Agustus 2026 - Shift SA 1 (00.00-06.00)")
+  const [dateShiftRules, setDateShiftRules] = useState<DateSpecificShiftRule[]>([]);
+  const [dateShiftScope, setDateShiftScope] = useState<"specific_only" | "merged">("merged");
+  const [newRuleDate, setNewRuleDate] = useState<string>("");
+  const [newRuleShift, setNewRuleShift] = useState<string>("");
+
   // Synchronize on modal open or incoming props
   useEffect(() => {
     if (isOpen) {
@@ -124,8 +142,43 @@ export function ClientDownloadConfirmationModal({
       setIsShiftDropdownOpen(false);
       setExportMode("sessions");
       setSortOrder("desc");
+      setDateShiftRules([]);
+      setDateShiftScope("merged");
+      setNewRuleDate(startDate || "");
+      setNewRuleShift(cleanedShiftsList[0] || "");
     }
-  }, [isOpen, startDate, endDate, platform, initialShiftFilters]);
+  }, [isOpen, startDate, endDate, platform, initialShiftFilters, cleanedShiftsList]);
+
+  // Keep newRuleShift updated if empty
+  useEffect(() => {
+    if (!newRuleShift && cleanedShiftsList.length > 0) {
+      setNewRuleShift(cleanedShiftsList[0]);
+    }
+  }, [cleanedShiftsList, newRuleShift]);
+
+  const handleAddDateShiftRule = () => {
+    const targetDate = newRuleDate || effectiveStartDate || "";
+    const targetShift = newRuleShift || cleanedShiftsList[0] || "";
+    if (!targetDate || !targetShift) return;
+
+    const exists = dateShiftRules.some(
+      (r) => r.date === targetDate && r.shift === targetShift
+    );
+    if (exists) return;
+
+    setDateShiftRules((prev) => [
+      ...prev,
+      {
+        id: `${targetDate}_${targetShift}_${Date.now()}`,
+        date: targetDate,
+        shift: targetShift,
+      },
+    ]);
+  };
+
+  const handleRemoveDateShiftRule = (id: string) => {
+    setDateShiftRules((prev) => prev.filter((r) => r.id !== id));
+  };
 
   // Close shift dropdown on outside click
   useEffect(() => {
@@ -422,6 +475,8 @@ export function ClientDownloadConfirmationModal({
       shiftFilters: selectedShifts,
       exportMode,
       sortOrder,
+      dateShiftRules,
+      dateShiftScope,
     };
 
     if (format === "excel") {
@@ -983,11 +1038,216 @@ export function ClientDownloadConfirmationModal({
                   {selectedShifts.length === 0 ||
                   selectedShifts[0] === "All Session" ||
                   selectedShifts[0] === "All Time"
-                    ? "Menampilkan data dari seluruh sesi (All Session)."
+                    ? "Filter umum: Menampilkan data dari seluruh sesi (All Session)."
                     : selectedShifts.length === 1
-                    ? `Menyaring data khusus untuk 1 shift/sesi: ${selectedShifts[0]}`
-                    : `Menyaring data khusus untuk ${selectedShifts.length} shift/sesi terpilih (${selectedShifts.join(", ")}).`}
+                    ? `Filter umum: Menyaring data khusus untuk 1 shift/sesi: ${selectedShifts[0]}`
+                    : `Filter umum: Menyaring data khusus untuk ${selectedShifts.length} shift/sesi terpilih (${selectedShifts.join(", ")}).`}
                 </p>
+
+                {/* KUSTOMISASI SHIFT SPESIFIK PER TANGGAL BERBEDA */}
+                <div className="mt-3 rounded-xl border border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-slate-50/50 p-3.5 space-y-3 shadow-3xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <CalendarClock className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs font-bold text-slate-800">
+                        Shift Spesifik di Hari Berbeda
+                      </span>
+                    </div>
+                    {dateShiftRules.length > 0 && (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 shadow-3xs">
+                        {dateShiftRules.length} Shift Khusus
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Pilih 1 shift tertentu pada tanggal berbeda (misal: <strong className="text-slate-700 font-semibold">8 Agustus 2026 - Shift SA 1</strong>).
+                  </p>
+
+                  {/* Form Input Tambah Shift Spesifik */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end pt-1">
+                    <div className="sm:col-span-5 space-y-1">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                        Pilih Tanggal
+                      </label>
+                      <CustomDatePicker
+                        value={newRuleDate}
+                        onChange={setNewRuleDate}
+                        placeholder="Pilih Tanggal"
+                        size="sm"
+                        className="w-full"
+                        formatDisplay={formatIndonesianDateShort}
+                        buttonClassName="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 shadow-3xs hover:border-indigo-400 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-5 space-y-1">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                        Pilih Shift
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={newRuleShift}
+                          onChange={(e) => setNewRuleShift(e.target.value)}
+                          className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-3xs outline-none transition focus:border-indigo-500 cursor-pointer pr-7"
+                        >
+                          {cleanedShiftsList.map((sh) => (
+                            <option key={sh} value={sh}>
+                              {sh}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <button
+                        type="button"
+                        onClick={handleAddDateShiftRule}
+                        className="w-full h-[32px] px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95 cursor-pointer"
+                        title="Tambahkan shift khusus ini"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sesi Rekomendasi Cepat dari database jika tersedia */}
+                  {availableDateSessions && availableDateSessions.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>Sesi Tersedia di Database:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                        {availableDateSessions.slice(0, 8).map((sess) => {
+                          const isAdded = dateShiftRules.some(
+                            (r) => r.date === sess.date && r.shift === sess.shift
+                          );
+                          return (
+                            <button
+                              key={`${sess.date}_${sess.shift}`}
+                              type="button"
+                              disabled={isAdded}
+                              onClick={() => {
+                                if (!isAdded) {
+                                  setDateShiftRules((prev) => [
+                                    ...prev,
+                                    {
+                                      id: `${sess.date}_${sess.shift}_${Date.now()}`,
+                                      date: sess.date,
+                                      shift: sess.shift,
+                                    },
+                                  ]);
+                                }
+                              }}
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
+                                isAdded
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 opacity-60 cursor-default"
+                                  : "bg-white hover:bg-indigo-50/80 text-slate-600 hover:text-indigo-700 border-slate-200 hover:border-indigo-300 shadow-3xs"
+                              }`}
+                            >
+                              {isAdded ? (
+                                <Check className="w-2.5 h-2.5 text-emerald-600" />
+                              ) : (
+                                <Plus className="w-2.5 h-2.5 text-indigo-500" />
+                              )}
+                              <span>{formatIndonesianDateShort(sess.date)}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-bold">{sess.shift}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Daftar Shift Spesifik yang Sudah Ditambahkan */}
+                  {dateShiftRules.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-indigo-100">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-indigo-900">
+                          Daftar Shift Spesifik ({dateShiftRules.length}):
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setDateShiftRules([])}
+                          className="text-rose-600 hover:text-rose-800 text-[10px] font-bold hover:underline cursor-pointer"
+                        >
+                          Reset Semua
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {dateShiftRules.map((rule) => (
+                          <div
+                            key={rule.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-white border border-indigo-100 shadow-3xs transition-all hover:border-indigo-300"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="font-bold text-slate-800 text-xs">
+                                {formatIndonesianDateShort(rule.date)}
+                              </span>
+                              <span className="text-slate-300">—</span>
+                              <span className="font-semibold text-indigo-700 bg-indigo-50/90 px-2 py-0.5 rounded text-[11px] border border-indigo-100 truncate">
+                                {rule.shift}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDateShiftRule(rule.id)}
+                              className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-1"
+                              title="Hapus shift kustom ini"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Penerapan Hasil Ekspor */}
+                      <div className="p-2 rounded-lg bg-indigo-50/50 border border-indigo-100 text-[11px] space-y-1.5">
+                        <div className="font-bold text-indigo-950 text-[10px] uppercase tracking-wider">
+                          Penerapan Pada Hasil Ekspor:
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setDateShiftScope("merged")}
+                            className={`px-2 py-1.5 rounded-md text-left transition-all border cursor-pointer ${
+                              dateShiftScope === "merged"
+                                ? "bg-white text-indigo-900 border-indigo-300 shadow-3xs font-bold"
+                                : "bg-transparent text-slate-500 border-transparent hover:bg-white/60"
+                            }`}
+                          >
+                            <div className="text-[10px] font-bold">Gabungkan Hari Lain</div>
+                            <div className="text-[9px] text-slate-500 leading-tight">
+                              Hari lain tetap diekspor mengikuti shift umum.
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDateShiftScope("specific_only")}
+                            className={`px-2 py-1.5 rounded-md text-left transition-all border cursor-pointer ${
+                              dateShiftScope === "specific_only"
+                                ? "bg-white text-indigo-900 border-indigo-300 shadow-3xs font-bold"
+                                : "bg-transparent text-slate-500 border-transparent hover:bg-white/60"
+                            }`}
+                          >
+                            <div className="text-[10px] font-bold">Hanya Sesi Ini Saja</div>
+                            <div className="text-[9px] text-slate-500 leading-tight">
+                              Hanya ekspor sesi-sesi kustom yang ada di daftar ini.
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

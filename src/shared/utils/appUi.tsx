@@ -397,3 +397,67 @@ export const getLogTimestamp = (log: any): number => {
   return Number.isNaN(direct) ? 0 : direct;
 };
 
+export interface DateSpecificShiftRule {
+  id?: string;
+  date: string; // YYYY-MM-DD
+  shift: string; // Shift name e.g. "Shift SA 1 (00.00-06.00)"
+}
+
+/**
+ * Filter logs berdasarkan kombinasi shift umum dan/atau shift spesifik per tanggal.
+ */
+export const filterLogsByDateAndShift = <T extends { date?: string; dateTime?: string; shift?: string }>(
+  logs: T[],
+  shiftFilters?: readonly string[],
+  dateShiftRules?: readonly DateSpecificShiftRule[],
+  dateShiftScope: "specific_only" | "merged" = "merged"
+): T[] => {
+  const hasGlobalShifts = shiftFilters && shiftFilters.length > 0;
+  const hasSpecificRules = dateShiftRules && dateShiftRules.length > 0;
+
+  if (!hasGlobalShifts && !hasSpecificRules) {
+    return logs;
+  }
+
+  return logs.filter((log) => {
+    const rawDate = String(log.dateTime || log.date || "");
+    const logDate = normalizeDateYMD(rawDate);
+    const logShift = String(log.shift || "").trim();
+
+    if (hasSpecificRules) {
+      const rulesForThisDate = dateShiftRules.filter((r) => r.date === logDate);
+      if (rulesForThisDate.length > 0) {
+        // Tanggal ini memiliki aturan shift spesifik -> wajib cocok dengan salah satu shift tanggal tersebut
+        return rulesForThisDate.some((r) => {
+          if (r.shift === logShift) return true;
+          // Fallback pencocokan via jam
+          const timeMatch = rawDate.match(/(\d{1,2}):(\d{2})/);
+          if (timeMatch) {
+            const hour = parseInt(timeMatch[1], 10);
+            return !Number.isNaN(hour) && getShiftFromHour(hour, [r.shift]) === r.shift;
+          }
+          return false;
+        });
+      }
+
+      // Jika tanggal ini tidak ada di daftar aturan khusus, dan scope adalah "specific_only"
+      if (dateShiftScope === "specific_only") {
+        return false;
+      }
+    }
+
+    // Penerapan filter shift umum untuk tanggal yang tidak memiliki aturan khusus (mode "merged")
+    if (hasGlobalShifts) {
+      if (shiftFilters.includes(logShift)) return true;
+      const timeMatch = rawDate.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch) {
+        const hour = parseInt(timeMatch[1], 10);
+        return !Number.isNaN(hour) && !!getShiftFromHour(hour, shiftFilters);
+      }
+      return false;
+    }
+
+    return true;
+  });
+};
+

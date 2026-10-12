@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DateSpecificShiftRule,
+  filterLogsByDateAndShift,
   formatDisplayDate,
   getLogTimestamp,
   getShiftFromHour,
@@ -60,3 +62,80 @@ test("getLogTimestamp parses date and start time accurately for ASC/DESC sorting
   const sortedDesc = [...list].sort((a, b) => getLogTimestamp(b) - getLogTimestamp(a));
   assert.deepEqual(sortedDesc, [log3, log2, log1], "DESC sort should order newest first");
 });
+
+test("filterLogsByDateAndShift correctly filters logs with date-specific shift rules", () => {
+  const shiftsConfig = [
+    "Shift SA 1 (00.00-06.00)",
+    "Shift SA 2 (06.00-12.00)",
+    "Shift SA 3 (12.00-18.00)",
+    "Shift SA 4 (18.00-24.00)",
+  ];
+
+  const log1 = {
+    id: "1",
+    date: "2026-08-08",
+    shift: "Shift SA 1 (00.00-06.00)",
+    startTime: "02:00",
+  };
+  const log2 = {
+    id: "2",
+    date: "2026-08-08",
+    shift: "Shift SA 2 (06.00-12.00)",
+    startTime: "08:00",
+  };
+  const log3 = {
+    id: "3",
+    date: "2026-08-09",
+    shift: "Shift SA 2 (06.00-12.00)",
+    startTime: "09:00",
+  };
+  const log4 = {
+    id: "4",
+    date: "2026-08-09",
+    shift: "Shift SA 3 (12.00-18.00)",
+    startTime: "13:00",
+  };
+
+  const logs = [log1, log2, log3, log4];
+
+  // Case 1: Specific only mode - only 8 Agustus 2026 Shift SA 1
+  const rules: DateSpecificShiftRule[] = [
+    { date: "2026-08-08", shift: "Shift SA 1 (00.00-06.00)" },
+  ];
+  const resSpecificOnly = filterLogsByDateAndShift(
+    logs,
+    [],
+    rules,
+    "specific_only",
+    shiftsConfig,
+  );
+  assert.equal(resSpecificOnly.length, 1);
+  assert.equal(resSpecificOnly[0].id, "1");
+
+  // Case 2: Merged mode - general shift filter is Shift SA 2, plus specific rule for 8 Agustus Shift SA 1
+  const resMerged = filterLogsByDateAndShift(
+    logs,
+    ["Shift SA 2 (06.00-12.00)"],
+    rules,
+    "merged",
+    shiftsConfig,
+  );
+  // On 2026-08-08, only Shift SA 1 matches (overriding general). On 2026-08-09, general Shift SA 2 matches.
+  assert.equal(resMerged.length, 2);
+  assert.deepEqual(
+    resMerged.map((l) => l.id).sort(),
+    ["1", "3"],
+  );
+
+  // Case 3: No rules, general filter only
+  const resGeneral = filterLogsByDateAndShift(
+    logs,
+    ["Shift SA 3 (12.00-18.00)"],
+    [],
+    "merged",
+    shiftsConfig,
+  );
+  assert.equal(resGeneral.length, 1);
+  assert.equal(resGeneral[0].id, "4");
+});
+

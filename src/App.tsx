@@ -5956,6 +5956,21 @@ export default function App() {
                   brandPerformanceLogs,
                   shifts,
                 )}
+                availableDateSessions={(() => {
+                  const brandLogs = brandPerformanceLogs.filter(
+                    (l) => l.brandId === (activeClientBrandId || ""),
+                  );
+                  const map = new Map<string, { date: string; shift: string; platform?: string }>();
+                  brandLogs.forEach((l) => {
+                    const d = normalizeDateYMD(l.dateTime || l.date);
+                    const sh = l.shift?.trim();
+                    if (d && sh) {
+                      const key = `${d}_${sh}`;
+                      if (!map.has(key)) map.set(key, { date: d, shift: sh, platform: l.platform });
+                    }
+                  });
+                  return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+                })()}
                 initialShiftFilters={operatorShiftFilters}
                 reportType={
                   clientReportingTab === "product"
@@ -5974,14 +5989,25 @@ export default function App() {
                         : "live";
                   const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
+                  let queryStart = params.startDate;
+                  let queryEnd = params.endDate;
+                  if (params.dateShiftRules && params.dateShiftRules.length > 0) {
+                    params.dateShiftRules.forEach((r) => {
+                      if (r.date) {
+                        if (!queryStart || r.date < queryStart) queryStart = r.date;
+                        if (!queryEnd || r.date > queryEnd) queryEnd = r.date;
+                      }
+                    });
+                  }
+
                   const dynamicLiveView = buildLiveReportViewModel({
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    dateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     selectedMonth: clientSelectedMonth,
-                    customStartDate: params.startDate,
-                    customEndDate: params.endDate,
+                    customStartDate: queryStart,
+                    customEndDate: queryEnd,
                     searchQuery: reportDbSearchQuery,
                     platformFilter: params.platform,
                     shiftFilters: effectiveShiftFilters,
@@ -5991,10 +6017,10 @@ export default function App() {
                     shopeeSkuLogs,
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : (clientDateFilterType as any),
-                    selectedLatestDate: params.startDate,
-                    operatorCustomStartDate: params.startDate,
-                    operatorCustomEndDate: params.endDate,
+                    operatorDateFilterType: queryStart && queryEnd ? "custom" : (clientDateFilterType as any),
+                    selectedLatestDate: queryStart,
+                    operatorCustomStartDate: queryStart,
+                    operatorCustomEndDate: queryEnd,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorPlatformFilter: params.platform,
                     operatorShiftFilters: effectiveShiftFilters,
@@ -6004,13 +6030,13 @@ export default function App() {
                   const dynamicEngagementView = buildEngagementReportViewModel({
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    operatorDateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     operatorPlatformFilter: params.platform,
                     operatorShiftFilters: effectiveShiftFilters,
                     operatorSelectedMonth: clientSelectedMonth,
-                    operatorCustomStartDate: params.startDate,
-                    operatorCustomEndDate: params.endDate,
+                    operatorCustomStartDate: queryStart,
+                    operatorCustomEndDate: queryEnd,
                   });
 
                   exportReportToExcel({
@@ -6020,11 +6046,14 @@ export default function App() {
                     liveReportView: dynamicLiveView,
                     productReportView: dynamicProductView,
                     engagementReportView: dynamicEngagementView,
-                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    dateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     platformFilter: params.platform,
                     exportMode: params.exportMode,
                     sortOrder: params.sortOrder,
+                    shiftFilters: effectiveShiftFilters,
+                    dateShiftRules: params.dateShiftRules,
+                    dateShiftScope: params.dateShiftScope,
                   });
                 }}
                 onDownloadPdf={(params) => {
@@ -6037,14 +6066,25 @@ export default function App() {
                         : "live";
                   const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
+                  let queryStart = params.startDate;
+                  let queryEnd = params.endDate;
+                  if (params.dateShiftRules && params.dateShiftRules.length > 0) {
+                    params.dateShiftRules.forEach((r) => {
+                      if (r.date) {
+                        if (!queryStart || r.date < queryStart) queryStart = r.date;
+                        if (!queryEnd || r.date > queryEnd) queryEnd = r.date;
+                      }
+                    });
+                  }
+
                   const dynamicLiveView = buildLiveReportViewModel({
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    dateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     selectedMonth: clientSelectedMonth,
-                    customStartDate: params.startDate,
-                    customEndDate: params.endDate,
+                    customStartDate: queryStart,
+                    customEndDate: queryEnd,
                     searchQuery: reportDbSearchQuery,
                     platformFilter: params.platform,
                     shiftFilters: effectiveShiftFilters,
@@ -6054,10 +6094,10 @@ export default function App() {
                     shopeeSkuLogs,
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : (clientDateFilterType as any),
-                    selectedLatestDate: params.startDate,
-                    operatorCustomStartDate: params.startDate,
-                    operatorCustomEndDate: params.endDate,
+                    operatorDateFilterType: queryStart && queryEnd ? "custom" : (clientDateFilterType as any),
+                    selectedLatestDate: queryStart,
+                    operatorCustomStartDate: queryStart,
+                    operatorCustomEndDate: queryEnd,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorPlatformFilter: params.platform,
                     operatorShiftFilters: effectiveShiftFilters,
@@ -6067,13 +6107,13 @@ export default function App() {
                   const dynamicEngagementView = buildEngagementReportViewModel({
                     brandPerformanceLogs,
                     activeReportBrandId: activeClientBrandId || "",
-                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    operatorDateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     operatorPlatformFilter: params.platform,
                     operatorShiftFilters: effectiveShiftFilters,
                     operatorSelectedMonth: clientSelectedMonth,
-                    operatorCustomStartDate: params.startDate,
-                    operatorCustomEndDate: params.endDate,
+                    operatorCustomStartDate: queryStart,
+                    operatorCustomEndDate: queryEnd,
                   });
 
                   exportReportToPdf({
@@ -6083,11 +6123,14 @@ export default function App() {
                     liveReportView: dynamicLiveView,
                     productReportView: dynamicProductView,
                     engagementReportView: dynamicEngagementView,
-                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
-                    selectedLatestDate: params.startDate,
+                    dateFilterType: queryStart && queryEnd ? "custom" : clientDateFilterType,
+                    selectedLatestDate: queryStart,
                     platformFilter: params.platform,
                     exportMode: params.exportMode,
                     sortOrder: params.sortOrder,
+                    shiftFilters: effectiveShiftFilters,
+                    dateShiftRules: params.dateShiftRules,
+                    dateShiftScope: params.dateShiftScope,
                   });
                 }}
               />
@@ -12909,6 +12952,21 @@ export default function App() {
                         brandPerformanceLogs,
                         shifts,
                       )}
+                      availableDateSessions={(() => {
+                        const brandLogs = brandPerformanceLogs.filter(
+                          (l) => l.brandId === (activeReportBrandId || ""),
+                        );
+                        const map = new Map<string, { date: string; shift: string; platform?: string }>();
+                        brandLogs.forEach((l) => {
+                          const d = normalizeDateYMD(l.dateTime || l.date);
+                          const sh = l.shift?.trim();
+                          if (d && sh) {
+                            const key = `${d}_${sh}`;
+                            if (!map.has(key)) map.set(key, { date: d, shift: sh, platform: l.platform });
+                          }
+                        });
+                        return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+                      })()}
                       initialShiftFilters={operatorShiftFilters}
                       reportType={
                         operatorReportingTab === "product"
@@ -12928,14 +12986,25 @@ export default function App() {
                               : "live";
                         const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
+                        let queryStart = params.startDate;
+                        let queryEnd = params.endDate;
+                        if (params.dateShiftRules && params.dateShiftRules.length > 0) {
+                          params.dateShiftRules.forEach((r) => {
+                            if (r.date) {
+                              if (!queryStart || r.date < queryStart) queryStart = r.date;
+                              if (!queryEnd || r.date > queryEnd) queryEnd = r.date;
+                            }
+                          });
+                        }
+
                         const dynamicLiveView = buildLiveReportViewModel({
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          dateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           selectedMonth: operatorSelectedMonth,
-                          customStartDate: params.startDate,
-                          customEndDate: params.endDate,
+                          customStartDate: queryStart,
+                          customEndDate: queryEnd,
                           searchQuery: reportDbSearchQuery,
                           platformFilter: params.platform,
                           shiftFilters: effectiveShiftFilters,
@@ -12945,10 +13014,10 @@ export default function App() {
                           shopeeSkuLogs,
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : (operatorDateFilterType as any),
-                          selectedLatestDate: params.startDate,
-                          operatorCustomStartDate: params.startDate,
-                          operatorCustomEndDate: params.endDate,
+                          operatorDateFilterType: queryStart && queryEnd ? "custom" : (operatorDateFilterType as any),
+                          selectedLatestDate: queryStart,
+                          operatorCustomStartDate: queryStart,
+                          operatorCustomEndDate: queryEnd,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorPlatformFilter: params.platform,
                           operatorShiftFilters: effectiveShiftFilters,
@@ -12958,13 +13027,13 @@ export default function App() {
                         const dynamicEngagementView = buildEngagementReportViewModel({
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          operatorDateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           operatorPlatformFilter: params.platform,
                           operatorShiftFilters: effectiveShiftFilters,
                           operatorSelectedMonth: operatorSelectedMonth,
-                          operatorCustomStartDate: params.startDate,
-                          operatorCustomEndDate: params.endDate,
+                          operatorCustomStartDate: queryStart,
+                          operatorCustomEndDate: queryEnd,
                         });
 
                         exportReportToExcel({
@@ -12974,11 +13043,14 @@ export default function App() {
                           liveReportView: dynamicLiveView,
                           productReportView: dynamicProductView,
                           engagementReportView: dynamicEngagementView,
-                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          dateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           platformFilter: params.platform,
                           exportMode: params.exportMode,
                           sortOrder: params.sortOrder,
+                          shiftFilters: effectiveShiftFilters,
+                          dateShiftRules: params.dateShiftRules,
+                          dateShiftScope: params.dateShiftScope,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
@@ -12993,14 +13065,25 @@ export default function App() {
                               : "live";
                         const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
+                        let queryStart = params.startDate;
+                        let queryEnd = params.endDate;
+                        if (params.dateShiftRules && params.dateShiftRules.length > 0) {
+                          params.dateShiftRules.forEach((r) => {
+                            if (r.date) {
+                              if (!queryStart || r.date < queryStart) queryStart = r.date;
+                              if (!queryEnd || r.date > queryEnd) queryEnd = r.date;
+                            }
+                          });
+                        }
+
                         const dynamicLiveView = buildLiveReportViewModel({
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          dateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           selectedMonth: operatorSelectedMonth,
-                          customStartDate: params.startDate,
-                          customEndDate: params.endDate,
+                          customStartDate: queryStart,
+                          customEndDate: queryEnd,
                           searchQuery: reportDbSearchQuery,
                           platformFilter: params.platform,
                           shiftFilters: effectiveShiftFilters,
@@ -13010,10 +13093,10 @@ export default function App() {
                           shopeeSkuLogs,
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : (operatorDateFilterType as any),
-                          selectedLatestDate: params.startDate,
-                          operatorCustomStartDate: params.startDate,
-                          operatorCustomEndDate: params.endDate,
+                          operatorDateFilterType: queryStart && queryEnd ? "custom" : (operatorDateFilterType as any),
+                          selectedLatestDate: queryStart,
+                          operatorCustomStartDate: queryStart,
+                          operatorCustomEndDate: queryEnd,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorPlatformFilter: params.platform,
                           operatorShiftFilters: effectiveShiftFilters,
@@ -13023,13 +13106,13 @@ export default function App() {
                         const dynamicEngagementView = buildEngagementReportViewModel({
                           brandPerformanceLogs,
                           activeReportBrandId: activeReportBrandId || "",
-                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          operatorDateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           operatorPlatformFilter: params.platform,
                           operatorShiftFilters: effectiveShiftFilters,
                           operatorSelectedMonth: operatorSelectedMonth,
-                          operatorCustomStartDate: params.startDate,
-                          operatorCustomEndDate: params.endDate,
+                          operatorCustomStartDate: queryStart,
+                          operatorCustomEndDate: queryEnd,
                         });
 
                         exportReportToPdf({
@@ -13039,11 +13122,14 @@ export default function App() {
                           liveReportView: dynamicLiveView,
                           productReportView: dynamicProductView,
                           engagementReportView: dynamicEngagementView,
-                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
-                          selectedLatestDate: params.startDate,
+                          dateFilterType: queryStart && queryEnd ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: queryStart,
                           platformFilter: params.platform,
                           exportMode: params.exportMode,
                           sortOrder: params.sortOrder,
+                          shiftFilters: effectiveShiftFilters,
+                          dateShiftRules: params.dateShiftRules,
+                          dateShiftScope: params.dateShiftScope,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}

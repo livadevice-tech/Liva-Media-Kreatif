@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatDisplayDate, getLogTimestamp } from "./appUi";
+import { formatDisplayDate, getLogTimestamp, filterLogsByDateAndShift, type DateSpecificShiftRule } from "./appUi";
 import { formatLiveSessionDuration, getLiveSessionMetrics } from "./liveSessionsTable";
 
 export function exportReportToPdf({
@@ -15,6 +15,9 @@ export function exportReportToPdf({
   platformFilter,
   exportMode = "sessions",
   sortOrder = "desc",
+  shiftFilters,
+  dateShiftRules,
+  dateShiftScope = "merged",
 }: {
   reportType: "live" | "product" | "engagement" | "pipeline";
   selectedMetrics: string[];
@@ -27,6 +30,9 @@ export function exportReportToPdf({
   platformFilter?: string;
   exportMode?: "sessions" | "daily";
   sortOrder?: "desc" | "asc";
+  shiftFilters?: string[];
+  dateShiftRules?: DateSpecificShiftRule[];
+  dateShiftScope?: "specific_only" | "merged";
 }) {
   let dataToExport: any[] = [];
   const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
@@ -34,9 +40,13 @@ export function exportReportToPdf({
   const isTargetShopee = (platformFilter || "").toLowerCase().includes("shopee");
 
   if (reportType === "live" && liveReportView) {
-    const rawLogs = (liveReportView.tableLogs && liveReportView.tableLogs.length > 0)
+    let rawLogs = (liveReportView.tableLogs && liveReportView.tableLogs.length > 0)
       ? liveReportView.tableLogs
       : (liveReportView.filteredDb || []);
+
+    if (dateShiftRules && dateShiftRules.length > 0) {
+      rawLogs = filterLogsByDateAndShift(rawLogs, shiftFilters, dateShiftRules, dateShiftScope);
+    }
 
     if (exportMode === "daily") {
       // Group by date (Akumulasi Per Hari)
@@ -204,9 +214,13 @@ export function exportReportToPdf({
       return row;
     });
   } else if (reportType === "engagement" && engagementReportView) {
-    const rawEngLogs = (engagementReportView.tableLogs && engagementReportView.tableLogs.length > 0)
+    let rawEngLogs = (engagementReportView.tableLogs && engagementReportView.tableLogs.length > 0)
       ? engagementReportView.tableLogs
       : (engagementReportView.filteredDb || []);
+
+    if (dateShiftRules && dateShiftRules.length > 0) {
+      rawEngLogs = filterLogsByDateAndShift(rawEngLogs, shiftFilters, dateShiftRules, dateShiftScope);
+    }
 
     const sortedEngLogs = [...rawEngLogs].sort((a, b) => {
       const timeA = getLogTimestamp(a);
