@@ -38,6 +38,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   disabled = false,
   size = 'md',
   align = 'left',
+  formatDisplay,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [openDirection, setOpenDirection] = useState<'down' | 'up'>('down');
