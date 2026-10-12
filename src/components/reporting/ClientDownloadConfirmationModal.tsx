@@ -319,8 +319,6 @@ export function ClientDownloadConfirmationModal({
     setSelectedMetrics(availableMetrics.map((m) => m.id));
   }, [availableMetrics]);
 
-  if (!isOpen) return null;
-
   const toggleMetric = (id: string) => {
     setSelectedMetrics((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
@@ -434,6 +432,8 @@ export function ClientDownloadConfirmationModal({
     { key: "funnel", title: "Metrik Corong Penonton & Klik" },
     { key: "engagement", title: "Interaksi & Komunitas" },
   ];
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
