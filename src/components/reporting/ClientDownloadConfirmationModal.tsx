@@ -130,118 +130,154 @@ export function ClientDownloadConfirmationModal({
     }
 
     if (reportType === "engagement") {
+      if (isTikTok) {
+        return [
+          { id: "date", label: "Tanggal", group: "general" },
+          { id: "time", label: "Jam Mulai", group: "general" },
+          { id: "platform", label: "Platform", group: "general" },
+          { id: "impressions", label: "Live Impressions", group: "funnel", description: "Tayangan live stream" },
+          { id: "penonton", label: "Live Viewer", group: "funnel", description: "Penonton tayangan langsung" },
+          { id: "new_followers", label: "New Followers", group: "engagement", description: "Pengikut baru" },
+          { id: "likes", label: "Likes", group: "engagement" },
+          { id: "comments", label: "Comments", group: "engagement" },
+          { id: "shares", label: "Shares", group: "engagement" },
+          { id: "avg_view_duration", label: "Avg. View Duration", group: "engagement" },
+          { id: "err", label: "ERR %", group: "engagement", description: "Engagement Rate" },
+        ];
+      }
+      if (isShopee) {
+        return [
+          { id: "date", label: "Tanggal", group: "general" },
+          { id: "time", label: "Jam Mulai", group: "general" },
+          { id: "platform", label: "Platform", group: "general" },
+          { id: "penonton", label: "Views", group: "funnel", description: "Total penonton siaran" },
+          { id: "live_viewer", label: "Viewer Active", group: "funnel", description: "Penonton aktif bersamaan" },
+          { id: "peak_viewers", label: "Peak Viewer", group: "funnel", description: "Penonton puncak tertinggi" },
+          { id: "new_followers", label: "New Followers", group: "engagement", description: "Pengikut baru" },
+          { id: "likes", label: "Likes", group: "engagement" },
+          { id: "comments", label: "Comments", group: "engagement" },
+          { id: "shares", label: "Shares", group: "engagement" },
+          { id: "avg_view_duration", label: "Avg. View Duration", group: "engagement" },
+          { id: "err", label: "ERR %", group: "engagement", description: "Engagement Rate" },
+        ];
+      }
       return [
         { id: "date", label: "Tanggal", group: "general" },
         { id: "time", label: "Jam Mulai", group: "general" },
         { id: "platform", label: "Platform", group: "general" },
-        { id: "views", label: isShopee ? "Views / Penonton" : "Live Impressions", group: "funnel" },
+        { id: "penonton", label: "Views / Penonton", group: "funnel" },
         { id: "peak_viewers", label: "Peak Viewers (Tertinggi)", group: "funnel" },
         { id: "new_followers", label: "Pengikut Baru (Followers)", group: "engagement" },
         { id: "likes", label: "Total Likes", group: "engagement" },
         { id: "comments", label: "Total Komentar", group: "engagement" },
         { id: "shares", label: "Total Shares", group: "engagement" },
-        { id: "engagement_rate", label: "Engagement Rate / ERR (%)", group: "engagement" },
+        { id: "avg_view_duration", label: "Avg. View Duration", group: "engagement" },
+        { id: "err", label: "Engagement Rate / ERR (%)", group: "engagement" },
       ];
     }
 
     // Default: "live" report type
-    const metrics: MetricItem[] = [
+    // TIKTOK LIVE SPECIFIC METRICS
+    if (isTikTok) {
+      return [
+        // Sesi & Waktu
+        { id: "date", label: "Tanggal", group: "general" },
+        { id: "time", label: "Jam Mulai", group: "general" },
+        { id: "platform", label: "Platform", group: "general" },
+        { id: "shift", label: "Shift", group: "general" },
+        { id: "duration", label: "Durasi Live", group: "general" },
+
+        // Metrik Penjualan & Revenue
+        { id: "gmv", label: "GMV (Rp)", group: "sales", description: "Gross Merchandise Value" },
+        { id: "items_sold", label: "Item Sold (Qty)", group: "sales", description: "Total produk terjual" },
+        { id: "orders", label: "Orders", group: "sales", description: "Total pesanan dibuat" },
+        { id: "buyers", label: "Customer", group: "sales", description: "Jumlah pembeli unik" },
+        { id: "aov", label: "AOV (Rp)", group: "sales", description: "Average Order Value" },
+        { id: "product_impressions", label: "Product Impressions", group: "sales", description: "Tayangan etalase produk TikTok" },
+        { id: "product_clicks", label: "Product Clicks", group: "sales", description: "Klik ke produk dari live stream" },
+        { id: "est_income", label: "GMV/Hours (Rp)", group: "sales", description: "Laju omset per jam siaran" },
+        { id: "conversion_rate", label: "Conversion Rate (%)", group: "sales", description: "Rasio pesanan dibanding klik produk" },
+
+        // Corong Penonton
+        { id: "impressions", label: "Live Impressions", group: "funnel", description: "Total tayangan ruang siaran TikTok" },
+        { id: "penonton", label: "Live Viewer", group: "funnel", description: "Penonton siaran langsung" },
+
+        // Interaksi & Komunitas
+        { id: "avg_view_duration", label: "Avg. View Duration (detik)", group: "engagement", description: "Rata-rata durasi tonton" },
+        { id: "likes", label: "Likes", group: "engagement", description: "Total suka di TikTok" },
+        { id: "comments", label: "Comments", group: "engagement", description: "Total komentar live" },
+        { id: "shares", label: "Shares", group: "engagement", description: "Total dibagikan" },
+        { id: "new_followers", label: "New Followers", group: "engagement", description: "Follower baru diperoleh" },
+        { id: "err", label: "ERR %", group: "engagement", description: "Engagement Rate terhadap penonton" },
+      ];
+    }
+
+    // SHOPEE LIVE SPECIFIC METRICS
+    if (isShopee) {
+      return [
+        // Sesi & Waktu
+        { id: "date", label: "Tanggal", group: "general" },
+        { id: "time", label: "Jam Mulai", group: "general" },
+        { id: "platform", label: "Platform", group: "general" },
+        { id: "shift", label: "Shift", group: "general" },
+        { id: "duration", label: "Durasi Live", group: "general" },
+
+        // Metrik Penjualan & Revenue
+        { id: "gmv", label: "GMV (Rp)", group: "sales", description: "Gross Merchandise Value" },
+        { id: "items_sold", label: "Item Sold (Qty)", group: "sales", description: "Total produk terjual" },
+        { id: "orders", label: "Purchase", group: "sales", description: "Total pesanan dibuat (Shopee Purchase)" },
+        { id: "buyers", label: "Customer", group: "sales", description: "Jumlah pembeli unik" },
+        { id: "aov", label: "AOV (Rp)", group: "sales", description: "Average Order Value" },
+        { id: "product_clicks", label: "Add to Cart", group: "sales", description: "Penambahan produk ke keranjang" },
+        { id: "est_income", label: "GMV/Hours (Rp)", group: "sales", description: "Laju omset per jam siaran" },
+        { id: "shop_vouchers", label: "Voucher Claim", group: "sales", description: "Klaim voucher toko live Shopee" },
+        { id: "conversion_rate", label: "Conversion Rate (%)", group: "sales", description: "Rasio pembeli dibanding penonton" },
+
+        // Corong Penonton
+        { id: "penonton", label: "Views", group: "funnel", description: "Total penonton tayangan Shopee" },
+        { id: "live_viewer", label: "Viewer Active", group: "funnel", description: "Penonton aktif selama streaming" },
+        { id: "peak_viewers", label: "Peak Viewer", group: "funnel", description: "Penonton bersamaan tertinggi" },
+
+        // Interaksi & Komunitas
+        { id: "avg_view_duration", label: "Avg. View Duration (detik)", group: "engagement", description: "Rata-rata durasi tonton" },
+        { id: "likes", label: "Likes", group: "engagement", description: "Total suka di Shopee" },
+        { id: "comments", label: "Comments", group: "engagement", description: "Total komentar penonton" },
+        { id: "shares", label: "Shares", group: "engagement", description: "Total dibagikan" },
+        { id: "new_followers", label: "New Followers", group: "engagement", description: "Pengikut baru diperoleh" },
+        { id: "err", label: "ERR %", group: "engagement", description: "Engagement Rate terhadap views" },
+      ];
+    }
+
+    // SEMUA PLATFORM (GENERIC/GABUNGAN)
+    return [
       { id: "date", label: "Tanggal", group: "general" },
       { id: "time", label: "Jam Mulai", group: "general" },
       { id: "platform", label: "Platform", group: "general" },
       { id: "shift", label: "Shift", group: "general" },
       { id: "duration", label: "Durasi Live", group: "general" },
 
-      // Sales metrics
-      { id: "gmv", label: "GMV / Omset (Rp)", group: "sales", description: "Gross Merchandise Value" },
-      { id: "items_sold", label: "Produk Terjual (Qty)", group: "sales" },
-      { id: "orders", label: "Total Orders", group: "sales" },
-      { id: "buyers", label: "Total Customer / Pembeli", group: "sales" },
-      { id: "aov", label: "AOV (Rata-rata Order)", group: "sales" },
-      { id: "est_income", label: "GMV / Jam (Laju Penjualan)", group: "sales" },
+      { id: "gmv", label: "GMV (Rp)", group: "sales", description: "Gross Merchandise Value" },
+      { id: "items_sold", label: "Item Sold (Qty)", group: "sales" },
+      { id: "orders", label: "Orders / Purchase", group: "sales" },
+      { id: "buyers", label: "Customer / Pembeli", group: "sales" },
+      { id: "aov", label: "AOV (Rp)", group: "sales" },
+      { id: "product_clicks", label: "Product Clicks / Add to Cart", group: "sales" },
+      { id: "product_impressions", label: "Product Impressions (TikTok)", group: "sales" },
+      { id: "shop_vouchers", label: "Voucher Claim (Shopee)", group: "sales" },
+      { id: "est_income", label: "GMV/Hours (Rp)", group: "sales" },
+      { id: "conversion_rate", label: "Conversion Rate (%)", group: "sales" },
 
-      // Funnel & view metrics
-      {
-        id: "impressions",
-        label: isTikTok ? "Live Impressions" : isShopee ? "Live Views" : "Tayangan / View",
-        group: "funnel",
-      },
-      {
-        id: "live_viewer",
-        label: isShopee ? "Viewer Aktif" : "Penonton Langsung",
-        group: "funnel",
-      },
-      {
-        id: "penonton",
-        label: "Total Penonton",
-        group: "funnel",
-      },
+      { id: "penonton", label: "Views / Live Viewer", group: "funnel" },
+      { id: "live_viewer", label: "Viewer Active", group: "funnel" },
+      { id: "peak_viewers", label: "Peak Viewers", group: "funnel" },
+
+      { id: "avg_view_duration", label: "Avg. View Duration (detik)", group: "engagement" },
+      { id: "likes", label: "Likes", group: "engagement" },
+      { id: "comments", label: "Comments", group: "engagement" },
+      { id: "shares", label: "Shares", group: "engagement" },
+      { id: "new_followers", label: "New Followers", group: "engagement" },
+      { id: "err", label: "ERR %", group: "engagement" },
     ];
-
-    if (isTikTok) {
-      metrics.push({
-        id: "product_impressions",
-        label: "Product Impressions",
-        group: "funnel",
-        description: "Tayangan etalase produk di TikTok",
-      });
-      metrics.push({
-        id: "product_clicks",
-        label: "Product Clicks (Klik Produk)",
-        group: "funnel",
-        description: "Jumlah klik ke produk dari live stream",
-      });
-    } else if (isShopee) {
-      metrics.push({
-        id: "product_clicks",
-        label: "Add to Cart (Keranjang)",
-        group: "funnel",
-        description: "Jumlah penambahan ke keranjang dari live Shopee",
-      });
-      metrics.push({
-        id: "shop_vouchers",
-        label: "Voucher Diklaim",
-        group: "sales",
-        description: "Klaim voucher toko live Shopee",
-      });
-    } else {
-      // Semua Platform
-      metrics.push({
-        id: "product_impressions",
-        label: "Product Impressions",
-        group: "funnel",
-      });
-      metrics.push({
-        id: "product_clicks",
-        label: "Klik Produk / Add to Cart",
-        group: "funnel",
-      });
-      metrics.push({
-        id: "shop_vouchers",
-        label: "Voucher Toko",
-        group: "sales",
-      });
-    }
-
-    metrics.push({
-      id: "conversion_rate",
-      label: "Conversion Rate (%)",
-      group: "funnel",
-      description: "Persentase pembeli dibanding penonton",
-    });
-
-    // Engagement metrics
-    metrics.push(
-      { id: "peak_viewers", label: "Peak Viewers (Penonton Puncak)", group: "engagement" },
-      { id: "avg_view_duration", label: "Rata-rata Durasi Tonton (detik)", group: "engagement" },
-      { id: "likes", label: "Total Likes", group: "engagement" },
-      { id: "comments", label: "Total Komentar", group: "engagement" },
-      { id: "shares", label: "Total Shares", group: "engagement" },
-      { id: "new_followers", label: "Pengikut Baru", group: "engagement" },
-      { id: "err", label: "Engagement Rate / ERR (%)", group: "engagement" },
-    );
-
-    return metrics;
   }, [reportType, isTikTok, isShopee]);
 
   // Set default selected metrics when platform or reportType changes

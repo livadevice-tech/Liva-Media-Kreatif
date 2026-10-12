@@ -94,6 +94,8 @@ export function ReportRawSessionsCard({
     let rows: any[] = [];
     const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
 
+    const platformLabel = isShopee ? "Shopee_Live" : "TikTok_Live";
+
     if (reportingShopeeRawTab === "raw") {
       // Export per session (saat di-start)
       rows = sortedTableLogs.map((log, idx) => {
@@ -103,11 +105,12 @@ export function ReportRawSessionsCard({
           "No": idx + 1,
           "Tanggal & Jam Mulai": startFormatted || log.dateTime || log.date || "-",
           "Durasi": formatLiveSessionDuration(log.duration || 0),
-          "Viewer": metrics.viewer,
+          [isShopee ? "Views" : "Live Viewer"]: metrics.viewer,
           "GMV (Rp)": log.gmv || 0,
-          "Items Sold": log.products_sold || log.items_sold || 0,
+          "Item Sold": log.products_sold || log.items_sold || 0,
           "Avg. View Duration (detik)": Number((log.avgViewDuration || 0).toFixed(2)),
-          "Orders": metrics.customers,
+          [isShopee ? "Purchase" : "Orders"]: isShopee ? (metrics.orders || metrics.customers) : metrics.orders,
+          [isShopee ? "Add to Cart" : "Product Clicks"]: metrics.clicks,
           "Conversion Rate (%)": Number(metrics.conversionRate.toFixed(2)),
           "Platform": log.platform || (isShopee ? "Shopee Live" : "TikTok Live"),
           "Shift": log.shift || "-",
@@ -116,7 +119,7 @@ export function ReportRawSessionsCard({
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sesi Live");
-      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Sesi_Live_Per_Start.xlsx`);
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_${platformLabel}_Sesi_Per_Start.xlsx`);
     } else if (reportingShopeeRawTab === "day") {
       // Export Akumulasi Harian
       const groups: Record<string, any> = {};
@@ -138,7 +141,7 @@ export function ReportRawSessionsCard({
         g.viewer += m.viewer;
         g.gmv += (log.gmv || 0);
         g.itemsSold += (log.products_sold || log.items_sold || 0);
-        g.orders += m.customers;
+        g.orders += (isShopee ? (m.orders || m.customers) : m.orders);
         g.clicks += m.clicks;
         g.avgViewDurationSum += (log.avgViewDuration || 0);
       });
@@ -151,18 +154,19 @@ export function ReportRawSessionsCard({
           "Tanggal": g.label,
           "Jumlah Sesi": g.sessionCount,
           "Total Durasi": formatLiveSessionDuration(g.duration),
-          "Viewer": g.viewer,
-          "GMV (Rp)": g.gmv,
-          "Items Sold": g.itemsSold,
+          [isShopee ? "Total Views" : "Total Live Viewer"]: g.viewer,
+          "Total GMV (Rp)": g.gmv,
+          "Item Sold": g.itemsSold,
           "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
-          "Orders": g.orders,
+          [isShopee ? "Total Purchase" : "Total Orders"]: g.orders,
+          [isShopee ? "Total Add to Cart" : "Total Product Clicks"]: g.clicks,
           "Conversion Rate (%)": Number(cr.toFixed(2)),
         };
       });
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Akumulasi Harian");
-      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Akumulasi_Harian.xlsx`);
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_${platformLabel}_Akumulasi_Harian.xlsx`);
     } else if (reportingShopeeRawTab === "shift") {
       // Export per shift
       const groups: Record<string, any> = {};
@@ -179,7 +183,7 @@ export function ReportRawSessionsCard({
         g.viewer += m.viewer;
         g.gmv += (log.gmv || 0);
         g.itemsSold += (log.products_sold || log.items_sold || 0);
-        g.orders += m.customers;
+        g.orders += (isShopee ? (m.orders || m.customers) : m.orders);
         g.clicks += m.clicks;
         g.avgViewDurationSum += (log.avgViewDuration || 0);
       });
@@ -191,18 +195,19 @@ export function ReportRawSessionsCard({
           "Shift": g.label,
           "Jumlah Sesi": g.sessionCount,
           "Total Durasi": formatLiveSessionDuration(g.duration),
-          "Viewer": g.viewer,
-          "GMV (Rp)": g.gmv,
-          "Items Sold": g.itemsSold,
+          [isShopee ? "Total Views" : "Total Live Viewer"]: g.viewer,
+          "Total GMV (Rp)": g.gmv,
+          "Item Sold": g.itemsSold,
           "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
-          "Orders": g.orders,
+          [isShopee ? "Total Purchase" : "Total Orders"]: g.orders,
+          [isShopee ? "Total Add to Cart" : "Total Product Clicks"]: g.clicks,
           "Conversion Rate (%)": Number(cr.toFixed(2)),
         };
       });
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Per Shift");
-      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Per_Shift.xlsx`);
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_${platformLabel}_Per_Shift.xlsx`);
     } else {
       // Export per hari dalam seminggu
       const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -228,7 +233,7 @@ export function ReportRawSessionsCard({
         g.viewer += m.viewer;
         g.gmv += (log.gmv || 0);
         g.itemsSold += (log.products_sold || log.items_sold || 0);
-        g.orders += m.customers;
+        g.orders += (isShopee ? (m.orders || m.customers) : m.orders);
         g.clicks += m.clicks;
         g.avgViewDurationSum += (log.avgViewDuration || 0);
       });
@@ -240,18 +245,19 @@ export function ReportRawSessionsCard({
           "Hari": g.label,
           "Jumlah Sesi": g.sessionCount,
           "Total Durasi": formatLiveSessionDuration(g.duration),
-          "Viewer": g.viewer,
-          "GMV (Rp)": g.gmv,
-          "Items Sold": g.itemsSold,
+          [isShopee ? "Total Views" : "Total Live Viewer"]: g.viewer,
+          "Total GMV (Rp)": g.gmv,
+          "Item Sold": g.itemsSold,
           "Avg. View Duration (detik)": Number(avgView.toFixed(2)),
-          "Orders": g.orders,
+          [isShopee ? "Total Purchase" : "Total Orders"]: g.orders,
+          [isShopee ? "Total Add to Cart" : "Total Product Clicks"]: g.clicks,
           "Conversion Rate (%)": Number(cr.toFixed(2)),
         };
       });
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Per Hari");
-      XLSX.writeFile(wb, `Laporan_${cleanBrand}_Per_Hari.xlsx`);
+      XLSX.writeFile(wb, `Laporan_${cleanBrand}_${platformLabel}_Per_Hari.xlsx`);
     }
   };
 

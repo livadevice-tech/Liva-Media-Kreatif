@@ -28,6 +28,8 @@ export function exportReportToPdf({
 }) {
   let dataToExport: any[] = [];
   const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
+  const isTargetTikTok = (platformFilter || "").toLowerCase().includes("tiktok");
+  const isTargetShopee = (platformFilter || "").toLowerCase().includes("shopee");
 
   if (reportType === "live" && liveReportView) {
     const rawLogs = (liveReportView.tableLogs && liveReportView.tableLogs.length > 0)
@@ -84,20 +86,45 @@ export function exportReportToPdf({
 
       dataToExport = sortedGroups.map((g, idx) => {
         const row: any = {};
+        const isTikTok = isTargetTikTok || String(g.platform || "").toLowerCase().includes("tiktok");
+        const isShopee = isTargetShopee || String(g.platform || "").toLowerCase().includes("shopee");
         const avgViewSec = g.sessionCount > 0 ? g.avgViewDurationSum / g.sessionCount : 0;
-        const convRate = g.viewer > 0 ? (g.buyers / g.viewer) * 100 : 0;
+        const convRate = isTikTok
+          ? (g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0)
+          : (g.viewer > 0 ? (g.buyers / g.viewer) * 100 : 0);
 
         row["No"] = idx + 1;
-        row["Tanggal"] = g.dateKey;
+        if (selectedMetrics.includes("date")) {
+          row["Tanggal"] = g.dateKey;
+        }
         row["Jumlah Sesi"] = g.sessionCount;
-        row["Durasi Total"] = formatLiveSessionDuration(g.duration);
-        row["Platform"] = g.platform;
-        row["Viewer"] = new Intl.NumberFormat("id-ID").format(g.viewer);
-        row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(g.gmv);
-        row["Item Terjual"] = new Intl.NumberFormat("id-ID").format(g.itemsSold);
-        row["Avg. View"] = `${avgViewSec.toFixed(1)}s`;
-        row["Orders"] = new Intl.NumberFormat("id-ID").format(g.orders);
-        row["CR (%)"] = `${convRate.toFixed(2)}%`;
+        if (selectedMetrics.includes("duration")) {
+          row["Durasi Total"] = formatLiveSessionDuration(g.duration);
+        }
+        if (selectedMetrics.includes("platform")) {
+          row["Platform"] = g.platform;
+        }
+        if (selectedMetrics.includes("gmv")) {
+          row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(g.gmv);
+        }
+        if (selectedMetrics.includes("items_sold")) {
+          row["Item Terjual"] = new Intl.NumberFormat("id-ID").format(g.itemsSold);
+        }
+        if (selectedMetrics.includes("orders")) {
+          row[isShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(g.orders);
+        }
+        if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
+          row[isShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(g.clicks);
+        }
+        if (selectedMetrics.includes("penonton")) {
+          row[isShopee ? "Views" : isTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(g.viewer);
+        }
+        if (selectedMetrics.includes("avg_view_duration")) {
+          row["Avg. View"] = `${avgViewSec.toFixed(1)}s`;
+        }
+        if (selectedMetrics.includes("conversion_rate")) {
+          row["CR (%)"] = `${convRate.toFixed(2)}%`;
+        }
         return row;
       });
     } else {
@@ -110,19 +137,54 @@ export function exportReportToPdf({
 
       dataToExport = sortedLogs.map((log: any, idx: number) => {
         const row: any = {};
+        const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
+        const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");
         const m = getLiveSessionMetrics(log);
         const formattedStart = formatDisplayDate(log.dateTime || log.date, log.platform);
 
         row["No"] = idx + 1;
-        row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
-        row["Platform"] = log.platform || "-";
-        row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
-        row["Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
-        row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
-        row["Items Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
-        row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
-        row["Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
-        row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
+        if (selectedMetrics.includes("date") && selectedMetrics.includes("time")) {
+          row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
+        } else {
+          if (selectedMetrics.includes("date")) {
+            row["Tanggal"] = log.date || (log.dateTime ? log.dateTime.split(" ")[0] : "-");
+          }
+          if (selectedMetrics.includes("time")) {
+            row["Jam Mulai"] = log.dateTime && log.dateTime.includes(" ")
+              ? log.dateTime.split(" ")[1]
+              : "-";
+          }
+        }
+        if (selectedMetrics.includes("platform")) {
+          row["Platform"] = log.platform || (isShopee ? "Shopee Live" : isTikTok ? "TikTok Live" : "-");
+        }
+        if (selectedMetrics.includes("shift")) {
+          row["Shift"] = log.shift || "-";
+        }
+        if (selectedMetrics.includes("duration")) {
+          row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
+        }
+        if (selectedMetrics.includes("gmv")) {
+          row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
+        }
+        if (selectedMetrics.includes("items_sold")) {
+          row["Item Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
+        }
+        if (selectedMetrics.includes("orders")) {
+          row[isShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
+        }
+        if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
+          row[isShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(m.clicks);
+        }
+        if (selectedMetrics.includes("penonton")) {
+          row[isShopee ? "Views" : isTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
+        }
+        if (selectedMetrics.includes("avg_view_duration")) {
+          row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
+        }
+        if (selectedMetrics.includes("conversion_rate")) {
+          row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
+        }
 
         return row;
       });
@@ -144,15 +206,21 @@ export function exportReportToPdf({
 
     dataToExport = rawEngLogs.map((log: any, idx: number) => {
       const row: any = {};
-      row["No"] = idx + 1;
+      const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
+      const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");
       const formattedDate = formatDisplayDate(log.dateTime || log.date, log.platform);
+
+      row["No"] = idx + 1;
       row["Tanggal & Jam Mulai"] = formattedDate || log.dateTime || log.date || "-";
       row["Platform"] = log.platform || "-";
-      row["Views"] = new Intl.NumberFormat("id-ID").format(
+      row[isShopee ? "Views" : "Live Viewer"] = new Intl.NumberFormat("id-ID").format(
         Math.max(log.impressions || 0, log.views || 0, log.liveVisits || 0, log.penonton || 0)
       );
-      row["Pengikut Baru"] = new Intl.NumberFormat("id-ID").format(log.newFollowers || log.followers || 0);
-      row["Komentar"] = new Intl.NumberFormat("id-ID").format(log.comments || 0);
+      if (isShopee && log.peakViewers) {
+        row["Peak Viewer"] = new Intl.NumberFormat("id-ID").format(log.peakViewers);
+      }
+      row["New Followers"] = new Intl.NumberFormat("id-ID").format(log.newFollowers || log.followers || 0);
+      row["Comments"] = new Intl.NumberFormat("id-ID").format(log.comments || 0);
       row["Shares"] = new Intl.NumberFormat("id-ID").format(log.shares || 0);
       row["Likes"] = new Intl.NumberFormat("id-ID").format(log.likes || 0);
       return row;
@@ -170,16 +238,24 @@ export function exportReportToPdf({
   const headers = Object.keys(dataToExport[0]);
   const data = dataToExport.map((row) => Object.values(row));
 
+  const platformLabel = isTargetShopee
+    ? "Shopee Live"
+    : isTargetTikTok
+      ? "TikTok Live"
+      : platformFilter && platformFilter !== "all"
+        ? platformFilter
+        : "";
+
   const getTitle = () => {
     switch (reportType) {
       case "live":
         return exportMode === "sessions"
-          ? `Laporan Live Per Sesi (Start Time) - ${brandName}`
-          : `Laporan Live Akumulasi Harian - ${brandName}`;
+          ? `Laporan ${platformLabel ? platformLabel + " " : ""}Per Sesi (Start Time) - ${brandName}`
+          : `Laporan ${platformLabel ? platformLabel + " " : ""}Akumulasi Harian - ${brandName}`;
       case "product":
         return `Product Report - ${brandName}`;
       case "engagement":
-        return `Engagement Report - ${brandName}`;
+        return `Engagement Report ${platformLabel ? "(" + platformLabel + ") " : ""}- ${brandName}`;
       case "pipeline":
         return `Pipeline Report - ${brandName}`;
       default:
@@ -197,13 +273,21 @@ export function exportReportToPdf({
     body: data,
     startY: 28,
     theme: "striped",
-    headStyles: { fillColor: [86, 0, 224] },
+    headStyles: { fillColor: isTargetShopee ? [238, 77, 45] : isTargetTikTok ? [20, 20, 20] : [86, 0, 224] },
     styles: { fontSize: 8 },
   });
 
+  const platformTag = isTargetShopee
+    ? "Shopee_Live"
+    : isTargetTikTok
+      ? "TikTok_Live"
+      : platformFilter && platformFilter !== "all"
+        ? platformFilter.replace(/[^a-zA-Z0-9_-]/g, "_")
+        : "";
+
   const modeSuffix = exportMode === "sessions" ? "_Per_Sesi" : "_Akumulasi_Harian";
   const fileName = reportType === "live"
-    ? `${cleanBrand}_live${modeSuffix}_report.pdf`
-    : `${cleanBrand}_${reportType}_report.pdf`;
+    ? `${cleanBrand}_${platformTag ? platformTag + "_" : "live"}${modeSuffix}_report.pdf`
+    : `${cleanBrand}_${platformTag ? platformTag + "_" : ""}${reportType}_report.pdf`;
   doc.save(fileName);
 }
