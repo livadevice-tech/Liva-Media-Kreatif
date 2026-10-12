@@ -13,6 +13,9 @@ import {
   Database,
   Layers,
   Sparkles,
+  ChevronUp,
+  ChevronDown,
+  GripVertical,
 } from 'lucide-react';
 import {
   TaskCustomSettings,
@@ -93,6 +96,83 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
       commitChanges(localSettings);
     }
     onClose();
+  };
+
+  // Reorder Drag & Drop state
+  const [draggedStatusIndex, setDraggedStatusIndex] = useState<number | null>(null);
+  const [draggedPriorityIndex, setDraggedPriorityIndex] = useState<number | null>(null);
+  const [draggedCategoryIndex, setDraggedCategoryIndex] = useState<number | null>(null);
+
+  // Status Reordering
+  const handleMoveStatus = (fromIndex: number, direction: -1 | 1) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= localSettings.statuses.length) return;
+    const list = [...localSettings.statuses];
+    const [item] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, statuses: list }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDropStatus = (toIndex: number) => {
+    if (draggedStatusIndex === null || draggedStatusIndex === toIndex) {
+      setDraggedStatusIndex(null);
+      return;
+    }
+    const list = [...localSettings.statuses];
+    const [item] = list.splice(draggedStatusIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, statuses: list }));
+    setHasUnsavedChanges(true);
+    setDraggedStatusIndex(null);
+  };
+
+  // Priority Reordering
+  const handleMovePriority = (fromIndex: number, direction: -1 | 1) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= localSettings.priorities.length) return;
+    const list = [...localSettings.priorities];
+    const [item] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, priorities: list }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDropPriority = (toIndex: number) => {
+    if (draggedPriorityIndex === null || draggedPriorityIndex === toIndex) {
+      setDraggedPriorityIndex(null);
+      return;
+    }
+    const list = [...localSettings.priorities];
+    const [item] = list.splice(draggedPriorityIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, priorities: list }));
+    setHasUnsavedChanges(true);
+    setDraggedPriorityIndex(null);
+  };
+
+  // Category Reordering
+  const handleMoveCategory = (fromIndex: number, direction: -1 | 1) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= localSettings.categories.length) return;
+    const list = [...localSettings.categories];
+    const [item] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, categories: list }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDropCategory = (toIndex: number) => {
+    if (draggedCategoryIndex === null || draggedCategoryIndex === toIndex) {
+      setDraggedCategoryIndex(null);
+      return;
+    }
+    const list = [...localSettings.categories];
+    const [item] = list.splice(draggedCategoryIndex, 1);
+    list.splice(toIndex, 0, item);
+    setLocalSettings((prev) => ({ ...prev, categories: list }));
+    setHasUnsavedChanges(true);
+    setDraggedCategoryIndex(null);
   };
 
   // Close on Escape key
@@ -360,18 +440,60 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
 
               {/* Status List */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
-                  Daftar Status Saat Ini
-                </label>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                    Daftar Status Saat Ini
+                  </label>
+                  <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                    Gunakan panah atau tarik untuk mengatur urutan kolom Kanban
+                  </span>
+                </div>
                 <div className="space-y-2.5">
-                  {localSettings.statuses.map((item) => {
+                  {localSettings.statuses.map((item, index) => {
                     const meta = getStatusMeta(item.id, localSettings);
+                    const isDragging = draggedStatusIndex === index;
                     return (
                       <div
                         key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs"
+                        draggable
+                        onDragStart={() => setDraggedStatusIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDropStatus(index)}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs ${
+                          isDragging
+                            ? 'opacity-40 border-dashed border-indigo-400 bg-indigo-50/20'
+                            : 'border-slate-200'
+                        }`}
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          {/* Reorder Grip & Arrows */}
+                          <div className="flex items-center gap-0.5 shrink-0 pr-1.5 border-r border-slate-100">
+                            <div
+                              title="Tarik untuk memindahkan urutan"
+                              className="p-1 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing hidden sm:flex items-center justify-center"
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => handleMoveStatus(index, -1)}
+                              title="Pindahkan ke atas"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === localSettings.statuses.length - 1}
+                              onClick={() => handleMoveStatus(index, 1)}
+                              title="Pindahkan ke bawah"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
                           {/* Live Color Badge */}
                           <div
                             className={`px-2.5 py-1 rounded-lg text-xs font-black border shrink-0 ${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`}
@@ -502,18 +624,60 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
 
               {/* Priority List */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
-                  Daftar Prioritas Saat Ini
-                </label>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                    Daftar Prioritas Saat Ini
+                  </label>
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                    Gunakan panah atau tarik untuk mengatur urutan tingkat prioritas
+                  </span>
+                </div>
                 <div className="space-y-2.5">
-                  {localSettings.priorities.map((item) => {
+                  {localSettings.priorities.map((item, index) => {
                     const meta = getPriorityMeta(item.id, localSettings);
+                    const isDragging = draggedPriorityIndex === index;
                     return (
                       <div
                         key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs"
+                        draggable
+                        onDragStart={() => setDraggedPriorityIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDropPriority(index)}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs ${
+                          isDragging
+                            ? 'opacity-40 border-dashed border-amber-400 bg-amber-50/20'
+                            : 'border-slate-200'
+                        }`}
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          {/* Reorder Grip & Arrows */}
+                          <div className="flex items-center gap-0.5 shrink-0 pr-1.5 border-r border-slate-100">
+                            <div
+                              title="Tarik untuk memindahkan urutan"
+                              className="p-1 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing hidden sm:flex items-center justify-center"
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => handleMovePriority(index, -1)}
+                              title="Pindahkan ke atas"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === localSettings.priorities.length - 1}
+                              onClick={() => handleMovePriority(index, 1)}
+                              title="Pindahkan ke bawah"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
                           {/* Live Badge Preview */}
                           <div
                             className={`px-2.5 py-1 rounded-lg text-xs font-black border shrink-0 flex items-center gap-1.5 ${meta.badgeBg} ${meta.badgeText} ${meta.badgeBorder}`}
@@ -620,18 +784,60 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
 
               {/* Category List */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
-                  Daftar Kategori Saat Ini
-                </label>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
+                    Daftar Kategori Saat Ini
+                  </label>
+                  <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                    Gunakan panah atau tarik untuk mengatur urutan kategori
+                  </span>
+                </div>
                 <div className="space-y-2.5">
-                  {localSettings.categories.map((item) => {
+                  {localSettings.categories.map((item, index) => {
                     const meta = getCategoryMeta(item.name, localSettings);
+                    const isDragging = draggedCategoryIndex === index;
                     return (
                       <div
                         key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs"
+                        draggable
+                        onDragStart={() => setDraggedCategoryIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDropCategory(index)}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-white hover:border-slate-300 gap-2.5 transition-all shadow-2xs ${
+                          isDragging
+                            ? 'opacity-40 border-dashed border-purple-400 bg-purple-50/20'
+                            : 'border-slate-200'
+                        }`}
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          {/* Reorder Grip & Arrows */}
+                          <div className="flex items-center gap-0.5 shrink-0 pr-1.5 border-r border-slate-100">
+                            <div
+                              title="Tarik untuk memindahkan urutan"
+                              className="p-1 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing hidden sm:flex items-center justify-center"
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => handleMoveCategory(index, -1)}
+                              title="Pindahkan ke atas"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === localSettings.categories.length - 1}
+                              onClick={() => handleMoveCategory(index, 1)}
+                              title="Pindahkan ke bawah"
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
                           {/* Live Category Pill Preview */}
                           <div
                             className={`px-2.5 py-1 rounded-lg text-xs font-black border shrink-0 ${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`}
