@@ -49,6 +49,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
   const [localSettings, setLocalSettings] = useState<TaskCustomSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
   const [savedBadge, setSavedBadge] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // New item inputs
   const [newStatusLabel, setNewStatusLabel] = useState('');
@@ -66,27 +67,15 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
       setLocalSettings(settings);
       setActiveTab(initialTab);
       setSavedBadge(false);
+      setHasUnsavedChanges(false);
     }
-  }, [isOpen, settings, initialTab]);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  }, [isOpen]);
 
   // Persist helper
   const commitChanges = (updated: TaskCustomSettings) => {
     setLocalSettings(updated);
     setIsSaving(true);
+    setHasUnsavedChanges(false);
     onSaveSettings(updated);
     setTimeout(() => {
       setIsSaving(false);
@@ -94,6 +83,31 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
       setTimeout(() => setSavedBadge(false), 2500);
     }, 300);
   };
+
+  const handleSaveAll = () => {
+    commitChanges(localSettings);
+  };
+
+  const handleClose = () => {
+    if (hasUnsavedChanges) {
+      commitChanges(localSettings);
+    }
+    onClose();
+  };
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, hasUnsavedChanges, localSettings]);
+
+  if (!isOpen) return null;
 
   // Status Handlers
   const handleAddStatus = (e: React.FormEvent) => {
@@ -119,11 +133,11 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
   };
 
   const handleUpdateStatus = (id: string, updates: Partial<CustomTaskStatus>) => {
-    const updated = {
-      ...localSettings,
-      statuses: localSettings.statuses.map((s) => (s.id === id ? { ...s, ...updates } : s)),
-    };
-    commitChanges(updated);
+    setLocalSettings((prev) => ({
+      ...prev,
+      statuses: prev.statuses.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+    }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteStatus = (id: string) => {
@@ -162,11 +176,11 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
   };
 
   const handleUpdatePriority = (id: string, updates: Partial<CustomTaskPriority>) => {
-    const updated = {
-      ...localSettings,
-      priorities: localSettings.priorities.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-    };
-    commitChanges(updated);
+    setLocalSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeletePriority = (id: string) => {
@@ -205,11 +219,11 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
   };
 
   const handleUpdateCategory = (id: string, updates: Partial<CustomTaskCategory>) => {
-    const updated = {
-      ...localSettings,
-      categories: localSettings.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-    };
-    commitChanges(updated);
+    setLocalSettings((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteCategory = (id: string) => {
@@ -257,7 +271,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Close Button */}
+        {/* Actions */}
         <div className="flex items-center gap-2.5">
           {savedBadge && (
             <span className="hidden md:flex text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-fadeIn">
@@ -269,10 +283,20 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
               Menyimpan...
             </span>
           )}
+          {hasUnsavedChanges && !isSaving && (
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Simpan Perubahan</span>
+            </button>
+          )}
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold text-xs transition-all cursor-pointer border border-slate-200 bg-white shadow-2xs"
             title="Tutup (Esc)"
           >
@@ -359,6 +383,9 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                             type="text"
                             value={item.label}
                             onChange={(e) => handleUpdateStatus(item.id, { label: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveAll();
+                            }}
                             className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/40 focus:bg-white"
                           />
                         </div>
@@ -499,6 +526,9 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                             type="text"
                             value={item.label}
                             onChange={(e) => handleUpdatePriority(item.id, { label: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveAll();
+                            }}
                             className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/40 focus:bg-white"
                           />
                         </div>
@@ -613,6 +643,9 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
                             type="text"
                             value={item.name}
                             onChange={(e) => handleUpdateCategory(item.id, { name: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveAll();
+                            }}
                             className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/40 focus:bg-white"
                           />
                         </div>
@@ -709,14 +742,32 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {savedBadge && (
+            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 mr-2 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Tersimpan ke Database
+            </span>
+          )}
+          {hasUnsavedChanges && (
+            <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg mr-1">
+              Ada perubahan belum disimpan
+            </span>
+          )}
           <button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold text-xs transition-all cursor-pointer border border-slate-200 bg-white"
           >
-            <Check className="w-4 h-4" />
-            <span>Selesai & Tutup</span>
+            Tutup
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
           </button>
         </div>
       </div>
