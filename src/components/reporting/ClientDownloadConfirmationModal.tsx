@@ -11,9 +11,13 @@ import {
   Square,
   SlidersHorizontal,
   ChevronDown,
+  Sparkles,
+  Zap,
+  CalendarRange,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
 
 export interface ExportDownloadParams {
   selectedMetrics: string[];
@@ -323,6 +327,58 @@ export function ClientDownloadConfirmationModal({
       })
     : "";
 
+  const formatIndonesianDateShort = (dateStr: string) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Ags", "Sep", "Okt", "Nov", "Des"
+    ];
+    const day = parseInt(parts[2], 10);
+    const month = months[parseInt(parts[1], 10) - 1] || "";
+    const year = parts[0];
+    return `${day} ${month} ${year}`;
+  };
+
+  const customDurationDays = useMemo(() => {
+    if (!customStart || !customEnd) return null;
+    const s = new Date(customStart).getTime();
+    const e = new Date(customEnd).getTime();
+    if (isNaN(s) || isNaN(e)) return null;
+    return Math.round((e - s) / (1000 * 3600 * 24)) + 1;
+  }, [customStart, customEnd]);
+
+  const handleApplyPreset = (preset: "today" | "7d" | "30d" | "thisMonth") => {
+    const today = new Date();
+    const formatYmd = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    if (preset === "today") {
+      const tStr = formatYmd(today);
+      setCustomStart(tStr);
+      setCustomEnd(tStr);
+    } else if (preset === "7d") {
+      const past = new Date(today);
+      past.setDate(past.getDate() - 6);
+      setCustomStart(formatYmd(past));
+      setCustomEnd(formatYmd(today));
+    } else if (preset === "30d") {
+      const past = new Date(today);
+      past.setDate(past.getDate() - 29);
+      setCustomStart(formatYmd(past));
+      setCustomEnd(formatYmd(today));
+    } else if (preset === "thisMonth") {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      setCustomStart(formatYmd(firstDay));
+      setCustomEnd(formatYmd(today));
+    }
+  };
+
   const handleDownload = (format: "excel" | "pdf") => {
     const params: ExportDownloadParams = {
       selectedMetrics: selectedMetrics.length > 0 ? selectedMetrics : availableMetrics.map((m) => m.id),
@@ -502,40 +558,127 @@ export function ClientDownloadConfirmationModal({
               </div>
 
               {dateMode === "preset" ? (
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 text-xs flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Periode Terpilih:</span>
-                  <span className="font-bold text-slate-800 text-right">
-                    {formattedStart && formattedEnd && formattedStart !== formattedEnd ? (
-                      `${formattedStart} - ${formattedEnd}`
-                    ) : (
-                      formattedStart || formattedEnd || "Semua Waktu"
-                    )}
+                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-r from-slate-50/90 via-indigo-50/30 to-purple-50/30 p-4 shadow-xs transition-all duration-300 animate-fadeIn flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                      <CalendarRange className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Periode Terpilih
+                      </span>
+                      <div className="text-xs font-bold text-slate-800">
+                        {formattedStart && formattedEnd && formattedStart !== formattedEnd ? (
+                          `${formattedStart} - ${formattedEnd}`
+                        ) : (
+                          formattedStart || formattedEnd || "Semua Waktu"
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/60">
+                    Sesuai Filter
                   </span>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-100">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Dari Tanggal
-                    </label>
-                    <input
-                      type="date"
-                      value={customStart}
-                      onChange={(e) => setCustomStart(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
-                    />
+                <div className="rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 via-white to-slate-50/40 p-4 shadow-sm space-y-3.5 transition-all duration-300 animate-fadeIn">
+                  {/* Quick Preset Shortcuts */}
+                  <div className="flex items-center justify-between gap-1.5 flex-wrap pb-2 border-b border-indigo-100/60">
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                      <Zap className="w-3 h-3 text-amber-500" />
+                      <span>Pilihan Cepat:</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { id: "today", label: "Hari Ini" },
+                        { id: "7d", label: "7 Hari" },
+                        { id: "30d", label: "30 Hari" },
+                        { id: "thisMonth", label: "Bulan Ini" },
+                      ].map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleApplyPreset(p.id as any)}
+                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-slate-200/90 bg-white hover:border-indigo-400 hover:bg-indigo-50/60 hover:text-indigo-700 text-slate-600 shadow-3xs transition-all active:scale-95 cursor-pointer"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Sampai Tanggal
-                    </label>
-                    <input
-                      type="date"
-                      value={customEnd}
-                      onChange={(e) => setCustomEnd(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
-                    />
+
+                  {/* Custom Date Pickers Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
+                    {/* Start Date Card */}
+                    <div className="group rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs transition-all duration-200 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-500/5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700">
+                          <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                          Dari Tanggal
+                        </label>
+                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          Mulai
+                        </span>
+                      </div>
+                      <CustomDatePicker
+                        value={customStart}
+                        onChange={setCustomStart}
+                        placeholder="Pilih Tanggal Mulai"
+                        className="w-full"
+                        formatDisplay={formatIndonesianDateShort}
+                        buttonClassName="w-full flex items-center justify-between px-3 py-2 bg-slate-50/60 group-hover:bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 shadow-3xs hover:border-indigo-400 focus:border-indigo-500 transition-all cursor-pointer text-left"
+                      />
+                    </div>
+
+                    {/* End Date Card */}
+                    <div className="group rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs transition-all duration-200 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-500/5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700">
+                          <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                          Sampai Tanggal
+                        </label>
+                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          Akhir
+                        </span>
+                      </div>
+                      <CustomDatePicker
+                        value={customEnd}
+                        onChange={setCustomEnd}
+                        placeholder="Pilih Tanggal Akhir"
+                        className="w-full"
+                        align="right"
+                        formatDisplay={formatIndonesianDateShort}
+                        buttonClassName="w-full flex items-center justify-between px-3 py-2 bg-slate-50/60 group-hover:bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 shadow-3xs hover:border-indigo-400 focus:border-indigo-500 transition-all cursor-pointer text-left"
+                      />
+                    </div>
                   </div>
+
+                  {/* Dynamic Range Summary Banner with Animation */}
+                  {customStart && customEnd && (
+                    <div className="pt-0.5">
+                      {customDurationDays !== null && customDurationDays > 0 ? (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 px-3 text-xs flex items-center justify-between text-emerald-900 animate-fadeIn">
+                          <div className="flex items-center gap-2 truncate">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="font-medium text-[11px] truncate">
+                              <strong className="font-bold text-slate-800">{formatIndonesianDateShort(customStart)}</strong>
+                              {" → "}
+                              <strong className="font-bold text-slate-800">{formatIndonesianDateShort(customEnd)}</strong>
+                            </span>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shadow-3xs">
+                            {customDurationDays} Hari
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-2.5 px-3 text-xs flex items-center gap-2 text-rose-800 animate-fadeIn">
+                          <span className="text-[11px] font-bold">
+                            ⚠️ Tanggal awal tidak boleh melebihi tanggal akhir.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

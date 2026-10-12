@@ -19,6 +19,7 @@ interface CustomDatePickerProps {
   disabled?: boolean;
   size?: 'xs' | 'sm' | 'md';
   align?: 'left' | 'right';
+  formatDisplay?: (val: string) => string;
 }
 
 const MONTHS_ID = [
@@ -450,9 +451,13 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   // Format display text
   let displayText = placeholder;
   if (value) {
-    const parts = value.split('-');
-    if (parts.length === 3) {
-      displayText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    if (formatDisplay) {
+      displayText = formatDisplay(value);
+    } else {
+      const parts = value.split('-');
+      if (parts.length === 3) {
+        displayText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
     }
   }
 
