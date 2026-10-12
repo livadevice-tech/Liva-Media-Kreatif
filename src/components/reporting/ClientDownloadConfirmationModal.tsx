@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Download,
   X,
@@ -14,6 +14,7 @@ import {
   Sparkles,
   Zap,
   CalendarRange,
+  Check,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
@@ -98,6 +99,8 @@ export function ClientDownloadConfirmationModal({
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
+  const [isShiftDropdownOpen, setIsShiftDropdownOpen] = useState(false);
+  const shiftDropdownRef = useRef<HTMLDivElement>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [exportMode, setExportMode] = useState<"sessions" | "daily">("sessions");
 
@@ -113,9 +116,36 @@ export function ClientDownloadConfirmationModal({
       setCustomEnd(endDate || startDate || "");
       setDateMode("preset");
       setSelectedShifts(initialShiftFilters ? [...initialShiftFilters] : []);
+      setIsShiftDropdownOpen(false);
       setExportMode("sessions");
     }
   }, [isOpen, startDate, endDate, platform, initialShiftFilters]);
+
+  // Close shift dropdown on outside click
+  useEffect(() => {
+    if (!isShiftDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (shiftDropdownRef.current && !shiftDropdownRef.current.contains(e.target as Node)) {
+        setIsShiftDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isShiftDropdownOpen]);
+
+  // Handler to toggle shift in multi-select
+  const handleToggleShift = (sh: string) => {
+    if (selectedShifts.length === 0) {
+      setSelectedShifts([sh]);
+    } else if (selectedShifts.includes(sh)) {
+      const updated = selectedShifts.filter((s) => s !== sh);
+      setSelectedShifts(updated);
+    } else {
+      setSelectedShifts([...selectedShifts, sh]);
+    }
+  };
 
   const isTikTok = selectedPlatform.toLowerCase().includes("tiktok");
   const isShopee = selectedPlatform.toLowerCase().includes("shopee");
@@ -683,49 +713,206 @@ export function ClientDownloadConfirmationModal({
               )}
             </div>
 
-            {/* 3. SHIFT / SESSION SELECTION */}
+            {/* 3. SHIFT / SESSION SELECTION (Multi-Select) */}
             {cleanedShiftsList.length > 0 && (
               <div className="space-y-2">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                  Pilihan Shift / Sesi
-                </label>
-                <div className="relative">
-                  <select
-                    value={
-                      selectedShifts.length === 1 &&
-                      selectedShifts[0] !== "All Session" &&
-                      selectedShifts[0] !== "All Time"
-                        ? selectedShifts[0]
-                        : "All Session"
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "All Session" || val === "All Time") {
-                        setSelectedShifts([]);
-                      } else {
-                        setSelectedShifts([val]);
-                      }
-                    }}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-                  >
-                    <option value="All Session">All Session (Semua Sesi / Shift)</option>
-                    {cleanedShiftsList.map((sh) => (
-                      <option key={sh} value={sh}>
-                        {sh}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                    Pilihan Shift / Sesi
+                  </label>
+                  {selectedShifts.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShifts([])}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                    >
+                      Reset (Pilih Semua)
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Semua Shift Aktif
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] text-slate-500">
+
+                {/* Custom Multi-Select Dropdown Container */}
+                <div className="relative" ref={shiftDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsShiftDropdownOpen((prev) => !prev)}
+                    className={`w-full appearance-none rounded-xl border px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 shadow-sm outline-none transition flex items-center justify-between cursor-pointer ${
+                      isShiftDropdownOpen
+                        ? "border-indigo-500 bg-white ring-2 ring-indigo-100"
+                        : selectedShifts.length > 0
+                        ? "border-indigo-200 bg-indigo-50/40 text-indigo-900 hover:bg-indigo-50/70"
+                        : "border-slate-200 bg-slate-50/50 hover:bg-white text-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate pr-2 min-w-0">
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="truncate">
+                        {selectedShifts.length === 0
+                          ? "All Session (Semua Sesi / Shift)"
+                          : selectedShifts.length === 1
+                          ? `1 Shift: ${selectedShifts[0]}`
+                          : `${selectedShifts.length} Shift Dipilih (${selectedShifts.join(", ")})`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {selectedShifts.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-600 text-white shadow-2xs">
+                          {selectedShifts.length} dipilih
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+                          isShiftDropdownOpen ? "rotate-180 text-indigo-600" : ""
+                        }`}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Multi-Select Floating Dropdown Menu */}
+                  {isShiftDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-2 z-50 animate-in fade-in duration-200 space-y-1">
+                      {/* All Session Option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedShifts([]);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                          selectedShifts.length === 0
+                            ? "bg-indigo-50 text-indigo-900 border border-indigo-200/80 font-bold shadow-2xs"
+                            : "hover:bg-slate-50 text-slate-700 font-medium border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {selectedShifts.length === 0 ? (
+                            <CheckSquare className="w-4 h-4 text-indigo-600 shrink-0" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-300 shrink-0" />
+                          )}
+                          <span className="font-bold text-slate-800">
+                            All Session (Semua Sesi / Shift)
+                          </span>
+                        </div>
+                        {selectedShifts.length === 0 && (
+                          <span className="text-[10px] text-indigo-600 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                            Aktif
+                          </span>
+                        )}
+                      </button>
+
+                      <div className="border-t border-slate-100 my-1" />
+
+                      {/* Individual Shifts List */}
+                      <div className="max-h-52 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                        {cleanedShiftsList.map((sh) => {
+                          const isSelected = selectedShifts.includes(sh);
+                          return (
+                            <button
+                              key={sh}
+                              type="button"
+                              onClick={() => handleToggleShift(sh)}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50/80 text-indigo-900 border border-indigo-200/70 font-bold shadow-2xs"
+                                  : "hover:bg-slate-50 text-slate-700 border border-transparent font-medium"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 truncate">
+                                {isSelected ? (
+                                  <CheckSquare className="w-4 h-4 text-indigo-600 shrink-0" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-slate-300 shrink-0" />
+                                )}
+                                <span className="truncate">{sh}</span>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-indigo-600 stroke-[2.5] shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-500 font-medium">
+                          {selectedShifts.length === 0
+                            ? "Semua shift dipilih"
+                            : `${selectedShifts.length} dari ${cleanedShiftsList.length} shift dipilih`}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {selectedShifts.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedShifts([])}
+                              className="px-2 py-1 text-slate-500 hover:text-slate-700 font-bold transition-colors cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setIsShiftDropdownOpen(false)}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors cursor-pointer"
+                          >
+                            Selesai
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Interactive Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Pilihan Cepat:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedShifts([])}
+                    className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                      selectedShifts.length === 0
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    Semua Sesi
+                  </button>
+                  {cleanedShiftsList.map((sh) => {
+                    const isSelected = selectedShifts.includes(sh);
+                    return (
+                      <button
+                        key={sh}
+                        type="button"
+                        onClick={() => handleToggleShift(sh)}
+                        className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                          isSelected
+                            ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-indigo-600 stroke-[3]" />}
+                        <span>{sh}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Summary Helper Text */}
+                <p className="text-[11px] text-slate-500 leading-relaxed">
                   {selectedShifts.length === 0 ||
                   selectedShifts[0] === "All Session" ||
                   selectedShifts[0] === "All Time"
                     ? "Menampilkan data dari seluruh sesi (All Session)."
-                    : `Menyaring data khusus untuk shift/sesi: ${selectedShifts[0]}`}
+                    : selectedShifts.length === 1
+                    ? `Menyaring data khusus untuk 1 shift/sesi: ${selectedShifts[0]}`
+                    : `Menyaring data khusus untuk ${selectedShifts.length} shift/sesi terpilih (${selectedShifts.join(", ")}).`}
                 </p>
               </div>
             )}
