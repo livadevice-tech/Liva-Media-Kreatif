@@ -5971,6 +5971,9 @@ export default function App() {
                   });
                   return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
                 })()}
+                rawLogs={brandPerformanceLogs.filter(
+                  (l) => l.brandId === (activeClientBrandId || ""),
+                )}
                 initialShiftFilters={operatorShiftFilters}
                 reportType={
                   clientReportingTab === "product"
@@ -6054,6 +6057,8 @@ export default function App() {
                     shiftFilters: effectiveShiftFilters,
                     dateShiftRules: params.dateShiftRules,
                     dateShiftScope: params.dateShiftScope,
+                    enableDurationCutoff: params.enableDurationCutoff,
+                    cutoffTargetHours: params.cutoffTargetHours,
                   });
                 }}
                 onDownloadPdf={(params) => {
@@ -6131,6 +6136,8 @@ export default function App() {
                     shiftFilters: effectiveShiftFilters,
                     dateShiftRules: params.dateShiftRules,
                     dateShiftScope: params.dateShiftScope,
+                    enableDurationCutoff: params.enableDurationCutoff,
+                    cutoffTargetHours: params.cutoffTargetHours,
                   });
                 }}
               />
@@ -12967,6 +12974,9 @@ export default function App() {
                         });
                         return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
                       })()}
+                      rawLogs={brandPerformanceLogs.filter(
+                        (l) => l.brandId === (activeReportBrandId || ""),
+                      )}
                       initialShiftFilters={operatorShiftFilters}
                       reportType={
                         operatorReportingTab === "product"
@@ -13051,6 +13061,8 @@ export default function App() {
                           shiftFilters: effectiveShiftFilters,
                           dateShiftRules: params.dateShiftRules,
                           dateShiftScope: params.dateShiftScope,
+                          enableDurationCutoff: params.enableDurationCutoff,
+                          cutoffTargetHours: params.cutoffTargetHours,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
@@ -13130,6 +13142,8 @@ export default function App() {
                           shiftFilters: effectiveShiftFilters,
                           dateShiftRules: params.dateShiftRules,
                           dateShiftScope: params.dateShiftScope,
+                          enableDurationCutoff: params.enableDurationCutoff,
+                          cutoffTargetHours: params.cutoffTargetHours,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}

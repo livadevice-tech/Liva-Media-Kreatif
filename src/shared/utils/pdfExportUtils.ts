@@ -1,6 +1,13 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatDisplayDate, getLogTimestamp, filterLogsByDateAndShift, type DateSpecificShiftRule } from "./appUi";
+import {
+  formatDisplayDate,
+  getLogTimestamp,
+  filterLogsByDateAndShift,
+  computeDurationCutoffs,
+  formatDurationHoursMinutes,
+  type DateSpecificShiftRule,
+} from "./appUi";
 import { formatLiveSessionDuration, getLiveSessionMetrics } from "./liveSessionsTable";
 
 export function exportReportToPdf({
@@ -18,6 +25,8 @@ export function exportReportToPdf({
   shiftFilters,
   dateShiftRules,
   dateShiftScope = "merged",
+  enableDurationCutoff = false,
+  cutoffTargetHours = 360,
 }: {
   reportType: "live" | "product" | "engagement" | "pipeline";
   selectedMetrics: string[];
@@ -33,6 +42,8 @@ export function exportReportToPdf({
   shiftFilters?: string[];
   dateShiftRules?: DateSpecificShiftRule[];
   dateShiftScope?: "specific_only" | "merged";
+  enableDurationCutoff?: boolean;
+  cutoffTargetHours?: number;
 }) {
   let dataToExport: any[] = [];
   const cleanBrand = brandName ? brandName.replace(/[^a-zA-Z0-9_-]/g, "_") : "Brand";
@@ -143,65 +154,187 @@ export function exportReportToPdf({
       });
     } else {
       // PER SESI LIVE SAAT DI-START (INDIVIDUAL)
-      const sortedLogs = [...rawLogs].sort((a, b) => {
-        const timeA = getLogTimestamp(a);
-        const timeB = getLogTimestamp(b);
-        return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
-      });
+      if (enableDurationCutoff) {
+        const cutoffResult = computeDurationCutoffs(rawLogs, cutoffTargetHours);
+        const rows: any[] = [];
+        let globalIdx = 1;
 
-      dataToExport = sortedLogs.map((log: any, idx: number) => {
-        const row: any = {};
-        const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
-        const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");
-        const m = getLiveSessionMetrics(log);
-        const formattedStart = formatDisplayDate(log.dateTime || log.date, log.platform);
+        cutoffResult.batches.forEach((batch) => {
+          const batchLogs = [...batch.logs].sort((a, b) => {
+            const timeA = getLogTimestamp(a);
+            const timeB = getLogTimestamp(b);
+            return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+          });
 
-        row["No"] = idx + 1;
-        if (selectedMetrics.includes("date") && selectedMetrics.includes("time")) {
-          row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
-        } else {
-          if (selectedMetrics.includes("date")) {
-            row["Tanggal"] = log.date || (log.dateTime ? log.dateTime.split(" ")[0] : "-");
+          batchLogs.forEach((log: any) => {
+            const row: any = {};
+            const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
+            const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");
+            const m = getLiveSessionMetrics(log);
+            const formattedStart = formatDisplayDate(log.dateTime || log.date, log.platform);
+
+            row["No"] = globalIdx++;
+            if (selectedMetrics.includes("date") && selectedMetrics.includes("time")) {
+              row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
+            } else {
+              if (selectedMetrics.includes("date")) {
+                row["Tanggal"] = log.date || (log.dateTime ? log.dateTime.split(" ")[0] : "-");
+              }
+              if (selectedMetrics.includes("time")) {
+                row["Jam Mulai"] = log.dateTime && log.dateTime.includes(" ")
+                  ? log.dateTime.split(" ")[1]
+                  : "-";
+              }
+            }
+            if (selectedMetrics.includes("platform")) {
+              row["Platform"] = log.platform || (isShopee ? "Shopee Live" : isTikTok ? "TikTok Live" : "-");
+            }
+            if (selectedMetrics.includes("shift")) {
+              row["Shift"] = log.shift || "-";
+            }
+            if (selectedMetrics.includes("duration")) {
+              row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
+            }
+            if (selectedMetrics.includes("gmv")) {
+              row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
+            }
+            if (selectedMetrics.includes("items_sold")) {
+              row["Item Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
+            }
+            if (selectedMetrics.includes("orders")) {
+              row[isShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
+            }
+            if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
+              row[isShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(m.clicks);
+            }
+            if (selectedMetrics.includes("penonton")) {
+              row[isShopee ? "Views" : isTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
+            }
+            if (selectedMetrics.includes("avg_view_duration")) {
+              row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
+            }
+            if (selectedMetrics.includes("conversion_rate")) {
+              row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
+            }
+
+            rows.push(row);
+          });
+
+          // Summary row for this cutoff
+          const summaryRow: any = {};
+          const isCompleted = batch.isCompleted;
+          summaryRow["No"] = `CUT OFF ${batch.batchNumber} (${isCompleted ? "TERPENUHI" : "BERJALAN"})`;
+
+          const rangeInfo = `${batch.startDisplayDate} [${batch.startShift}] s/d ${batch.endDisplayDate} [${batch.endShift}]`;
+          if (selectedMetrics.includes("date") && selectedMetrics.includes("time")) {
+            summaryRow["Tanggal & Jam Mulai"] = `Periode: ${rangeInfo}`;
+          } else {
+            if (selectedMetrics.includes("date")) {
+              summaryRow["Tanggal"] = `${batch.startDisplayDate} s/d ${batch.endDisplayDate}`;
+            }
+            if (selectedMetrics.includes("time")) {
+              summaryRow["Jam Mulai"] = isCompleted ? `Selesai: ${batch.endShift}` : "Berjalan";
+            }
           }
-          if (selectedMetrics.includes("time")) {
-            row["Jam Mulai"] = log.dateTime && log.dateTime.includes(" ")
-              ? log.dateTime.split(" ")[1]
-              : "-";
+          if (selectedMetrics.includes("platform")) {
+            summaryRow["Platform"] = `Subtotal (${batch.sessionCount} Sesi)`;
           }
-        }
-        if (selectedMetrics.includes("platform")) {
-          row["Platform"] = log.platform || (isShopee ? "Shopee Live" : isTikTok ? "TikTok Live" : "-");
-        }
-        if (selectedMetrics.includes("shift")) {
-          row["Shift"] = log.shift || "-";
-        }
-        if (selectedMetrics.includes("duration")) {
-          row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
-        }
-        if (selectedMetrics.includes("gmv")) {
-          row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
-        }
-        if (selectedMetrics.includes("items_sold")) {
-          row["Item Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
-        }
-        if (selectedMetrics.includes("orders")) {
-          row[isShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
-        }
-        if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
-          row[isShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(m.clicks);
-        }
-        if (selectedMetrics.includes("penonton")) {
-          row[isShopee ? "Views" : isTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
-        }
-        if (selectedMetrics.includes("avg_view_duration")) {
-          row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
-        }
-        if (selectedMetrics.includes("conversion_rate")) {
-          row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
-        }
+          if (selectedMetrics.includes("shift")) {
+            summaryRow["Shift"] = isCompleted ? `Cutoff: ${batch.endShift}` : "Dalam Proses";
+          }
+          if (selectedMetrics.includes("duration")) {
+            summaryRow["Durasi"] = `${formatLiveSessionDuration(batch.totalDurationSeconds)} (${(batch.totalDurationSeconds / 3600).toFixed(1)}j / Target: ${cutoffTargetHours}j)`;
+          }
+          if (selectedMetrics.includes("gmv")) {
+            summaryRow["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(batch.totalGmv);
+          }
+          if (selectedMetrics.includes("items_sold")) {
+            summaryRow["Item Sold"] = new Intl.NumberFormat("id-ID").format(batch.totalItemsSold);
+          }
+          if (selectedMetrics.includes("orders")) {
+            summaryRow[isTargetShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(batch.totalOrders);
+          }
+          if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
+            summaryRow[isTargetShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(batch.totalClicks);
+          }
+          if (selectedMetrics.includes("penonton")) {
+            summaryRow[isTargetShopee ? "Views" : isTargetTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(batch.totalViewer);
+          }
+          if (selectedMetrics.includes("avg_view_duration")) {
+            summaryRow["Avg. View"] = "-";
+          }
+          if (selectedMetrics.includes("conversion_rate")) {
+            const cr = isTargetTikTok
+              ? (batch.totalClicks > 0 ? (batch.totalOrders / batch.totalClicks) * 100 : 0)
+              : (batch.totalViewer > 0 ? (batch.totalBuyers / batch.totalViewer) * 100 : 0);
+            summaryRow["CR (%)"] = `${cr.toFixed(2)}%`;
+          }
 
-        return row;
-      });
+          rows.push(summaryRow);
+        });
+
+        dataToExport = rows;
+      } else {
+        const sortedLogs = [...rawLogs].sort((a, b) => {
+          const timeA = getLogTimestamp(a);
+          const timeB = getLogTimestamp(b);
+          return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+        });
+
+        dataToExport = sortedLogs.map((log: any, idx: number) => {
+          const row: any = {};
+          const isTikTok = isTargetTikTok || String(log.platform || "").toLowerCase().includes("tiktok");
+          const isShopee = isTargetShopee || String(log.platform || "").toLowerCase().includes("shopee");
+          const m = getLiveSessionMetrics(log);
+          const formattedStart = formatDisplayDate(log.dateTime || log.date, log.platform);
+
+          row["No"] = idx + 1;
+          if (selectedMetrics.includes("date") && selectedMetrics.includes("time")) {
+            row["Tanggal & Jam Mulai"] = formattedStart || log.dateTime || log.date || "-";
+          } else {
+            if (selectedMetrics.includes("date")) {
+              row["Tanggal"] = log.date || (log.dateTime ? log.dateTime.split(" ")[0] : "-");
+            }
+            if (selectedMetrics.includes("time")) {
+              row["Jam Mulai"] = log.dateTime && log.dateTime.includes(" ")
+                ? log.dateTime.split(" ")[1]
+                : "-";
+            }
+          }
+          if (selectedMetrics.includes("platform")) {
+            row["Platform"] = log.platform || (isShopee ? "Shopee Live" : isTikTok ? "TikTok Live" : "-");
+          }
+          if (selectedMetrics.includes("shift")) {
+            row["Shift"] = log.shift || "-";
+          }
+          if (selectedMetrics.includes("duration")) {
+            row["Durasi"] = formatLiveSessionDuration(log.duration || log.liveDuration || 0);
+          }
+          if (selectedMetrics.includes("gmv")) {
+            row["GMV (Rp)"] = "Rp" + new Intl.NumberFormat("id-ID").format(log.gmv || 0);
+          }
+          if (selectedMetrics.includes("items_sold")) {
+            row["Item Sold"] = new Intl.NumberFormat("id-ID").format(log.products_sold || log.items_sold || 0);
+          }
+          if (selectedMetrics.includes("orders")) {
+            row[isShopee ? "Purchase" : "Orders"] = new Intl.NumberFormat("id-ID").format(m.orders);
+          }
+          if (selectedMetrics.includes("product_clicks") || selectedMetrics.includes("clicks")) {
+            row[isShopee ? "Add to Cart" : "Product Clicks"] = new Intl.NumberFormat("id-ID").format(m.clicks);
+          }
+          if (selectedMetrics.includes("penonton")) {
+            row[isShopee ? "Views" : isTikTok ? "Live Viewer" : "Viewer"] = new Intl.NumberFormat("id-ID").format(m.viewer);
+          }
+          if (selectedMetrics.includes("avg_view_duration")) {
+            row["Avg. View"] = `${(log.avgViewDuration || 0).toFixed(1)}s`;
+          }
+          if (selectedMetrics.includes("conversion_rate")) {
+            row["CR (%)"] = `${m.conversionRate.toFixed(2)}%`;
+          }
+
+          return row;
+        });
+      }
     }
   } else if (reportType === "product" && productReportView) {
     dataToExport = productReportView.aggregatedSkus.map((sku: any, idx: number) => {
@@ -299,6 +432,20 @@ export function exportReportToPdf({
     theme: "striped",
     headStyles: { fillColor: isTargetShopee ? [238, 77, 45] : isTargetTikTok ? [20, 20, 20] : [86, 0, 224] },
     styles: { fontSize: 8 },
+    didParseCell: (hookData) => {
+      const rowRaw = hookData.row.raw as any[];
+      const firstCell = String(rowRaw?.[0] || "");
+      if (firstCell.startsWith("CUT OFF")) {
+        hookData.cell.styles.fontStyle = "bold";
+        if (firstCell.includes("TERPENUHI") || !firstCell.includes("BERJALAN")) {
+          hookData.cell.styles.fillColor = [240, 253, 244]; // Light Emerald
+          hookData.cell.styles.textColor = [22, 101, 52];
+        } else {
+          hookData.cell.styles.fillColor = [254, 249, 195]; // Light Amber
+          hookData.cell.styles.textColor = [133, 77, 14];
+        }
+      }
+    },
   });
 
   const platformTag = isTargetShopee

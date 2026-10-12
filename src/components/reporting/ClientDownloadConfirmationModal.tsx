@@ -22,10 +22,25 @@ import {
   CalendarClock,
   Maximize2,
   Minimize2,
+  Timer,
+  Target,
+  Hourglass,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import { SHIFTS } from "../../data";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
+import {
+  normalizeDateYMD,
+  isPlatformMatch,
+  filterLogsByDateAndShift,
+  computeDurationCutoffs,
+  formatDurationHoursMinutes,
+  type DurationCutoffResult,
+  type DurationCutoffBatch,
+} from "../../shared/utils/appUi";
+import { formatLiveSessionDuration } from "../../shared/utils/liveSessionsTable";
 
 const EXPORT_SIDEBAR_STORAGE_KEY = "liva_export_sidebar_width";
 const DEFAULT_EXPORT_SIDEBAR_WIDTH = 580;
@@ -47,6 +62,8 @@ export interface ExportDownloadParams {
   sortOrder?: "desc" | "asc";
   dateShiftRules?: DateSpecificShiftRule[];
   dateShiftScope?: "specific_only" | "merged";
+  enableDurationCutoff?: boolean;
+  cutoffTargetHours?: number;
 }
 
 interface ClientDownloadConfirmationModalProps {
@@ -60,6 +77,7 @@ interface ClientDownloadConfirmationModalProps {
   initialShiftFilters?: string[];
   availableDateSessions?: Array<{ date: string; shift: string; platform?: string }>;
   reportType?: "live" | "product" | "engagement" | "pipeline";
+  rawLogs?: any[];
   onDownloadExcel: (params: ExportDownloadParams) => void;
   onDownloadPdf: (params: ExportDownloadParams) => void;
 }
@@ -127,6 +145,10 @@ export function ClientDownloadConfirmationModal({
   const [exportMode, setExportMode] = useState<"sessions" | "daily">("sessions");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
+  // State for automatic live duration cutoff (e.g. target 360 hours)
+  const [enableDurationCutoff, setEnableDurationCutoff] = useState<boolean>(false);
+  const [cutoffTargetHours, setCutoffTargetHours] = useState<number>(360);
+
   // State for date-specific shift rules (e.g. "8 Agustus 2026 - Shift SA 1 (00.00-06.00)")
   const [dateShiftRules, setDateShiftRules] = useState<DateSpecificShiftRule[]>([]);
   const [dateShiftScope, setDateShiftScope] = useState<"specific_only" | "merged">("merged");
@@ -171,6 +193,8 @@ export function ClientDownloadConfirmationModal({
       setIsShiftDropdownOpen(false);
       setExportMode("sessions");
       setSortOrder("desc");
+      setEnableDurationCutoff(false);
+      setCutoffTargetHours(360);
       setDateShiftRules([]);
       setDateShiftScope("merged");
       setNewRuleDate(startDate || "");
@@ -466,6 +490,52 @@ export function ClientDownloadConfirmationModal({
     return Math.round((e - s) / (1000 * 3600 * 24)) + 1;
   }, [customStart, customEnd]);
 
+  // Real-time calculation of filtered logs based on active modal filters
+  const modalFilteredLogs = useMemo(() => {
+    if (!rawLogs || rawLogs.length === 0) return [];
+    let filtered = rawLogs;
+
+    const start = effectiveStartDate;
+    const end = effectiveEndDate;
+    if (start && end) {
+      filtered = filtered.filter((log) => {
+        const d = normalizeDateYMD(log.dateTime || log.date);
+        return (!start || d >= start) && (!end || d <= end);
+      });
+    }
+
+    if (selectedPlatform && selectedPlatform !== "Semua Platform") {
+      filtered = filtered.filter((log) =>
+        isPlatformMatch(log.platform, selectedPlatform)
+      );
+    }
+
+    if ((selectedShifts && selectedShifts.length > 0) || (dateShiftRules && dateShiftRules.length > 0)) {
+      filtered = filterLogsByDateAndShift(
+        filtered,
+        selectedShifts,
+        dateShiftRules,
+        dateShiftScope
+      );
+    }
+
+    return filtered;
+  }, [
+    rawLogs,
+    effectiveStartDate,
+    effectiveEndDate,
+    selectedPlatform,
+    selectedShifts,
+    dateShiftRules,
+    dateShiftScope,
+  ]);
+
+  // Real-time cutoff calculation for live preview
+  const cutoffCalculation = useMemo<DurationCutoffResult | null>(() => {
+    if (!enableDurationCutoff || modalFilteredLogs.length === 0) return null;
+    return computeDurationCutoffs(modalFilteredLogs, cutoffTargetHours);
+  }, [enableDurationCutoff, modalFilteredLogs, cutoffTargetHours]);
+
   const handleApplyPreset = (preset: "today" | "7d" | "30d" | "thisMonth") => {
     const today = new Date();
     const formatYmd = (d: Date) => {
@@ -507,6 +577,8 @@ export function ClientDownloadConfirmationModal({
       sortOrder,
       dateShiftRules,
       dateShiftScope,
+      enableDurationCutoff,
+      cutoffTargetHours,
     };
 
     if (format === "excel") {
@@ -757,6 +829,238 @@ export function ClientDownloadConfirmationModal({
                     </p>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* 0.5 FITUR CUTOFF TARGET DURASI LIVE */}
+            {reportType === "live" && (
+              <div
+                className={`p-4 rounded-2xl border transition-all space-y-3.5 ${
+                  enableDurationCutoff
+                    ? "border-indigo-300 bg-linear-to-br from-indigo-50/90 via-purple-50/40 to-white shadow-xs"
+                    : "border-slate-200 bg-white/70 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`p-2 rounded-xl shrink-0 transition-colors ${
+                        enableDurationCutoff
+                          ? "bg-indigo-600 text-white shadow-2xs"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <Timer className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900">
+                          Otomatis Hitung Cutoff Durasi Live
+                        </span>
+                        <span className="text-[10px] px-2 py-0.2 rounded-full font-extrabold bg-indigo-100 text-indigo-700">
+                          Target Jam
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                        Bagi periode laporan secara berurutan sampai target jam tercapai (misal 360 jam).
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !enableDurationCutoff;
+                      setEnableDurationCutoff(next);
+                      if (next && exportMode === "daily") {
+                        setExportMode("sessions");
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 self-start sm:self-auto ${
+                      enableDurationCutoff
+                        ? "bg-indigo-600 text-white shadow-xs hover:bg-indigo-700"
+                        : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {enableDurationCutoff ? (
+                      <CheckSquare className="w-3.5 h-3.5" />
+                    ) : (
+                      <Square className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                    <span>{enableDurationCutoff ? "Cutoff Aktif" : "Aktifkan Cutoff"}</span>
+                  </button>
+                </div>
+
+                {enableDurationCutoff && (
+                  <div className="space-y-3 pt-1 border-t border-indigo-100/80 animate-in fade-in duration-200">
+                    {/* Target Hours Input & Preset Chips */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                          <Target className="w-3.5 h-3.5 text-indigo-600" />
+                          Target Durasi per Cutoff (Jam):
+                        </label>
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          Bisa ubah target manual
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative w-36">
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={cutoffTargetHours}
+                            onChange={(e) => {
+                              const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                              setCutoffTargetHours(val);
+                            }}
+                            className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-1.5 pr-10 text-xs font-bold text-slate-900 shadow-3xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
+                            Jam
+                          </span>
+                        </div>
+
+                        {/* Presets: 100, 200, 360, 500 jam */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {[100, 200, 360, 500].map((presetH) => (
+                            <button
+                              key={presetH}
+                              type="button"
+                              onClick={() => setCutoffTargetHours(presetH)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                cutoffTargetHours === presetH
+                                  ? "bg-indigo-600 text-white shadow-2xs"
+                                  : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                              }`}
+                            >
+                              {presetH} Jam
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 leading-relaxed bg-white/70 p-2 rounded-lg border border-indigo-100/60">
+                        💡 <strong className="text-slate-700">Aturan Cutoff:</strong> Sesi dihitung berurutan secara kronologis. Sesi yang membuat total mencapai atau melebihi target <strong>{cutoffTargetHours} jam</strong> (sedikit lebih tidak apa-apa, tidak kurang) akan menutup periode cutoff tersebut, lalu di bawahnya disisipkan baris subtotal jumlah durasi & rentang tanggalnya.
+                      </p>
+                    </div>
+
+                    {/* Real-time Preview */}
+                    {cutoffCalculation && (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                            Hasil Simulasi Cutoff:
+                          </div>
+                          <div className="text-[11px] font-bold text-indigo-700">
+                            {cutoffCalculation.completedBatchesCount} Cutoff Terpenuhi
+                            {cutoffCalculation.batches.some((b) => !b.isCompleted) ? " + 1 Berjalan" : ""}
+                          </div>
+                        </div>
+
+                        {/* Summary Badges */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          <div className="p-2 rounded-xl bg-white border border-indigo-100 shadow-3xs">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">Total Durasi</div>
+                            <div className="text-xs font-black text-indigo-900 truncate">
+                              {formatDurationHoursMinutes(cutoffCalculation.totalAllDurationSeconds)}
+                            </div>
+                          </div>
+                          <div className="p-2 rounded-xl bg-white border border-indigo-100 shadow-3xs">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">Total Sesi Live</div>
+                            <div className="text-xs font-black text-slate-900">
+                              {cutoffCalculation.totalLogsCount} Sesi
+                            </div>
+                          </div>
+                          <div className="p-2 rounded-xl bg-white border border-indigo-100 shadow-3xs col-span-2 sm:col-span-1">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">Periode Tercapai</div>
+                            <div className="text-xs font-black text-emerald-700">
+                              {cutoffCalculation.completedBatchesCount} Periode Selesai
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Breakdown per Batch */}
+                        <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                          {cutoffCalculation.batches.map((batch) => (
+                            <div
+                              key={batch.batchNumber}
+                              className={`p-2.5 rounded-xl border text-xs space-y-1 transition-all ${
+                                batch.isCompleted
+                                  ? "bg-white border-emerald-200/90 shadow-3xs"
+                                  : "bg-amber-50/50 border-amber-200 shadow-3xs"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  {batch.isCompleted ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  ) : (
+                                    <Hourglass className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  )}
+                                  <span className="font-bold text-slate-900">
+                                    Cut Off #{batch.batchNumber}
+                                  </span>
+                                </div>
+                                <span
+                                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                    batch.isCompleted
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {batch.isCompleted ? "Terpenuhi" : "Sedang Berjalan"}
+                                </span>
+                              </div>
+
+                              <div className="text-[11px] text-slate-600">
+                                <strong className="text-slate-800">Rentang:</strong>{" "}
+                                {formatIndonesianDateShort(batch.startDate)} [{batch.startShift}] s/d{" "}
+                                {formatIndonesianDateShort(batch.endDate)} [{batch.endShift}]
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] pt-0.5 border-t border-slate-100">
+                                <span className="font-semibold text-indigo-900">
+                                  ⏱️ {formatDurationHoursMinutes(batch.totalDurationSeconds)}{" "}
+                                  <span className="text-slate-400 font-normal">
+                                    ({formatLiveSessionDuration(batch.totalDurationSeconds)})
+                                  </span>
+                                </span>
+                                <span className="text-slate-500">
+                                  {batch.isCompleted ? (
+                                    <span className="text-emerald-700 font-medium">
+                                      Terpenuhi di Sesi {batch.endShift} (+{(batch.surplusSeconds / 3600).toFixed(1)}j)
+                                    </span>
+                                  ) : (
+                                    <span className="text-amber-700 font-medium">
+                                      Kurang {formatDurationHoursMinutes(batch.remainingSeconds)} lagi
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5">
+                                <span>{batch.sessionCount} Sesi</span>
+                                <span>GMV: Rp{new Intl.NumberFormat("id-ID").format(batch.totalGmv)}</span>
+                                <span>Orders: {new Intl.NumberFormat("id-ID").format(batch.totalOrders)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {!cutoffCalculation && modalFilteredLogs.length === 0 && (
+                      <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-800 text-[11px] flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                        <span>Tidak ada sesi live pada filter rentang tanggal atau shift saat ini.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

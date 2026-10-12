@@ -461,3 +461,192 @@ export const filterLogsByDateAndShift = <T extends { date?: string; dateTime?: s
   });
 };
 
+export interface DurationCutoffBatch {
+  batchNumber: number;
+  isCompleted: boolean;
+  targetHours: number;
+  targetSeconds: number;
+  totalDurationSeconds: number;
+  sessionCount: number;
+  startDate: string;
+  startDisplayDate: string;
+  startShift: string;
+  endDate: string;
+  endDisplayDate: string;
+  endShift: string;
+  cutoffTriggerLog?: any;
+  logs: any[];
+  totalGmv: number;
+  totalItemsSold: number;
+  totalOrders: number;
+  totalBuyers: number;
+  totalClicks: number;
+  totalViewer: number;
+  surplusSeconds: number;
+  remainingSeconds: number;
+}
+
+export interface DurationCutoffResult {
+  targetHours: number;
+  targetSeconds: number;
+  batches: DurationCutoffBatch[];
+  totalLogsCount: number;
+  totalAllDurationSeconds: number;
+  completedBatchesCount: number;
+}
+
+export const formatDurationHoursMinutes = (seconds: number): string => {
+  const totalSec = Math.max(0, Math.round(seconds || 0));
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  if (hours > 0 && minutes > 0) {
+    return `${hours} Jam ${minutes} Menit`;
+  }
+  if (hours > 0) {
+    return `${hours} Jam`;
+  }
+  if (minutes > 0) {
+    return `${minutes} Menit ${secs} Detik`;
+  }
+  return `${secs} Detik`;
+};
+
+/**
+ * Otomatis menghitung cutoff durasi live berdasarkan akumulasi target jam (misal 360 jam).
+ * Menghitung sampai hari mana dan di sesi mana target terpenuhi (>= target durasi).
+ * Diurutkan kronologis (ASC) untuk memastikan perhitungan progres akumulasi akurat.
+ */
+export const computeDurationCutoffs = (
+  logs: any[],
+  targetHours: number = 360
+): DurationCutoffResult => {
+  const safeTargetHours = Math.max(0.1, Number(targetHours) || 360);
+  const targetSeconds = Math.round(safeTargetHours * 3600);
+
+  if (!logs || logs.length === 0) {
+    return {
+      targetHours: safeTargetHours,
+      targetSeconds,
+      batches: [],
+      totalLogsCount: 0,
+      totalAllDurationSeconds: 0,
+      completedBatchesCount: 0,
+    };
+  }
+
+  // Sesi diurutkan secara kronologis (ASC: paling awal ke paling baru)
+  const sortedLogs = [...logs].sort((a, b) => getLogTimestamp(a) - getLogTimestamp(b));
+
+  const batches: DurationCutoffBatch[] = [];
+  let currentLogs: any[] = [];
+  let currentAccumulatedDuration = 0;
+  let batchNumber = 1;
+  let totalAllDurationSeconds = 0;
+
+  const buildBatchObject = (
+    batchLogs: any[],
+    batchNum: number,
+    accumulatedSec: number,
+    completed: boolean,
+    triggerLog?: any
+  ): DurationCutoffBatch => {
+    const firstLog = batchLogs[0] || {};
+    const lastLog = batchLogs[batchLogs.length - 1] || {};
+
+    const rawStartDate = String(firstLog.dateTime || firstLog.date || "");
+    const rawEndDate = String(lastLog.dateTime || lastLog.date || "");
+
+    let sumGmv = 0;
+    let sumItemsSold = 0;
+    let sumOrders = 0;
+    let sumBuyers = 0;
+    let sumClicks = 0;
+    let sumViewer = 0;
+
+    batchLogs.forEach((l) => {
+      sumGmv += Number(l.gmv || 0);
+      sumItemsSold += Number(l.products_sold || l.items_sold || 0);
+      const orders = Number(l.orders || 0);
+      const buyers = Number(l.buyers || l.customers || orders || 0);
+      sumOrders += orders;
+      sumBuyers += buyers;
+      sumClicks += Number(l.clicks || 0);
+      sumViewer += Number(l.penonton || l.views || l.impressions || l.liveVisits || 0);
+    });
+
+    return {
+      batchNumber: batchNum,
+      isCompleted: completed,
+      targetHours: safeTargetHours,
+      targetSeconds,
+      totalDurationSeconds: accumulatedSec,
+      sessionCount: batchLogs.length,
+      startDate: normalizeDateYMD(rawStartDate),
+      startDisplayDate: formatDisplayDate(rawStartDate, firstLog.platform),
+      startShift: String(firstLog.shift || "-").trim(),
+      endDate: normalizeDateYMD(rawEndDate),
+      endDisplayDate: formatDisplayDate(rawEndDate, lastLog.platform),
+      endShift: String(lastLog.shift || "-").trim(),
+      cutoffTriggerLog: triggerLog,
+      logs: batchLogs,
+      totalGmv: sumGmv,
+      totalItemsSold: sumItemsSold,
+      totalOrders: sumOrders,
+      totalBuyers: sumBuyers,
+      totalClicks: sumClicks,
+      totalViewer: sumViewer,
+      surplusSeconds: completed ? Math.max(0, accumulatedSec - targetSeconds) : 0,
+      remainingSeconds: completed ? 0 : Math.max(0, targetSeconds - accumulatedSec),
+    };
+  };
+
+  for (let i = 0; i < sortedLogs.length; i++) {
+    const log = sortedLogs[i];
+    const logSec = Math.max(0, Number(log.duration || log.liveDuration || 0));
+    currentAccumulatedDuration += logSec;
+    totalAllDurationSeconds += logSec;
+    currentLogs.push(log);
+
+    // Cek apakah target terpenuhi: "lebih sedikit itu tidak apa apa tapi jangan kurang dari target durasi"
+    if (currentAccumulatedDuration >= targetSeconds) {
+      batches.push(
+        buildBatchObject(
+          [...currentLogs],
+          batchNumber,
+          currentAccumulatedDuration,
+          true,
+          log
+        )
+      );
+      batchNumber++;
+      currentLogs = [];
+      currentAccumulatedDuration = 0;
+    }
+  }
+
+  // Jika ada sisa sesi yang belum mencapai target durasi di akhir periode
+  if (currentLogs.length > 0) {
+    batches.push(
+      buildBatchObject(
+        [...currentLogs],
+        batchNumber,
+        currentAccumulatedDuration,
+        false
+      )
+    );
+  }
+
+  const completedBatchesCount = batches.filter((b) => b.isCompleted).length;
+
+  return {
+    targetHours: safeTargetHours,
+    targetSeconds,
+    batches,
+    totalLogsCount: sortedLogs.length,
+    totalAllDurationSeconds,
+    completedBatchesCount,
+  };
+};
+
+

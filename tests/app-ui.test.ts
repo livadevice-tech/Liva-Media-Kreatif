@@ -9,6 +9,8 @@ import {
   getShiftFromHour,
   isPlatformMatch,
   normalizeDateYMD,
+  computeDurationCutoffs,
+  formatDurationHoursMinutes,
 } from "../src/shared/utils/appUi";
 
 test("normalizeDateYMD converts common input formats into YYYY-MM-DD", () => {
@@ -138,4 +140,77 @@ test("filterLogsByDateAndShift correctly filters logs with date-specific shift r
   assert.equal(resGeneral.length, 1);
   assert.equal(resGeneral[0].id, "4");
 });
+
+test("computeDurationCutoffs accurately calculates 360-hour cutoffs and handles surplus & remaining hours", () => {
+  // Empty logs test
+  const emptyRes = computeDurationCutoffs([], 360);
+  assert.equal(emptyRes.batches.length, 0);
+  assert.equal(emptyRes.completedBatchesCount, 0);
+
+  // 1 session of 200 hours, 1 session of 165 hours -> total 365 hours (surplus 5 hours)
+  const logs1 = [
+    {
+      id: "log1",
+      date: "2026-10-01",
+      dateTime: "2026-10-01 08:00:00",
+      shift: "Shift 1",
+      duration: 200 * 3600,
+      gmv: 10000000,
+      orders: 100,
+    },
+    {
+      id: "log2",
+      date: "2026-10-10",
+      dateTime: "2026-10-10 14:00:00",
+      shift: "Shift 2",
+      duration: 165 * 3600,
+      gmv: 8000000,
+      orders: 80,
+    },
+    {
+      id: "log3",
+      date: "2026-10-15",
+      dateTime: "2026-10-15 08:00:00",
+      shift: "Shift 1",
+      duration: 50 * 3600,
+      gmv: 2000000,
+      orders: 20,
+    },
+  ];
+
+  const res = computeDurationCutoffs(logs1, 360);
+  assert.equal(res.batches.length, 2, "Should create 1 completed batch and 1 remaining batch");
+  assert.equal(res.completedBatchesCount, 1);
+
+  // Batch 1: Completed at log2 (total 365h >= 360h)
+  const batch1 = res.batches[0];
+  assert.equal(batch1.batchNumber, 1);
+  assert.equal(batch1.isCompleted, true);
+  assert.equal(batch1.totalDurationSeconds, 365 * 3600);
+  assert.equal(batch1.surplusSeconds, 5 * 3600);
+  assert.equal(batch1.remainingSeconds, 0);
+  assert.equal(batch1.sessionCount, 2);
+  assert.equal(batch1.startDate, "2026-10-01");
+  assert.equal(batch1.startShift, "Shift 1");
+  assert.equal(batch1.endDate, "2026-10-10");
+  assert.equal(batch1.endShift, "Shift 2");
+  assert.equal(batch1.cutoffTriggerLog.id, "log2");
+  assert.equal(batch1.totalGmv, 18000000);
+  assert.equal(batch1.totalOrders, 180);
+
+  // Batch 2: In-progress leftover (50h of 360h)
+  const batch2 = res.batches[1];
+  assert.equal(batch2.batchNumber, 2);
+  assert.equal(batch2.isCompleted, false);
+  assert.equal(batch2.totalDurationSeconds, 50 * 3600);
+  assert.equal(batch2.remainingSeconds, 310 * 3600);
+  assert.equal(batch2.sessionCount, 1);
+  assert.equal(batch2.startDate, "2026-10-15");
+  assert.equal(batch2.endDate, "2026-10-15");
+
+  // Format check
+  assert.equal(formatDurationHoursMinutes(365 * 3600), "365 Jam");
+  assert.equal(formatDurationHoursMinutes(360 * 3600 + 1800), "360 Jam 30 Menit");
+});
+
 
