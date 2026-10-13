@@ -271,48 +271,63 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
             </div>
 
             {/* Date Periods */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                  <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                  Periode 1 (Acuan)
+            <div className="space-y-2">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/20 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                      Periode 1 (Acuan)
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                      Data Terbaru
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Tanggal Mulai</label>
+                    <CustomDatePicker
+                      value={periodAStart}
+                      onChange={handlePeriodAStartChange}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Tanggal Selesai</label>
+                    <CustomDatePicker
+                      value={periodAEnd}
+                      onChange={setPeriodAEnd}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">Tanggal Mulai</label>
-                  <CustomDatePicker
-                    value={periodAStart}
-                    onChange={handlePeriodAStartChange}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">Tanggal Selesai</label>
-                  <CustomDatePicker
-                    value={periodAEnd}
-                    onChange={setPeriodAEnd}
-                  />
-                </div>
-              </div>
 
-              <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 space-y-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-bold text-indigo-700">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                  Periode 2 (Bandingkan)
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-indigo-500">Tanggal Mulai</label>
-                  <CustomDatePicker
-                    value={periodBStart}
-                    onChange={handlePeriodBStartChange}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-indigo-500">Tanggal Selesai</label>
-                  <CustomDatePicker
-                    value={periodBEnd}
-                    onChange={setPeriodBEnd}
-                  />
+                <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                      Periode 2 (Bandingkan)
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      Masa Lampau
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Tanggal Mulai</label>
+                    <CustomDatePicker
+                      value={periodBStart}
+                      onChange={handlePeriodBStartChange}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Tanggal Selesai</label>
+                    <CustomDatePicker
+                      value={periodBEnd}
+                      onChange={setPeriodBEnd}
+                    />
+                  </div>
                 </div>
               </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                * Periode 1 (Acuan) adalah <strong>data terbaru</strong> yang akan dibandingkan dengan Periode 2 (<strong>masa lampau</strong>) untuk mengukur persentase kenaikan (+) atau penurunan (-) performa.
+              </p>
             </div>
 
             {/* Deskripsi */}

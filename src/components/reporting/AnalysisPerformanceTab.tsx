@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle, Edit3, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Calendar, TrendingUp, TrendingDown, BarChart3, AlertCircle, Edit3, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { reportingBrandApi } from '../../api';
 import { BrandPerformanceAnalysis, BrandPerformanceLogEntry } from '../../shared/types/reporting';
@@ -176,11 +176,17 @@ function AnalysisCard({
         valB = logsB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
       }
 
+      // Persentase perbandingan data terbaru (valA / Periode 1) terhadap data masa lampau (valB / Periode 2):
+      // Mengukur apakah data terbaru naik (+) atau turun (-) dibanding masa lampau
       let growth = 0;
-      if (valA > 0) {
-        growth = ((valB - valA) / valA) * 100;
-      } else if (valA === 0 && valB > 0) {
+      if (valB > 0) {
+        growth = ((valA - valB) / valB) * 100;
+      } else if (valB === 0 && valA > 0) {
         growth = 100;
+      } else if (valB > 0 && valA === 0) {
+        growth = -100;
+      } else {
+        growth = 0;
       }
 
       return {
@@ -306,14 +312,14 @@ function AnalysisCard({
             <div className="flex flex-col bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm gap-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shrink-0"></div>
-                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 1 :</span>
+                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 1 (Acuan / Terbaru) :</span>
               </div>
               <span className="text-slate-700 pl-4 text-[11px] sm:text-xs">{formatDateStr(analysis.period_a_start)}<span className="text-slate-400 mx-0.5">-</span>{formatDateStr(analysis.period_a_end)}</span>
             </div>
             <div className="flex flex-col bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm gap-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shrink-0"></div>
-                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 2 :</span>
+                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 2 (Masa Lampau) :</span>
               </div>
               <span className="text-slate-700 pl-4 text-[11px] sm:text-xs">{formatDateStr(analysis.period_b_start)}<span className="text-slate-400 mx-0.5">-</span>{formatDateStr(analysis.period_b_end)}</span>
             </div>
@@ -370,11 +376,11 @@ function AnalysisCard({
                   
                   <div className="w-full space-y-1.5 mb-4">
                     <div className="flex items-center justify-between text-xs w-full">
-                      <span className="text-slate-500 font-medium">Data 1</span>
+                      <span className="text-slate-500 font-medium">Data 1 (Terbaru)</span>
                       <span className="font-bold text-slate-700">{formatNumber(item.valA, isGmv)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs w-full">
-                      <span className="text-slate-500 font-medium">Data 2</span>
+                      <span className="text-slate-500 font-medium">Data 2 (Lampau)</span>
                       <span className="font-bold text-slate-700">{formatNumber(item.valB, isGmv)}</span>
                     </div>
                   </div>
@@ -384,8 +390,11 @@ function AnalysisCard({
                     isNegative ? 'bg-rose-100 text-rose-700' : 
                     'bg-slate-100 text-slate-600'
                   }`}>
-                    {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : isNegative ? <TrendingUp className="w-3 h-3 mr-1 rotate-180" /> : null}
-                    {isPositive ? '+' : ''}{item.growth.toFixed(1)}%
+                    {isPositive ? <TrendingUp className="w-3.5 h-3.5 mr-1 shrink-0" /> : isNegative ? <TrendingDown className="w-3.5 h-3.5 mr-1 shrink-0" /> : null}
+                    <span>{isPositive ? '+' : ''}{item.growth.toFixed(1)}%</span>
+                    <span className="text-[10px] ml-1 font-semibold opacity-85">
+                      {isPositive ? '(Naik)' : isNegative ? '(Turun)' : '(Tetap)'}
+                    </span>
                   </div>
                 </button>
               );
@@ -405,10 +414,10 @@ function AnalysisCard({
                   </span>
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>Data 1
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>Data 1 (Terbaru)
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Data 2
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Data 2 (Lampau)
                     </span>
                   </div>
                 </div>
@@ -428,11 +437,11 @@ function AnalysisCard({
                 <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-100">
                   <span className="flex items-center gap-1 text-[10px] text-slate-500">
                     <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                    Data 1: {formatDateStr(analysis.period_a_start)} s/d {formatDateStr(analysis.period_a_end)}
+                    Data 1 (Terbaru): {formatDateStr(analysis.period_a_start)} s/d {formatDateStr(analysis.period_a_end)}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] text-slate-500">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                    Data 2: {formatDateStr(analysis.period_b_start)} s/d {formatDateStr(analysis.period_b_end)}
+                    Data 2 (Lampau): {formatDateStr(analysis.period_b_start)} s/d {formatDateStr(analysis.period_b_end)}
                   </span>
                 </div>
               </div>
@@ -440,7 +449,7 @@ function AnalysisCard({
               <div className="hidden sm:block h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
                 <div className="flex items-center mb-4">
                   <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
-                  <h4 className="text-sm font-bold text-slate-700">Data 1 ({formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)})</h4>
+                  <h4 className="text-sm font-bold text-slate-700">Data 1 - Terbaru ({formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)})</h4>
                 </div>
                 <div style={{ height: 'calc(100% - 32px)' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -462,7 +471,7 @@ function AnalysisCard({
               <div className="hidden sm:block h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
                 <div className="flex items-center mb-4">
                   <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
-                  <h4 className="text-sm font-bold text-slate-700">Data 2 ({formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)})</h4>
+                  <h4 className="text-sm font-bold text-slate-700">Data 2 - Masa Lampau ({formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)})</h4>
                 </div>
                 <div style={{ height: 'calc(100% - 32px)' }}>
                   <ResponsiveContainer width="100%" height="100%">
