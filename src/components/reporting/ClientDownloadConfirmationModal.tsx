@@ -100,6 +100,7 @@ export function ClientDownloadConfirmationModal({
   initialShiftFilters = [],
   availableDateSessions = [],
   reportType = "live",
+  rawLogs = [],
   onDownloadExcel,
   onDownloadPdf,
 }: ClientDownloadConfirmationModalProps) {
