@@ -308,5 +308,72 @@ test("exportReportToExcel formats cells with true Excel data types and formulas 
   }
 });
 
+test("exportReportToExcel orders cutoff batches chronologically when sortOrder is desc (newest batch first)", async () => {
+  const XLSX = await import("xlsx");
+  const fs = await import("fs");
+  if (typeof (XLSX as any).set_fs === "function") {
+    (XLSX as any).set_fs(fs);
+  }
+  const { exportReportToExcel } = await import("../src/shared/utils/excelExportUtils");
+
+  // Two distinct cutoff periods:
+  // Batch 1: August (reach 5h cutoff)
+  // Batch 2: October (reach 5h cutoff)
+  const multiMonthLogs = [
+    {
+      dateTime: "30-08-2026 10:00:00",
+      platform: "TikTok Live",
+      shift: "10:00 - 15:00",
+      duration: 6 * 3600, // 6 hours -> completes batch 1
+      gmv: 1000000,
+      orders: 10,
+    },
+    {
+      dateTime: "04-10-2026 10:00:00",
+      platform: "TikTok Live",
+      shift: "10:00 - 15:00",
+      duration: 6 * 3600, // 6 hours -> completes batch 2
+      gmv: 2000000,
+      orders: 20,
+    },
+  ];
+
+  exportReportToExcel({
+    reportType: "live",
+    selectedMetrics: ["date", "time", "platform", "shift", "duration", "gmv", "orders"],
+    brandName: "SortTestBrand",
+    liveReportView: { filteredDb: multiMonthLogs },
+    platformFilter: "TikTok Live",
+    exportMode: "sessions",
+    sortOrder: "desc",
+    enableDurationCutoff: true,
+    cutoffTargetHours: 5,
+  });
+
+  const filename = "Laporan_SortTestBrand_TikTok_Live_Per_Sesi.xlsx";
+  assert.equal(fs.existsSync(filename), true);
+
+  try {
+    const wb = XLSX.readFile(filename, { cellNF: true, cellDates: true });
+    const sheet = wb.Sheets["Sesi Live"];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+
+    // Row 0: Header
+    // Row 1: First data row should be October (Batch 2) because sortOrder is desc
+    // Row 2: TOTAL for Batch 2
+    // Row 3: Second data row should be August (Batch 1)
+    // Row 4: TOTAL for Batch 1
+    assert.ok(String(rows[1][1]).includes("04-10-2026") || (rows[1][1] instanceof Date && rows[1][1].getMonth() === 9), "First data row must be October");
+    assert.equal(rows[2][0], "TOTAL", "Second row must be Batch 2 TOTAL");
+    assert.ok(String(rows[3][1]).includes("30-08-2026") || (rows[3][1] instanceof Date && rows[3][1].getMonth() === 7), "Third data row must be August");
+    assert.equal(rows[4][0], "TOTAL", "Fourth row must be Batch 1 TOTAL");
+  } finally {
+    if (fs.existsSync(filename)) {
+      fs.unlinkSync(filename);
+    }
+  }
+});
+
+
 
 

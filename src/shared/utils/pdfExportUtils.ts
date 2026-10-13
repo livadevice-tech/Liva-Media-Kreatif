@@ -104,8 +104,8 @@ export function exportReportToPdf({
       });
 
       const sortedGroups = Object.values(groups).sort((a, b) => {
-        const timeA = new Date(a.rawDate).getTime();
-        const timeB = new Date(b.rawDate).getTime();
+        const timeA = getLogTimestamp({ date: a.rawDate || a.dateKey });
+        const timeB = getLogTimestamp({ date: b.rawDate || b.dateKey });
         return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
       });
 
@@ -159,7 +159,11 @@ export function exportReportToPdf({
         const rows: any[] = [];
         let globalIdx = 1;
 
-        cutoffResult.batches.forEach((batch) => {
+        const orderedBatches = sortOrder === "desc"
+          ? [...cutoffResult.batches].reverse()
+          : cutoffResult.batches;
+
+        orderedBatches.forEach((batch) => {
           const batchLogs = [...batch.logs].sort((a, b) => {
             const timeA = getLogTimestamp(a);
             const timeB = getLogTimestamp(b);

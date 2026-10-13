@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import {
   formatDisplayDate,
   getLogTimestamp,
+  normalizeDateYMD,
   filterLogsByDateAndShift,
   computeDurationCutoffs,
   formatDurationHoursMinutes,
@@ -35,7 +36,7 @@ function parseExcelDate(val: any): Date | null {
     ? s.split("T")
     : s.split(" ");
 
-  const dParts = datePart.split(/[-\/]/);
+  const dParts = datePart.split(/[-\/\.]/);
   if (dParts.length !== 3) return null;
 
   let y = 0, m = 0, d = 0;
@@ -148,19 +149,14 @@ export function exportReportToExcel({
       rawLogs.forEach((log: any) => {
         const dStr = String(log.dateTime || log.date || "");
         const dPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
-        let key = dPart;
-        const dSplit = dPart.split("-");
-        if (dSplit.length === 3) {
-          if (dSplit[0].length === 4) {
-            key = `${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`;
-          } else {
-            key = `${dSplit[0]}-${dSplit[1]}-${dSplit[2]}`;
-          }
-        }
+        const normDate = normalizeDateYMD(dPart);
+        const key = normDate
+          ? `${normDate.split("-")[2]}-${normDate.split("-")[1]}-${normDate.split("-")[0]}`
+          : dPart;
         if (!groups[key]) {
           groups[key] = {
             dateKey: key,
-            rawDate: dPart,
+            rawDate: normDate || dPart,
             sessionCount: 0,
             duration: 0,
             viewer: 0,
@@ -204,8 +200,8 @@ export function exportReportToExcel({
 
       // Sort by date according to sortOrder (desc or asc)
       const sortedGroups = Object.values(groups).sort((a, b) => {
-        const timeA = new Date(a.rawDate).getTime();
-        const timeB = new Date(b.rawDate).getTime();
+        const timeA = getLogTimestamp({ date: a.rawDate || a.dateKey });
+        const timeB = getLogTimestamp({ date: b.rawDate || b.dateKey });
         return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
       });
 
@@ -384,7 +380,15 @@ export function exportReportToExcel({
         const rows: any[] = [];
         let globalIdx = 1;
 
-        cutoffResult.batches.forEach((batch) => {
+        // Pastikan urutan batch konsisten dengan sortOrder:
+        // Saat sortOrder === 'desc' (Terbaru -> Terlama), batch terbaru (misal Oktober)
+        // diletakkan di bagian atas, lalu diikuti batch yang lebih lampau (September -> Agustus).
+        // Begitu juga sebaliknya saat sortOrder === 'asc'.
+        const orderedBatches = sortOrder === "desc"
+          ? [...cutoffResult.batches].reverse()
+          : cutoffResult.batches;
+
+        orderedBatches.forEach((batch) => {
           const batchStartRow = rows.length + 2; // 1-based Excel row number
 
           // Sort logs within the batch according to sortOrder

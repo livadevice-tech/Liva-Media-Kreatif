@@ -47,16 +47,16 @@ export const normalizeDateYMD = (d: string) => {
   if (!d) return "";
   let norm = d.split("T")[0].split(" ")[0]; // strip time if ISO or datetime
 
-  const p = norm.split(/[\/\-]/);
+  const p = norm.split(/[\/\-\.]/);
   if (p.length === 3) {
-    // If format is DD/MM/YYYY or DD-MM-YYYY
+    // If format is DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
     if (p[0].length <= 2) {
       const y = p[2].length === 2 ? `20${p[2]}` : p[2];
       const m = String(p[1]).padStart(2, "0");
       const day = String(p[0]).padStart(2, "0");
       norm = `${y}-${m}-${day}`;
     } else if (p[0].length === 4) {
-      // If format is YYYY/MM/DD or YYYY-MM-DD or YYYY-M-D
+      // If format is YYYY/MM/DD or YYYY-MM-DD or YYYY.MM.DD
       const y = p[0];
       const m = String(p[1]).padStart(2, "0");
       const day = String(p[2]).padStart(2, "0");
@@ -366,6 +366,11 @@ export const getLogTimestamp = (log: any): number => {
   } else if (raw.includes(" ")) {
     const parts = raw.split(" ");
     timeStr = parts.slice(1).join(" ").trim();
+  }
+
+  // Fallback: jika tidak ada time di string raw, periksa property time/jam langsung
+  if (!timeStr && (log.time || log.jam)) {
+    timeStr = String(log.time || log.jam).trim();
   }
 
   // Fallback: jika tidak ada time di dateTime/date, periksa shift (misal "14:00 - 18:00")
