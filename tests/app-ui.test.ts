@@ -213,4 +213,100 @@ test("computeDurationCutoffs accurately calculates 360-hour cutoffs and handles 
   assert.equal(formatDurationHoursMinutes(360 * 3600 + 1800), "360 Jam 30 Menit");
 });
 
+test("exportReportToExcel formats cells with true Excel data types and formulas on cutoff totals", async () => {
+  const XLSX = await import("xlsx");
+  const fs = await import("fs");
+  if (typeof (XLSX as any).set_fs === "function") {
+    (XLSX as any).set_fs(fs);
+  }
+  const { exportReportToExcel } = await import("../src/shared/utils/excelExportUtils");
+
+  const mockLogs = [
+    {
+      dateTime: "19-08-2026 05:21:13",
+      platform: "TikTok Live",
+      shift: "05:00 - 09:00",
+      duration: 1 * 3600 + 39 * 60 + 33,
+      gmv: 230229.99,
+      items_sold: 2,
+      orders: 2,
+      customers: 2,
+      clicks: 43,
+      penonton: 1505,
+    },
+    {
+      dateTime: "20-08-2026 01:02:06",
+      platform: "TikTok Live",
+      shift: "01:00 - 05:00",
+      duration: 3 * 3600 + 57 * 60 + 30,
+      gmv: 501926.01,
+      items_sold: 5,
+      orders: 3,
+      customers: 3,
+      clicks: 84,
+      penonton: 2798,
+    },
+  ];
+
+  exportReportToExcel({
+    reportType: "live",
+    selectedMetrics: ["date", "time", "platform", "shift", "duration", "gmv", "items_sold", "orders", "buyers", "aov", "clicks", "penonton", "conversion_rate"],
+    brandName: "UnitTestBrand",
+    liveReportView: { filteredDb: mockLogs },
+    platformFilter: "TikTok Live",
+    exportMode: "sessions",
+    enableDurationCutoff: true,
+    cutoffTargetHours: 5,
+  });
+
+  const filename = "Laporan_UnitTestBrand_TikTok_Live_Per_Sesi.xlsx";
+  assert.equal(fs.existsSync(filename), true, "Export file must be generated");
+
+  try {
+    const wb = XLSX.readFile(filename, { cellNF: true, cellDates: true, cellStyles: true });
+    const sheet = wb.Sheets["Sesi Live"];
+    assert.ok(sheet, "Worksheet Sesi Live must exist");
+
+    const ref = XLSX.utils.decode_range(sheet["!ref"]!);
+    const colMap: Record<string, string> = {};
+    for (let c = ref.s.c; c <= ref.e.c; ++c) {
+      const h = sheet[XLSX.utils.encode_cell({ r: 0, c })]?.v;
+      if (h) colMap[String(h)] = XLSX.utils.encode_col(c);
+    }
+
+    // 1. Data Row Check (Row 2): proper data types
+    const r2Date = sheet[colMap["Tanggal & Jam Mulai"] + "2"];
+    const r2Dur = sheet[colMap["Durasi Live"] + "2"];
+    const r2Gmv = sheet[colMap["GMV (Rp)"] + "2"];
+    assert.equal(r2Date.t, "d", "Date cell must have date type 'd'");
+    assert.equal(r2Dur.z, "hh:mm:ss", "Duration cell must have duration format hh:mm:ss");
+    assert.ok(r2Gmv.z.includes("Rp"), "GMV cell must have Rp currency format");
+    assert.equal(typeof r2Gmv.v, "number", "GMV value must be numeric");
+
+    // 2. Cutoff Subtotal Row Check (Row 4): formula calculations
+    const r4No = sheet[colMap["No"] + "4"];
+    const r4Dur = sheet[colMap["Durasi Live"] + "4"];
+    const r4Gmv = sheet[colMap["GMV (Rp)"] + "4"];
+    const r4Orders = sheet[colMap["Orders"] + "4"];
+    const r4Aov = sheet[colMap["AOV (Rp)"] + "4"];
+    const r4CR = sheet[colMap["Conversion Rate (%)"] + "4"];
+
+    assert.equal(r4No.v, "TOTAL");
+    assert.ok(r4Dur.f?.startsWith("SUM("), "Total duration must have SUM formula");
+    assert.equal(r4Dur.z, "[hh]:mm:ss", "Total duration format must be [hh]:mm:ss");
+    assert.ok(r4Gmv.f?.startsWith("SUM("), "Total GMV must have SUM formula");
+    assert.ok(r4Orders.f?.startsWith("SUM("), "Total Orders must have SUM formula");
+    assert.ok(r4Aov.f?.startsWith("IF("), "Total AOV must have IF formula");
+    assert.ok(r4CR.f?.startsWith("IF("), "Total CR must have IF formula");
+
+    // Column widths check
+    assert.ok(sheet["!cols"] && sheet["!cols"].length > 0, "Worksheet must have auto-fit column widths");
+  } finally {
+    if (fs.existsSync(filename)) {
+      fs.unlinkSync(filename);
+    }
+  }
+});
+
+
 
