@@ -7,8 +7,9 @@ export function generateInvoicePrintHtml(params: {
   brand?: ClientBrand;
   bankAccount?: LivaBankAccount;
   companyProfile?: Partial<InvoiceCompanyProfile>;
+  includeMeterai?: boolean;
 }): string {
-  const { invoice, brand, bankAccount, companyProfile } = params;
+  const { invoice, brand, bankAccount, companyProfile, includeMeterai } = params;
 
   const companyName = companyProfile?.companyName || "PT. Liva Media Kreatif";
   const companyAddress = companyProfile?.address || "Villa Bukit Tirtayasa Blok G2 No.1, Kelurahaan Campang Raya, Kecamatan Sukabumi, Kota Bandar Lampung, Provinsi Lampung";
@@ -85,8 +86,9 @@ export function generateInvoicePrintHtml(params: {
   const signatureHeight = companyProfile?.signatureSize || 65;
   const meteraiHeight = companyProfile?.meteraiSize || 75;
 
-  const meteraiHtml = companyProfile?.meteraiUrl
-    ? `<img src="${companyProfile.meteraiUrl}" style="height: ${meteraiHeight}px; max-height: ${meteraiHeight}px; width: auto; object-fit: contain;" alt="e-Meterai" />`
+  const shouldRenderMeterai = includeMeterai !== false && Boolean(companyProfile?.meteraiUrl);
+  const meteraiHtml = shouldRenderMeterai
+    ? `<img src="${companyProfile!.meteraiUrl}" style="height: ${meteraiHeight}px; max-height: ${meteraiHeight}px; width: auto; object-fit: contain;" alt="e-Meterai" />`
     : '';
 
   const stampHtml = companyProfile?.signatureUrl

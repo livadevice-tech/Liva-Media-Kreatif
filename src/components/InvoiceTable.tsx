@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   FileText,
   Calendar,
@@ -17,6 +17,7 @@ import {
   Building2,
   Phone,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { formatContractDate, formatLivePeriod } from '../shared/utils/dateFormatting';
@@ -31,7 +32,7 @@ interface InvoiceTableProps {
   updateInvoiceStatus: (brandId: string, invId: string, newStatus: BrandInvoice["status"]) => void;
   setInvoiceEditor: (inv: BrandInvoice & { brandId: string }) => void;
   setInvoiceToDelete: (data: { brandId: string; id: string }) => void;
-  handlePrint: (inv: BrandInvoice, brandName: string) => void;
+  handlePrint: (inv: BrandInvoice, brandName: string, options?: { withMeterai?: boolean }) => void;
   handleShowEmailCopy: (inv: BrandInvoice, brandName: string, picEmail?: string) => void;
   onPreviewInvoice?: (inv: BrandInvoice & { brandId: string; brandName: string }) => void;
   clientBrands: ClientBrand[];
@@ -55,6 +56,22 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   formatDateUI,
 }) => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [downloadMenuOpenId, setDownloadMenuOpenId] = useState<string | null>(null);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+        setDownloadMenuOpenId(null);
+      }
+    };
+    if (downloadMenuOpenId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [downloadMenuOpenId]);
 
   const todayStr = new Date().toISOString().substring(0, 10);
 
@@ -312,7 +329,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full">
+          <div className="overflow-x-auto w-full min-h-[260px]">
             <table className="w-full text-left border-collapse min-w-[720px]">
               <thead className="bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-wider border-b border-slate-200">
                 <tr>
@@ -333,9 +350,10 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
-                {filteredInvoices.map((inv) => {
+                {filteredInvoices.map((inv, idx) => {
                   const brand = clientBrands.find((b) => b.id === inv.brandId || b.name?.toLowerCase() === inv.brandName?.toLowerCase());
                   const isInvOverdue = isOverdue(inv);
+                  const isNearBottom = idx >= Math.max(0, filteredInvoices.length - 2) && filteredInvoices.length > 2;
 
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors group">
@@ -487,14 +505,95 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                             </button>
                           )}
 
-                          {/* Print / Download */}
-                          <button
-                            onClick={() => handlePrint(inv, inv.brandName)}
-                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                            title="Cetak / Download PDF"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
+                          {/* Print / Download Options */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDownloadMenuOpenId((prev) => (prev === inv.id ? null : inv.id));
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                downloadMenuOpenId === inv.id
+                                  ? 'text-emerald-700 bg-emerald-100 ring-2 ring-emerald-300'
+                                  : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                              }`}
+                              title="Pilihan Download PDF (Dengan / Tanpa Materai)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {downloadMenuOpenId === inv.id && (
+                              <div
+                                ref={downloadMenuRef}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`absolute right-0 ${
+                                  isNearBottom ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                                } w-64 bg-white rounded-xl shadow-2xl border border-slate-200/90 py-1.5 z-50 text-left animate-fadeIn ring-1 ring-black/5`}
+                              >
+                                <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                    Pilih Jenis Download
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDownloadMenuOpenId(null)}
+                                    className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+
+                                {/* Option 1: Tanpa Materai */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handlePrint(inv, inv.brandName, { withMeterai: false });
+                                    setDownloadMenuOpenId(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer group/item"
+                                >
+                                  <div className="p-1 rounded-lg bg-slate-100 text-slate-600 group-hover/item:bg-emerald-50 group-hover/item:text-emerald-600 mt-0.5 shrink-0 transition-colors">
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-slate-800 group-hover/item:text-emerald-700 transition-colors">
+                                      Download Tanpa Materai
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                                      Format standar: {inv.brandName} - {inv.invoiceNumber}
+                                    </div>
+                                  </div>
+                                </button>
+
+                                {/* Option 2: Dengan Materai */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handlePrint(inv, inv.brandName, { withMeterai: true });
+                                    setDownloadMenuOpenId(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-rose-50/70 flex items-start gap-2.5 transition-colors cursor-pointer group/item border-t border-slate-100/80"
+                                >
+                                  <div className="p-1 rounded-lg bg-rose-50 text-rose-600 group-hover/item:bg-rose-100 mt-0.5 shrink-0 transition-colors">
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-rose-700 group-hover/item:text-rose-800 flex items-center gap-1.5 transition-colors">
+                                      <span>Download Dengan Materai</span>
+                                      <span className="text-[8px] font-black uppercase px-1 py-0.5 bg-rose-600 text-white rounded">
+                                        Signed
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-rose-500/80 font-medium leading-tight mt-0.5 truncate" title="Format: signed_688779897203454_6aa11c4052202_...">
+                                      Nama unik: signed_6887...pdf
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+                          </div>
 
                           {/* Email copy */}
                           <button

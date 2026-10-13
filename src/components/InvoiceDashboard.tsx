@@ -33,7 +33,7 @@ import { resolveContractPeriodDates } from '../shared/utils/dateFormatting';
 import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
 import { buildInvoiceQuotationEmail } from '../shared/utils/invoiceEmail';
-import { buildNextInvoiceNumber } from '../shared/utils/invoiceNumber';
+import { buildNextInvoiceNumber, generateSignedInvoiceFileName } from '../shared/utils/invoiceNumber';
 import { generateInvoicePrintHtml } from '../shared/utils/invoicePrintHtml';
 
 interface InvoiceDashboardProps {
@@ -353,15 +353,24 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   };
 
   // Official A4 Print Generation matching user's PDF
-  const handlePrint = (invoice: BrandInvoice, brandName: string) => {
+  const handlePrint = (
+    invoice: BrandInvoice,
+    brandName: string,
+    options: { withMeterai?: boolean } = { withMeterai: false }
+  ) => {
+    const withMeterai = !!options.withMeterai;
     const brand = clientBrands.find((b) => b.invoices?.some((i) => i.id === invoice.id) || b.name === brandName);
     const defaultBank = bankAccounts.find((b) => b.isDefault) || bankAccounts[0] || DEFAULT_LIVA_BANKS[0];
 
     const cleanBrandName = (brand?.name || brandName || invoice.ptName || 'Brand').replace(/[\/\\:*?"<>|]/g, '-').trim();
     const cleanInvoiceNo = (invoice.invoiceNumber || 'Invoice').replace(/[\/\\:*?"<>|]/g, '-').trim();
-    const exportFileName = `${cleanBrandName} - ${cleanInvoiceNo}`;
 
-    // Temporarily set document title so browser "Save as PDF" dialog defaults to "Nama Brand - No invoice"
+    // Use unique signed pattern if withMeterai is true, otherwise standard brand - invoice number
+    const exportFileName = withMeterai
+      ? generateSignedInvoiceFileName()
+      : `${cleanBrandName} - ${cleanInvoiceNo}`;
+
+    // Temporarily set document title so browser "Save as PDF" dialog defaults to exportFileName
     const originalTitle = document.title;
     document.title = exportFileName;
 
@@ -386,6 +395,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       invoice,
       brand,
       bankAccount: defaultBank,
+      includeMeterai: withMeterai,
       companyProfile: {
         companyName: invoiceSettings.companyName,
         address: invoiceSettings.companyAddress,
@@ -398,7 +408,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         logoUrl: invoiceSettings.logoUrl,
         signatureUrl: invoiceSettings.signatureUrl,
         signatureSize: invoiceSettings.signatureSize || 65,
-        meteraiUrl: invoiceSettings.meteraiUrl,
+        meteraiUrl: withMeterai ? invoiceSettings.meteraiUrl : undefined,
         meteraiSize: invoiceSettings.meteraiSize || 75,
         termsAndConditions: invoiceSettings.termsAndConditions,
       },
@@ -700,7 +710,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
               termsAndConditions: invoiceSettings.termsAndConditions,
             }}
             onClose={() => setPreviewInvoiceData(null)}
-            onPrint={() => handlePrint(previewInvoiceData.invoice, previewInvoiceData.brand.name)}
+            onPrint={(opts) => handlePrint(previewInvoiceData.invoice, previewInvoiceData.brand.name, opts)}
             onUpdateSignatureSize={(size) => saveSettings({ ...invoiceSettings, signatureSize: size })}
             onUpdateMeteraiSize={(size) => saveSettings({ ...invoiceSettings, meteraiSize: size })}
           />
