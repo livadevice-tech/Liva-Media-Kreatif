@@ -63,6 +63,14 @@ type ReportingWorkspaceHeaderProps = {
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
   onDeleteAllBrandRawData?: (brandId: string, brandName: string, platform?: string) => void;
   onExport?: () => void;
+  onPrevBrand?: () => void;
+  onNextBrand?: () => void;
+  prevBrandName?: string;
+  nextBrandName?: string;
+  currentBrandIndex?: number;
+  totalBrandsCount?: number;
+  availableBrandsList?: Array<{ id: string; name: string; logoUrl?: string }>;
+  onSelectBrand?: (brandId: string) => void;
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -176,12 +184,21 @@ export function ReportingWorkspaceHeader({
   onDeleteBrandDataByDateRange,
   onDeleteAllBrandRawData,
   onExport,
+  onPrevBrand,
+  onNextBrand,
+  prevBrandName,
+  nextBrandName,
+  currentBrandIndex,
+  totalBrandsCount,
+  availableBrandsList,
+  onSelectBrand,
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
   const [isRawMenuOpen, setIsRawMenuOpen] = useState(false);
   const [isShiftDropdownOpen, setIsShiftDropdownOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
 
   const rawMenuRef = useRef<HTMLDivElement>(null);
   const desktopDateMenuRef = useRef<HTMLDivElement>(null);
@@ -189,6 +206,7 @@ export function ReportingWorkspaceHeader({
   const desktopPlatformMenuRef = useRef<HTMLDivElement>(null);
   const mobilePlatformMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const brandDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -213,11 +231,14 @@ export function ReportingWorkspaceHeader({
       if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(target)) {
         setIsSettingsMenuOpen(false);
       }
+      if (isBrandDropdownOpen && brandDropdownRef.current && !brandDropdownRef.current.contains(target)) {
+        setIsBrandDropdownOpen(false);
+      }
     }
     
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, [isRawMenuOpen, isDateMenuOpen, isPlatformMenuOpen, isSettingsMenuOpen]);
+  }, [isRawMenuOpen, isDateMenuOpen, isPlatformMenuOpen, isSettingsMenuOpen, isBrandDropdownOpen]);
 
   const dateButtonLabel = useMemo(
     () =>
@@ -309,7 +330,7 @@ export function ReportingWorkspaceHeader({
       <div className="flex flex-col">
         {/* === MOBILE-ONLY header row (hidden on desktop) === */}
         <div className="flex items-center justify-between pb-3 md:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {onBack && (
               <button
                 type="button"
@@ -321,8 +342,8 @@ export function ReportingWorkspaceHeader({
               </button>
             )}
 
-            <div className="flex items-center gap-3">
-              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e7e0f8] bg-white text-sm font-bold text-slate-600">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e7e0f8] bg-white text-sm font-bold text-slate-600">
                 {brandLogoUrl ? (
                   <img
                     src={brandLogoUrl}
@@ -335,25 +356,55 @@ export function ReportingWorkspaceHeader({
               </div>
 
               <div className="flex flex-col min-w-0">
-                <h2 className="text-[17px] font-semibold tracking-tight text-slate-950 leading-tight truncate">
+                <h2 className="text-[15px] font-semibold tracking-tight text-slate-950 leading-tight truncate">
                   {brandName || "Nama Brand"}
                 </h2>
-                <p className="text-[12px] font-medium text-[#a855f7] leading-tight mt-0.5">
+                <p className="text-[11px] font-medium text-[#a855f7] leading-tight mt-0.5 truncate">
                   {selectedPlatform} {sessionCount !== undefined && `- ${sessionCount} Session`}
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Mobile Prev / Next Brand Buttons */}
+            {(onPrevBrand || onNextBrand) && (
+              <div className="flex items-center rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={onPrevBrand}
+                  disabled={!onPrevBrand || (totalBrandsCount !== undefined && totalBrandsCount <= 1)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  title={prevBrandName ? `Brand Sebelumnya: ${prevBrandName}` : "Brand Sebelumnya"}
+                  aria-label="Brand Sebelumnya"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-1 text-[11px] font-bold text-slate-600 select-none">
+                  {currentBrandIndex !== undefined && currentBrandIndex >= 0 ? currentBrandIndex + 1 : 1}
+                  /{totalBrandsCount || availableBrandsList?.length || 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={onNextBrand}
+                  disabled={!onNextBrand || (totalBrandsCount !== undefined && totalBrandsCount <= 1)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  title={nextBrandName ? `Brand Selanjutnya: ${nextBrandName}` : "Brand Selanjutnya"}
+                  aria-label="Brand Selanjutnya"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
             {onExport && (
               <button
                 type="button"
                 onClick={onExport}
                 aria-label="Export Data"
-                className="flex h-9 items-center gap-1.5 rounded-[12px] bg-emerald-50 border border-emerald-200 px-2.5 text-xs font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 active:scale-95"
+                className="flex h-8 items-center gap-1 rounded-[10px] bg-emerald-50 border border-emerald-200 px-2 text-xs font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 active:scale-95"
               >
-                <Download className="h-4 w-4 text-emerald-600" />
+                <Download className="h-3.5 w-3.5 text-emerald-600" />
                 <span>Export</span>
               </button>
             )}
@@ -361,12 +412,12 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
-                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-slate-50 border border-slate-200 text-slate-500 shadow-sm transition-colors hover:bg-slate-100"
+                className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-slate-50 border border-slate-200 text-slate-500 shadow-sm transition-colors hover:bg-slate-100"
               >
-                <Settings2 className="h-[18px] w-[18px]" />
+                <Settings2 className="h-4 w-4" />
               </button>
               {isSettingsMenuOpen ? (
-                <div className="absolute right-0 top-11 z-[60] w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                <div className="absolute right-0 top-10 z-[60] w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                   {onDeleteBrandDataByDateRange && brandId && (
                     <button
                       type="button"
@@ -411,8 +462,9 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
         </div>
-        {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
-        <div className="hidden md:flex items-center justify-between gap-4 pb-4 border-b border-[#e7e0f8] flex-wrap">
+
+        {/* === DESKTOP-ONLY: Row 1 - Brand Info (Left) + Brand Navigation Prev/Next (Right) === */}
+        <div className="hidden md:flex items-center justify-between gap-4 pb-3.5">
           {/* Left: Back button + Avatar + Brand Name + Live Badge + ID */}
           <div className="flex items-center gap-3 min-w-0">
             {onBack && (
@@ -420,7 +472,7 @@ export function ReportingWorkspaceHeader({
                 type="button"
                 onClick={onBack}
                 aria-label="Kembali"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -454,7 +506,97 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
 
-          {/* Right: Date Picker, Platform Select, Shift Select, Export, Upload Data */}
+          {/* Right ("di pojok kanan"): Prev & Next Brand Buttons + Direct Brand Switcher */}
+          {(onPrevBrand || onNextBrand || (availableBrandsList && availableBrandsList.length > 1)) && (
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Prev Brand Button */}
+              <button
+                type="button"
+                onClick={onPrevBrand}
+                disabled={!onPrevBrand || (totalBrandsCount !== undefined && totalBrandsCount <= 1)}
+                className="group inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                title={prevBrandName ? `Brand Sebelumnya: ${prevBrandName}` : "Brand Sebelumnya"}
+                aria-label="Brand Sebelumnya"
+              >
+                <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                <span>Prev Brand</span>
+              </button>
+
+              {/* Brand Counter Badge & Direct Brand Switcher Dropdown */}
+              <div className="relative" ref={brandDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsBrandDropdownOpen(!isBrandDropdownOpen)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 px-3 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+                  title="Pilih Brand Langsung"
+                >
+                  <span className="text-slate-400 font-medium">Brand</span>
+                  <span className="font-black text-slate-900">
+                    {currentBrandIndex !== undefined && currentBrandIndex >= 0 ? currentBrandIndex + 1 : 1}
+                  </span>
+                  <span className="text-slate-400 font-light">/</span>
+                  <span className="text-slate-600 font-bold">
+                    {totalBrandsCount || availableBrandsList?.length || 1}
+                  </span>
+                  <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${isBrandDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isBrandDropdownOpen && availableBrandsList && availableBrandsList.length > 0 && (
+                  <div className="absolute right-0 top-full z-[70] mt-1.5 w-64 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl space-y-0.5">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Ganti Brand Cepat ({availableBrandsList.length})
+                    </div>
+                    {availableBrandsList.map((b) => {
+                      const isCurrent = b.id === brandId;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setIsBrandDropdownOpen(false);
+                            onSelectBrand?.(b.id);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors cursor-pointer ${
+                            isCurrent
+                              ? "bg-indigo-50 font-bold text-indigo-700"
+                              : "text-slate-700 hover:bg-slate-50 font-medium"
+                          }`}
+                        >
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 overflow-hidden">
+                            {b.logoUrl ? (
+                              <img src={b.logoUrl} alt={b.name} className="h-full w-full object-cover" />
+                            ) : (
+                              b.name.slice(0, 2).toUpperCase()
+                            )}
+                          </div>
+                          <span className="truncate flex-1">{b.name}</span>
+                          {isCurrent && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Next Brand Button */}
+              <button
+                type="button"
+                onClick={onNextBrand}
+                disabled={!onNextBrand || (totalBrandsCount !== undefined && totalBrandsCount <= 1)}
+                className="group inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                title={nextBrandName ? `Brand Selanjutnya: ${nextBrandName}` : "Brand Selanjutnya"}
+                aria-label="Brand Selanjutnya"
+              >
+                <span>Next Brand</span>
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* === DESKTOP-ONLY: Row 2 - Filters & Action Toolbar === */}
+        <div className="hidden md:flex items-center justify-between gap-3 pt-3 pb-4 border-b border-[#e7e0f8] flex-wrap">
+          {/* Left Filters: Date Picker, Platform Select, Shift Select */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Date Filter Dropdown */}
             <div className="relative flex-shrink-0" ref={desktopDateMenuRef}>
@@ -620,13 +762,16 @@ export function ReportingWorkspaceHeader({
                 )}
               </div>
             )}
+          </div>
 
-            {/* Export Button (white bordered) */}
+          {/* Right Actions: Export Button & Upload Data */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Export Button */}
             {onExport && (
               <button
                 type="button"
                 onClick={onExport}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
                 title="Export Data Laporan"
               >
                 <Download className="h-3.5 w-3.5 text-slate-500" />
@@ -634,13 +779,13 @@ export function ReportingWorkspaceHeader({
               </button>
             )}
 
-            {/* Upload Data Button (purple button) */}
+            {/* Upload Data Button */}
             {(onImportRawLive || onImportRawEngagement || onOpenAddManualDuration) && (
               <div className="relative flex-shrink-0" ref={rawMenuRef}>
                 <button
                   type="button"
                   onClick={openRawMenu}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5600e0] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#4800bd] transition-colors"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5600e0] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#4800bd] transition-colors cursor-pointer"
                   aria-haspopup="menu"
                   aria-expanded={isRawMenuOpen}
                 >
@@ -660,7 +805,7 @@ export function ReportingWorkspaceHeader({
                             onImportRawLive();
                             setIsRawMenuOpen(false);
                           }}
-                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 cursor-pointer"
                         >
                           <Layers3 className="h-4 w-4 text-indigo-600" /> Upload Raw Data Live
                         </button>
@@ -673,7 +818,7 @@ export function ReportingWorkspaceHeader({
                             onOpenAddManualDuration();
                             setIsRawMenuOpen(false);
                           }}
-                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 cursor-pointer"
                         >
                           <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
                         </button>
@@ -686,7 +831,7 @@ export function ReportingWorkspaceHeader({
                             onImportRawEngagement();
                             setIsRawMenuOpen(false);
                           }}
-                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 cursor-pointer"
                         >
                           <Settings2 className="h-4 w-4 text-[#0f766e]" /> Upload Raw Data Engagement
                         </button>

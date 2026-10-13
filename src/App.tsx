@@ -2275,6 +2275,57 @@ export default function App() {
   const totalReportBrandPages = 1;
   const visibleReportBrandRows = filteredReportBrandRows;
 
+  const operatorBrandNavList = useMemo(() => {
+    if (
+      filteredReportBrandRows.length > 0 &&
+      filteredReportBrandRows.some((r) => r.brand.id === activeReportBrandId)
+    ) {
+      return filteredReportBrandRows.map((r) => ({
+        id: r.brand.id,
+        name: r.brand.name,
+        logoUrl: r.brand.logoUrl,
+      }));
+    }
+    const activeBrands = clientBrands.filter((b) => b.isActive !== false);
+    const sourceList = activeBrands.length > 0 ? activeBrands : clientBrands;
+    return sourceList.map((b) => ({
+      id: b.id,
+      name: b.name,
+      logoUrl: b.logoUrl,
+    }));
+  }, [filteredReportBrandRows, activeReportBrandId, clientBrands]);
+
+  const currentBrandNavIdx = useMemo(() => {
+    if (!activeReportBrandId || operatorBrandNavList.length === 0) return -1;
+    return operatorBrandNavList.findIndex((b) => b.id === activeReportBrandId);
+  }, [activeReportBrandId, operatorBrandNavList]);
+
+  const prevBrandItem = useMemo(() => {
+    if (operatorBrandNavList.length <= 1 || currentBrandNavIdx === -1) return null;
+    const prevIdx =
+      (currentBrandNavIdx - 1 + operatorBrandNavList.length) %
+      operatorBrandNavList.length;
+    return operatorBrandNavList[prevIdx];
+  }, [operatorBrandNavList, currentBrandNavIdx]);
+
+  const nextBrandItem = useMemo(() => {
+    if (operatorBrandNavList.length <= 1 || currentBrandNavIdx === -1) return null;
+    const nextIdx = (currentBrandNavIdx + 1) % operatorBrandNavList.length;
+    return operatorBrandNavList[nextIdx];
+  }, [operatorBrandNavList, currentBrandNavIdx]);
+
+  const handlePrevBrandNavigation = () => {
+    if (prevBrandItem) {
+      handleOpenReportBrand(prevBrandItem.id);
+    }
+  };
+
+  const handleNextBrandNavigation = () => {
+    if (nextBrandItem) {
+      handleOpenReportBrand(nextBrandItem.id);
+    }
+  };
+
   const activeReportBrandUploadHistory = useMemo(
     () =>
       buildActiveReportBrandUploadHistory({
@@ -5564,6 +5615,19 @@ export default function App() {
           const clientBrand = clientBrands.find(
             (b) => b.id === activeClientBrandId,
           );
+          const hostBrandNavList = isHostView && activeHostObj?.brands
+            ? activeHostObj.brands
+                .map((bName) => clientBrands.find((cb) => cb.name === bName || cb.id === bName))
+                .filter((b): b is NonNullable<typeof b> => Boolean(b))
+                .map((b) => ({ id: b.id, name: b.name, logoUrl: b.logoUrl }))
+            : [];
+          const hostCurrentBrandNavIdx = hostBrandNavList.findIndex((b) => b.id === activeClientBrandId);
+          const hostPrevBrandItem = hostBrandNavList.length > 1 && hostCurrentBrandNavIdx !== -1
+            ? hostBrandNavList[(hostCurrentBrandNavIdx - 1 + hostBrandNavList.length) % hostBrandNavList.length]
+            : null;
+          const hostNextBrandItem = hostBrandNavList.length > 1 && hostCurrentBrandNavIdx !== -1
+            ? hostBrandNavList[(hostCurrentBrandNavIdx + 1) % hostBrandNavList.length]
+            : null;
           const clientAvailableReportDates = getAvailableReportDates(
             {
               logs: brandPerformanceLogs.filter(
@@ -5698,6 +5762,14 @@ export default function App() {
                       brandId={activeClientBrandId || undefined}
                       brandLogoUrl={clientBrand?.logoUrl}
                       onBack={isHostView ? () => setHostActiveReportingBrandId(null) : undefined}
+                      onPrevBrand={hostPrevBrandItem ? () => setHostActiveReportingBrandId(hostPrevBrandItem.id) : undefined}
+                      onNextBrand={hostNextBrandItem ? () => setHostActiveReportingBrandId(hostNextBrandItem.id) : undefined}
+                      prevBrandName={hostPrevBrandItem?.name}
+                      nextBrandName={hostNextBrandItem?.name}
+                      currentBrandIndex={hostCurrentBrandNavIdx}
+                      totalBrandsCount={hostBrandNavList.length}
+                      availableBrandsList={hostBrandNavList.length > 1 ? hostBrandNavList : undefined}
+                      onSelectBrand={isHostView ? (bId) => setHostActiveReportingBrandId(bId) : undefined}
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}
@@ -12474,6 +12546,14 @@ export default function App() {
                                 setReportingRawData([]);
                                 setAutoDetectNotice("");
                               }}
+                              onPrevBrand={operatorBrandNavList.length > 1 ? handlePrevBrandNavigation : undefined}
+                              onNextBrand={operatorBrandNavList.length > 1 ? handleNextBrandNavigation : undefined}
+                              prevBrandName={prevBrandItem?.name}
+                              nextBrandName={nextBrandItem?.name}
+                              currentBrandIndex={currentBrandNavIdx}
+                              totalBrandsCount={operatorBrandNavList.length}
+                              availableBrandsList={operatorBrandNavList}
+                              onSelectBrand={handleOpenReportBrand}
                               activeTab={operatorReportingTab}
                               platformFilter={operatorPlatformFilter}
                               onPlatformFilterChange={

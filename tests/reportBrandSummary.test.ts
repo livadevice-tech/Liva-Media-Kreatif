@@ -117,3 +117,28 @@ test("getAvailableShiftsForBrand merges brand logs, sessions, and master system 
   assert.ok(shifts.includes("M4 (23.30-05.30)"));
 });
 
+test("cyclic brand navigation wraps around correctly", () => {
+  const brandList = [
+    { id: "b1", name: "Brand 1" },
+    { id: "b2", name: "Brand 2" },
+    { id: "b3", name: "Brand 3" },
+  ];
+  const getPrevBrand = (currId: string) => {
+    const idx = brandList.findIndex((b) => b.id === currId);
+    if (idx === -1) return null;
+    return brandList[(idx - 1 + brandList.length) % brandList.length];
+  };
+  const getNextBrand = (currId: string) => {
+    const idx = brandList.findIndex((b) => b.id === currId);
+    if (idx === -1) return null;
+    return brandList[(idx + 1) % brandList.length];
+  };
+
+  assert.equal(getPrevBrand("b1")?.id, "b3");
+  assert.equal(getNextBrand("b1")?.id, "b2");
+  assert.equal(getPrevBrand("b2")?.id, "b1");
+  assert.equal(getNextBrand("b2")?.id, "b3");
+  assert.equal(getPrevBrand("b3")?.id, "b2");
+  assert.equal(getNextBrand("b3")?.id, "b1");
+});
+
