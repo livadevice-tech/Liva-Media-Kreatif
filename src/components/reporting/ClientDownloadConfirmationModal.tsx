@@ -199,21 +199,21 @@ export function ClientDownloadConfirmationModal({
       setDateShiftRules([]);
       setDateShiftScope("merged");
       setNewRuleDate(startDate || "");
-      setNewRuleShift(cleanedShiftsList[0] || "");
+      setNewRuleShift(cleanedShiftsList[0] || "Semua Shift");
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, startDate, endDate, platform, initialShiftFilters, cleanedShiftsList]);
 
   // Keep newRuleShift updated if empty
   useEffect(() => {
-    if (!newRuleShift && cleanedShiftsList.length > 0) {
-      setNewRuleShift(cleanedShiftsList[0]);
+    if (!newRuleShift) {
+      setNewRuleShift(cleanedShiftsList[0] || "Semua Shift");
     }
   }, [cleanedShiftsList, newRuleShift]);
 
   const handleAddDateShiftRule = () => {
     const targetDate = newRuleDate || effectiveStartDate || "";
-    const targetShift = newRuleShift || cleanedShiftsList[0] || "";
+    const targetShift = newRuleShift || cleanedShiftsList[0] || "Semua Shift";
     if (!targetDate || !targetShift) return;
 
     const exists = dateShiftRules.some(
@@ -1566,6 +1566,7 @@ export function ClientDownloadConfirmationModal({
                           onChange={(e) => setNewRuleShift(e.target.value)}
                           className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-3xs outline-none transition focus:border-indigo-500 cursor-pointer pr-7"
                         >
+                          <option value="Semua Shift">Semua Shift (All Session)</option>
                           {cleanedShiftsList.map((sh) => (
                             <option key={sh} value={sh}>
                               {sh}

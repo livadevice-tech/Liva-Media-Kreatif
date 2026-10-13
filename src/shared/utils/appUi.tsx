@@ -429,6 +429,14 @@ export const filterLogsByDateAndShift = <T extends { date?: string; dateTime?: s
       if (rulesForThisDate.length > 0) {
         // Tanggal ini memiliki aturan shift spesifik -> wajib cocok dengan salah satu shift tanggal tersebut
         return rulesForThisDate.some((r) => {
+          if (
+            r.shift === "Semua Shift" ||
+            r.shift === "Semua Sesi" ||
+            r.shift === "All Session" ||
+            r.shift === "All Time"
+          ) {
+            return true;
+          }
           if (r.shift === logShift) return true;
           // Fallback pencocokan via jam
           const timeMatch = rawDate.match(/(\d{1,2}):(\d{2})/);

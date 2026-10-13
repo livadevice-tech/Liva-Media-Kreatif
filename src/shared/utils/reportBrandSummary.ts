@@ -119,8 +119,8 @@ export function getAvailableShiftsForBrand(
       });
   }
 
-  // 4. If no brand-specific shifts found, fallback to fallbackShifts
-  if (shiftSet.size === 0) {
+  // 4. Always merge fallbackShifts (master system shifts) so that ALL registered shifts are available
+  if (fallbackShifts && Array.isArray(fallbackShifts)) {
     fallbackShifts.forEach((s) => {
       const shiftName = s?.trim();
       if (shiftName && shiftName !== "All Time" && shiftName !== "All Session") {
