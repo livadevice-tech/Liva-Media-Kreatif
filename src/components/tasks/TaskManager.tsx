@@ -50,7 +50,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 }) => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<TaskViewMode>('card');
+  const [viewMode, setViewMode] = useState<TaskViewMode>('list');
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,21 +342,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
       {/* Modern Control Bar: Views + Search + Filters + New Task */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left: 3 View Tabs (Card / List / Calender) matching screenshot */}
+        {/* Left: 2 View Tabs (List / Calender) */}
         <div className="flex items-center bg-slate-100/80 p-1 rounded-xl w-fit">
-          <button
-            type="button"
-            onClick={() => setViewMode('card')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              viewMode === 'card'
-                ? 'bg-white text-indigo-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Kanban className="w-4 h-4" />
-            <span>Card</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setViewMode('list')}
