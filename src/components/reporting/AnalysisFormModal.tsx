@@ -15,39 +15,39 @@ interface Props {
 
 const SHOPEE_METRICS = [
   { value: 'gmv', label: 'GMV (Revenue)' },
-  { value: 'items_sold', label: 'Item Terjual' },
-  { value: 'orders', label: 'Pesanan' },
+  { value: 'items_sold', label: 'Item Sold (Produk Terjual)' },
+  { value: 'orders', label: 'Purchase (Pesanan Dibuat)' },
+  { value: 'buyers', label: 'Customer (Pembeli Unik)' },
   { value: 'aov', label: 'AOV (Rata-rata Nilai Pesanan)' },
-  { value: 'clicks', label: 'Add to Cart' },
+  { value: 'clicks', label: 'Add to Cart (Keranjang)' },
+  { value: 'views', label: 'Views (Total Penonton)' },
+  { value: 'viewers_active', label: 'Viewer Active (Penonton Aktif)' },
+  { value: 'peak_viewers', label: 'Peak Viewer (Penonton Puncak)' },
+  { value: 'vouchers', label: 'Voucher Claim (Klaim Voucher Toko)' },
+  { value: 'gmv_per_hour', label: 'GMV / Jam (Laju Omzet)' },
   { value: 'avg_view_duration', label: 'Rata-rata Durasi Tonton' },
-  { value: 'viewers_active', label: 'Viewer Active' },
-  { value: 'gmv_per_hour', label: 'GMV / Jam' },
-  { value: 'impressions', label: 'Live Impressions / Viewer' },
-  { value: 'peak_viewers', label: 'Peak Viewer' },
-  { value: 'vouchers', label: 'Voucher Claim' },
-  { value: 'buyers', label: 'Customer / Pembeli' },
-  { value: 'likes', label: 'Likes' },
-  { value: 'comments', label: 'Komentar' },
-  { value: 'shares', label: 'Shares' },
+  { value: 'likes', label: 'Likes (Jumlah Suka)' },
+  { value: 'comments', label: 'Komentar Penonton' },
+  { value: 'shares', label: 'Shares (Dibagikan)' },
   { value: 'err', label: 'ERR % (Engagement Rate)' },
 ];
 
 const TIKTOK_METRICS = [
   { value: 'gmv', label: 'GMV (Revenue)' },
-  { value: 'items_sold', label: 'Item Terjual' },
-  { value: 'orders', label: 'Pesanan' },
+  { value: 'items_sold', label: 'Item Sold (Produk Terjual)' },
+  { value: 'orders', label: 'Orders (Pesanan Teratribusi)' },
+  { value: 'buyers', label: 'Customer (Pembeli)' },
   { value: 'aov', label: 'AOV (Rata-rata Nilai Pesanan)' },
-  { value: 'buyers', label: 'Customer / Pembeli' },
-  { value: 'product_impressions', label: 'Product Impressions' },
-  { value: 'product_clicks', label: 'Product Clicks' },
-  { value: 'gmv_per_hour', label: 'GMV / Jam' },
-  { value: 'impressions', label: 'Live Impressions' },
+  { value: 'product_impressions', label: 'Product Impressions (Tayangan Produk)' },
+  { value: 'product_clicks', label: 'Product Clicks (Klik Produk)' },
+  { value: 'impressions', label: 'Live Impressions (Tayangan Langsung)' },
   { value: 'viewers', label: 'Live Viewer / Penonton' },
-  { value: 'likes', label: 'Likes' },
-  { value: 'comments', label: 'Komentar' },
-  { value: 'shares', label: 'Shares' },
-  { value: 'new_followers', label: 'Pengikut Baru' },
+  { value: 'new_followers', label: 'Pengikut Baru (New Followers)' },
+  { value: 'gmv_per_hour', label: 'GMV / Jam (Laju Omzet)' },
   { value: 'avg_view_duration', label: 'Rata-rata Durasi Tonton' },
+  { value: 'likes', label: 'Likes (Jumlah Suka)' },
+  { value: 'comments', label: 'Komentar Penonton' },
+  { value: 'shares', label: 'Shares (Dibagikan)' },
   { value: 'err', label: 'ERR % (Engagement Rate)' },
 ];
 
@@ -57,7 +57,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
   const [periodAEnd, setPeriodAEnd] = useState("");
   const [periodBStart, setPeriodBStart] = useState("");
   const [periodBEnd, setPeriodBEnd] = useState("");
-  const [platform, setPlatform] = useState("TikTok");
+  const [platform, setPlatform] = useState("Shopee");
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [nextPlan, setNextPlan] = useState("");
@@ -73,7 +73,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         setPeriodAEnd(initialData.period_a_end || "");
         setPeriodBStart(initialData.period_b_start || "");
         setPeriodBEnd(initialData.period_b_end || "");
-        setPlatform(initialData.platform || "TikTok");
+        setPlatform(initialData.platform || "Shopee");
         setSelectedMetrics(initialData.comparison_metrics || []);
         setDescription(initialData.description || "");
         setNextPlan(initialData.next_plan || "");
@@ -83,8 +83,8 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         setPeriodAEnd("");
         setPeriodBStart("");
         setPeriodBEnd("");
-        setPlatform("TikTok");
-        setSelectedMetrics([]);
+        setPlatform("Shopee");
+        setSelectedMetrics(['gmv', 'items_sold', 'orders', 'aov']);
         setDescription("");
         setNextPlan("");
       }
@@ -94,15 +94,31 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
 
   if (!isOpen) return null;
 
-  const currentMetricsOptions = platform === "Shopee" ? SHOPEE_METRICS : TIKTOK_METRICS;
+  const isShopee = (platform || "").toLowerCase().includes("shopee");
+  const currentMetricsOptions = isShopee ? SHOPEE_METRICS : TIKTOK_METRICS;
   
   const filteredMetrics = currentMetricsOptions.filter(m => 
     m.label.toLowerCase().includes(searchMetric.toLowerCase())
   );
 
   const handlePlatformChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPlatform(e.target.value);
-    setSelectedMetrics([]);
+    const newPlatform = e.target.value;
+    setPlatform(newPlatform);
+    const newIsShopee = newPlatform.toLowerCase().includes("shopee");
+    const validMetricKeys = (newIsShopee ? SHOPEE_METRICS : TIKTOK_METRICS).map(m => m.value);
+
+    // Keep overlapping metrics or map equivalents between platforms
+    setSelectedMetrics(prev => {
+      const retained = prev.filter(m => validMetricKeys.includes(m));
+      if (newIsShopee) {
+        if (prev.includes('product_clicks') && !retained.includes('clicks')) retained.push('clicks');
+        if (prev.includes('impressions') && !retained.includes('views')) retained.push('views');
+      } else {
+        if (prev.includes('clicks') && !retained.includes('product_clicks')) retained.push('product_clicks');
+        if (prev.includes('views') && !retained.includes('impressions')) retained.push('impressions');
+      }
+      return retained;
+    });
     setSearchMetric("");
   };
 
@@ -221,53 +237,113 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
 
             {/* Platform */}
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Pilih Platform</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-bold text-slate-700">Pilih Platform</label>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  isShopee 
+                    ? 'bg-orange-100 text-orange-700 border border-orange-200' 
+                    : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                }`}>
+                  {isShopee ? 'Shopee Live' : 'TikTok Live'}
+                </span>
+              </div>
               <select 
-                value={platform}
+                value={isShopee ? "Shopee" : "TikTok"}
                 onChange={handlePlatformChange}
-                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-medium cursor-pointer"
               >
-                <option value="TikTok">TikTok</option>
                 <option value="Shopee">Shopee</option>
+                <option value="TikTok">TikTok</option>
               </select>
             </div>
 
             {/* Metrics Selection */}
             <div className="space-y-3">
-              <label className="block text-sm font-bold text-slate-700">Pilih Metrik Perbandingan</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-bold text-slate-700">Pilih Metrik Perbandingan</label>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                  isShopee
+                    ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                    : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                }`}>
+                  Daftar Metrik {isShopee ? 'Shopee' : 'TikTok'}
+                </span>
+              </div>
               
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari metrik..."
+                  placeholder={`Cari metrik ${isShopee ? 'Shopee' : 'TikTok'}...`}
                   value={searchMetric}
                   onChange={(e) => setSearchMetric(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-xl max-h-48 overflow-y-auto custom-scrollbar shadow-sm">
-                {filteredMetrics.map(metric => {
-                  const isSelected = selectedMetrics.includes(metric.value);
-                  return (
-                    <button
-                      key={metric.value}
-                      type="button"
-                      onClick={() => toggleMetric(metric.value)}
-                      className={`w-full flex items-center justify-between p-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors ${isSelected ? 'bg-indigo-50/30' : ''}`}
-                    >
-                      <span className={`text-sm ${isSelected ? 'font-semibold text-indigo-900' : 'text-slate-600'}`}>
-                        {metric.label}
-                      </span>
-                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                        {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="bg-white border border-slate-200 rounded-xl max-h-60 sm:max-h-72 overflow-y-auto custom-scrollbar shadow-sm divide-y divide-slate-100">
+                {filteredMetrics.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-slate-400">
+                    Tidak ada metrik yang cocok dengan "{searchMetric}"
+                  </div>
+                ) : (
+                  filteredMetrics.map(metric => {
+                    const isSelected = selectedMetrics.includes(metric.value);
+                    return (
+                      <button
+                        key={metric.value}
+                        type="button"
+                        onClick={() => toggleMetric(metric.value)}
+                        className={`w-full flex items-center justify-between p-3 transition-colors text-left ${
+                          isSelected 
+                            ? isShopee 
+                              ? 'bg-orange-50/50 hover:bg-orange-50' 
+                              : 'bg-indigo-50/40 hover:bg-indigo-50/60'
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <span className={`text-sm ${
+                            isSelected 
+                              ? isShopee ? 'font-semibold text-orange-950' : 'font-semibold text-indigo-950'
+                              : 'text-slate-700'
+                          }`}>
+                            {metric.label}
+                          </span>
+                        </div>
+                        <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected 
+                            ? isShopee ? 'bg-orange-600 text-white shadow-sm' : 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
-              <p className="text-xs text-slate-500">{selectedMetrics.length} metrik dipilih</p>
+              
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <p className="text-xs text-slate-500 font-medium">{selectedMetrics.length} metrik dipilih</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMetrics(currentMetricsOptions.map(m => m.value))}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMetrics([])}
+                    className="text-xs font-semibold text-slate-500 hover:text-rose-600 hover:underline"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Date Periods */}

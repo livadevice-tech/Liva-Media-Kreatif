@@ -11,39 +11,127 @@ interface Props {
   isClientView?: boolean;
 }
 
-const METRICS_MAP: Record<string, { label: string; key?: keyof BrandPerformanceLogEntry; compute?: (logs: BrandPerformanceLogEntry[]) => number }> = {
-  gmv: { label: 'Omzet (GMV)', key: 'gmv' },
-  orders: { label: 'Pesanan (Orders)', key: 'orders' },
-  views: { label: 'Views (Impresi)', key: 'views' },
-  penonton: { label: 'Penonton', key: 'penonton' },
-  viewers: { label: 'Live Viewer / Penonton', key: 'penonton' },
-  buyers: { label: 'Customer / Pembeli', key: 'buyers' },
-  items_sold: { label: 'Item Terjual', key: 'products_sold' },
-  aov: { label: 'AOV', key: 'aov' },
-  clicks: { label: 'Add to Cart', key: 'clicks' },
-  avg_view_duration: { label: 'Rata-rata Durasi Tonton', key: 'avg_view_duration' },
-  viewers_active: { label: 'Viewer Active', key: 'penonton' },
-  gmv_per_hour: { label: 'GMV / Jam', compute: (logs) => {
-    const totalGmv = logs.reduce((acc, curr) => acc + (Number(curr.gmv) || 0), 0);
-    const totalDuration = logs.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
-    if (totalDuration === 0) return 0;
-    return totalGmv / (totalDuration / 3600);
-  }},
-  impressions: { label: 'Live Impressions / Viewer', key: 'impressions' },
-  peak_viewers: { label: 'Peak Viewer', key: 'peak_viewers' },
-  vouchers: { label: 'Voucher Claim', key: 'shop_vouchers' },
-  likes: { label: 'Likes', key: 'likes' },
-  comments: { label: 'Komentar', key: 'comments' },
-  shares: { label: 'Shares', key: 'shares' },
-  err: { label: 'ERR %', compute: (logs) => {
-    const totalInteractions = logs.reduce((acc, curr) => acc + (Number(curr.likes) || 0) + (Number(curr.comments) || 0) + (Number(curr.shares) || 0), 0);
-    const totalViews = logs.reduce((acc, curr) => acc + (Number(curr.views) || Number(curr.impressions) || 0), 0);
-    if (totalViews === 0) return 0;
-    return Number(((totalInteractions / totalViews) * 100).toFixed(2));
-  }},
-  product_impressions: { label: 'Product Impressions', key: 'productImpressions' },
-  product_clicks: { label: 'Product Clicks', key: 'clicks' },
-  new_followers: { label: 'Pengikut Baru', key: 'followers' },
+const METRICS_MAP: Record<string, { 
+  label: string; 
+  shopeeLabel?: string; 
+  tiktokLabel?: string; 
+  key?: keyof BrandPerformanceLogEntry; 
+  compute?: (logs: BrandPerformanceLogEntry[]) => number 
+}> = {
+  gmv: { label: 'GMV (Revenue)', key: 'gmv' },
+  orders: { 
+    label: 'Pesanan (Orders)', 
+    shopeeLabel: 'Purchase (Pesanan)', 
+    tiktokLabel: 'Orders (Pesanan)', 
+    key: 'orders' 
+  },
+  views: { 
+    label: 'Views (Total Penonton)', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.views) || Number(curr.penonton) || 0), 0) 
+  },
+  penonton: { 
+    label: 'Penonton', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.penonton) || Number(curr.views) || 0), 0) 
+  },
+  viewers: { 
+    label: 'Live Viewer / Penonton', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.penonton) || Number(curr.views) || 0), 0) 
+  },
+  buyers: { 
+    label: 'Customer (Pembeli)', 
+    key: 'buyers' 
+  },
+  items_sold: { 
+    label: 'Item Sold (Produk Terjual)', 
+    key: 'products_sold' 
+  },
+  aov: { 
+    label: 'AOV (Rata-rata Nilai Pesanan)', 
+    compute: (logs) => {
+      const totalGmv = logs.reduce((acc, curr) => acc + (Number(curr.gmv) || 0), 0);
+      const totalOrders = logs.reduce((acc, curr) => acc + (Number(curr.orders) || 0), 0);
+      if (totalOrders > 0) return Math.round(totalGmv / totalOrders);
+      const logsWithAov = logs.filter(l => Number(l.aov) > 0);
+      if (logsWithAov.length > 0) {
+        return Math.round(logsWithAov.reduce((acc, curr) => acc + (Number(curr.aov) || 0), 0) / logsWithAov.length);
+      }
+      return 0;
+    } 
+  },
+  clicks: { 
+    label: 'Add to Cart', 
+    shopeeLabel: 'Add to Cart (Keranjang)', 
+    tiktokLabel: 'Product Clicks', 
+    key: 'clicks' 
+  },
+  product_clicks: { 
+    label: 'Product Clicks (Klik Produk)', 
+    key: 'clicks' 
+  },
+  product_impressions: { 
+    label: 'Product Impressions (Tayangan Produk)', 
+    key: 'productImpressions' 
+  },
+  impressions: { 
+    label: 'Live Impressions', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.impressions) || Number(curr.views) || 0), 0) 
+  },
+  viewers_active: { 
+    label: 'Viewer Active (Penonton Aktif)', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.liveVisits) || Number(curr.penonton) || 0), 0) 
+  },
+  peak_viewers: { 
+    label: 'Peak Viewer (Penonton Puncak)', 
+    compute: (logs) => logs.reduce((max, curr) => Math.max(max, Number(curr.peakViewers) || 0), 0) 
+  },
+  vouchers: { 
+    label: 'Voucher Claim (Klaim Voucher Toko)', 
+    compute: (logs) => logs.reduce((acc, curr) => acc + (Number(curr.shopVouchers) || 0), 0) 
+  },
+  new_followers: { 
+    label: 'Pengikut Baru (Followers)', 
+    key: 'followers' 
+  },
+  gmv_per_hour: { 
+    label: 'GMV / Jam', 
+    compute: (logs) => {
+      const totalGmv = logs.reduce((acc, curr) => acc + (Number(curr.gmv) || 0), 0);
+      const totalDuration = logs.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
+      if (totalDuration === 0) return 0;
+      return Math.round(totalGmv / (totalDuration / 3600));
+    }
+  },
+  avg_view_duration: { 
+    label: 'Rata-rata Durasi Tonton', 
+    compute: (logs) => {
+      const logsWithDuration = logs.filter(l => Number(l.avgViewDuration) > 0);
+      if (logsWithDuration.length > 0) {
+        return Math.round(logsWithDuration.reduce((acc, curr) => acc + (Number(curr.avgViewDuration) || 0), 0) / logsWithDuration.length);
+      }
+      return 0;
+    }
+  },
+  likes: { 
+    label: 'Likes (Jumlah Suka)', 
+    key: 'likes' 
+  },
+  comments: { 
+    label: 'Komentar Penonton', 
+    key: 'comments' 
+  },
+  shares: { 
+    label: 'Shares (Dibagikan)', 
+    key: 'shares' 
+  },
+  err: { 
+    label: 'ERR % (Engagement Rate)', 
+    compute: (logs) => {
+      const totalInteractions = logs.reduce((acc, curr) => acc + (Number(curr.likes) || 0) + (Number(curr.comments) || 0) + (Number(curr.shares) || 0), 0);
+      const totalViews = logs.reduce((acc, curr) => acc + (Number(curr.views) || Number(curr.impressions) || 0), 0);
+      if (totalViews === 0) return 0;
+      return Number(((totalInteractions / totalViews) * 100).toFixed(2));
+    }
+  },
 };
 
 const formatNumber = (num: number, isCurrency = false) => {
@@ -145,10 +233,16 @@ function AnalysisCard({
   const pBStart = normalizeDate(analysis.period_b_start);
   const pBEnd = normalizeDate(analysis.period_b_end);
   const targetPlatform = (analysis.platform || '').toLowerCase();
+  const isShopeeAnalysis = targetPlatform.includes('shopee');
+  const isTiktokAnalysis = targetPlatform.includes('tiktok');
 
   const summaryData = useMemo(() => {
     const platformLogs = logs.filter(l => {
-      return analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+      if (analysis.platform === 'Semua Platform') return true;
+      const lp = (l.platform || '').toLowerCase();
+      if (isShopeeAnalysis) return lp.includes('shopee');
+      if (isTiktokAnalysis) return lp.includes('tiktok');
+      return lp.includes(targetPlatform);
     });
 
     const logsA = platformLogs.filter(l => {
@@ -189,15 +283,19 @@ function AnalysisCard({
         growth = 0;
       }
 
+      const displayLabel = isShopeeAnalysis && mapInfo.shopeeLabel
+        ? mapInfo.shopeeLabel
+        : (!isShopeeAnalysis && mapInfo.tiktokLabel ? mapInfo.tiktokLabel : mapInfo.label);
+
       return {
         metricId: m,
-        label: mapInfo.label,
+        label: displayLabel,
         valA,
         valB,
         growth
       };
     }).filter(Boolean);
-  }, [analysis, logs, pAStart, pAEnd, pBStart, pBEnd, targetPlatform]);
+  }, [analysis, logs, pAStart, pAEnd, pBStart, pBEnd, targetPlatform, isShopeeAnalysis, isTiktokAnalysis]);
 
   const chartData = useMemo(() => {
     if (!activeMetric) return [];
@@ -212,7 +310,11 @@ function AnalysisCard({
     const dataArray = [];
 
     const platformLogs = logs.filter(l => {
-      return analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+      if (analysis.platform === 'Semua Platform') return true;
+      const lp = (l.platform || '').toLowerCase();
+      if (isShopeeAnalysis) return lp.includes('shopee');
+      if (isTiktokAnalysis) return lp.includes('tiktok');
+      return lp.includes(targetPlatform);
     });
 
     for (let i = 0; i < maxDays; i++) {
@@ -243,7 +345,7 @@ function AnalysisCard({
     }
 
     return dataArray;
-  }, [analysis, logs, activeMetric, pAStart, pAEnd, pBStart, pBEnd, targetPlatform]);
+  }, [analysis, logs, activeMetric, pAStart, pAEnd, pBStart, pBEnd, targetPlatform, isShopeeAnalysis, isTiktokAnalysis]);
 
   const formatDateWithDay = (dateString: string) => {
     if (!dateString) return '';
@@ -298,7 +400,9 @@ function AnalysisCard({
             {analysis.name && (
               <h3 className="text-lg font-bold text-slate-900 mr-2">{analysis.name}</h3>
             )}
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${
+              isShopeeAnalysis ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+            }`}>
               {analysis.platform}
             </span>
             <span className="text-sm font-medium text-slate-500 flex items-center">
