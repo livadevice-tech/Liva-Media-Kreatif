@@ -444,28 +444,97 @@ export function parseSkuUploadRows(
 export const SHOPEE_HEADER_ALIASES = {
   // Live Raw Data
   gmv: [
-    "penjualan(pesanan siap dikirim)",
-    "penjualan (pesanan siap dikirim)",
+    // 1. Confirmed Order / Paid Order (Strict Highest Priority)
+    "sales(confirmed order)",
+    "sales (confirmed order)",
+    "sales confirmed order",
+    "sales(confirmed orders)",
+    "sales (confirmed orders)",
+    "sales confirmed orders",
     "sales(orders paid)",
     "sales (orders paid)",
-    "penjualan(pesanan dibuat)",
-    "penjualan (pesanan dibuat)",
+    "sales orders paid",
+    "sales(paid order)",
+    "sales (paid order)",
+    "sales paid order",
+    "penjualan(pesanan dikonfirmasi)",
+    "penjualan (pesanan dikonfirmasi)",
+    "penjualan pesanan dikonfirmasi",
+    "penjualan dikonfirmasi",
+    "penjualan(pesanan siap dikirim)",
+    "penjualan (pesanan siap dikirim)",
+    "penjualan pesanan siap dikirim",
+    "penjualan siap dikirim",
+    "penjualan(pesanan dibayar)",
+    "penjualan (pesanan dibayar)",
+    "penjualan pesanan dibayar",
+    "penjualan dibayar",
+
+    // 2. Placed Order / Created Order (Fallback only if confirmed not present)
+    "sales(placed order)",
+    "sales (placed order)",
+    "sales placed order",
+    "sales(placed orders)",
+    "sales (placed orders)",
+    "sales placed orders",
     "sales(orders created)",
     "sales (orders created)",
+    "sales orders created",
+    "penjualan(pesanan dibuat)",
+    "penjualan (pesanan dibuat)",
+    "penjualan pesanan dibuat",
+    "penjualan dibuat",
+
+    // 3. Generic Fallbacks
     "penjualan",
     "sales",
     "gmv",
     "omset",
   ],
   itemsSold: [
-    "produk terjual(pesanan siap dikirim)",
-    "produk terjual (pesanan siap dikirim)",
+    // 1. Confirmed Order / Paid Order (Strict Highest Priority)
+    "items sold(confirmed order)",
+    "items sold (confirmed order)",
+    "items sold confirmed order",
+    "item sold(confirmed order)",
+    "item sold (confirmed order)",
+    "item sold confirmed order",
     "items sold(orders paid)",
     "items sold (orders paid)",
-    "produk terjual(pesanan dibuat)",
-    "produk terjual (pesanan dibuat)",
+    "items sold orders paid",
+    "item sold(orders paid)",
+    "item sold (orders paid)",
+    "produk terjual(pesanan dikonfirmasi)",
+    "produk terjual (pesanan dikonfirmasi)",
+    "produk terjual pesanan dikonfirmasi",
+    "produk terjual dikonfirmasi",
+    "produk terjual(pesanan siap dikirim)",
+    "produk terjual (pesanan siap dikirim)",
+    "produk terjual pesanan siap dikirim",
+    "produk terjual siap dikirim",
+    "produk terjual(pesanan dibayar)",
+    "produk terjual (pesanan dibayar)",
+    "produk terjual pesanan dibayar",
+    "produk terjual dibayar",
+
+    // 2. Placed Order / Created Order (Fallback only if confirmed not present)
+    "items sold(placed order)",
+    "items sold (placed order)",
+    "items sold placed order",
+    "item sold(placed order)",
+    "item sold (placed order)",
+    "item sold placed order",
     "items sold(orders created)",
     "items sold (orders created)",
+    "items sold orders created",
+    "item sold(orders created)",
+    "item sold (orders created)",
+    "produk terjual(pesanan dibuat)",
+    "produk terjual (pesanan dibuat)",
+    "produk terjual pesanan dibuat",
+    "produk terjual dibuat",
+
+    // 3. Generic Fallbacks
     "produk terjual",
     "items sold",
     "item sold",
@@ -473,25 +542,53 @@ export const SHOPEE_HEADER_ALIASES = {
     "products sold",
   ],
   orders: [
-    "pesanan(pesanan siap dikirim)",
-    "pesanan (pesanan siap dikirim)",
+    // 1. Confirmed Order / Paid Order (Strict Highest Priority)
+    "orders(confirmed order)",
+    "orders (confirmed order)",
+    "orders confirmed order",
     "orders(orders paid)",
     "orders (orders paid)",
-    "pesanan(pesanan dibuat)",
-    "pesanan (pesanan dibuat)",
+    "orders orders paid",
+    "pesanan(pesanan dikonfirmasi)",
+    "pesanan (pesanan dikonfirmasi)",
+    "pesanan pesanan dikonfirmasi",
+    "pesanan dikonfirmasi",
+    "pesanan(pesanan siap dikirim)",
+    "pesanan (pesanan siap dikirim)",
+    "pesanan pesanan siap dikirim",
+    "pesanan siap dikirim",
+    "pesanan(pesanan dibayar)",
+    "pesanan (pesanan dibayar)",
+    "pesanan pesanan dibayar",
+    "pesanan dibayar",
+
+    // 2. Placed Order / Created Order (Fallback only if confirmed not present)
+    "orders(placed order)",
+    "orders (placed order)",
+    "orders placed order",
     "orders(orders created)",
     "orders (orders created)",
+    "orders orders created",
+    "pesanan(pesanan dibuat)",
+    "pesanan (pesanan dibuat)",
+    "pesanan pesanan dibuat",
+    "pesanan dibuat",
+
+    // 3. Generic Fallbacks
     "pesanan",
     "orders",
+    "order",
     "total orders",
   ],
   addToCart: [
+    "atc",
     "tambah ke keranjang",
     "tambah keranjang",
     "keranjang",
     "add to cart",
     "added to cart",
     "cart adds",
+    "cart",
     "product clicks",
     "clicks",
   ],
@@ -507,9 +604,12 @@ export const SHOPEE_HEADER_ALIASES = {
     "avg. viewing duration",
     "avg viewing duration",
     "average viewing duration",
+    "viewing duration",
     "watch duration",
   ],
   viewerActive: [
+    "engaged viewers",
+    "engaged viewer",
     "penonton aktif",
     "active viewers",
     "active viewer",
@@ -522,11 +622,14 @@ export const SHOPEE_HEADER_ALIASES = {
     "live visits",
   ],
   views: [
+    "viewers",
+    "viewer",
+    "total viewers",
     "penonton",
     "views",
     "view",
-    "viewer",
-    "total viewers",
+    "total view",
+    "total views",
     "dilihat",
     "tayangan",
     "impressions",
@@ -550,14 +653,39 @@ export const SHOPEE_HEADER_ALIASES = {
     "voucher claimed",
   ],
   buyers: [
-    "pembeli(pesanan siap dikirim)",
-    "pembeli (pesanan siap dikirim)",
+    // 1. Confirmed Order / Paid Order (Strict Highest Priority)
+    "buyers(confirmed order)",
+    "buyers (confirmed order)",
+    "buyers confirmed order",
     "buyers(orders paid)",
     "buyers (orders paid)",
-    "pembeli(pesanan dibuat)",
-    "pembeli (pesanan dibuat)",
+    "buyers orders paid",
+    "pembeli(pesanan dikonfirmasi)",
+    "pembeli (pesanan dikonfirmasi)",
+    "pembeli pesanan dikonfirmasi",
+    "pembeli dikonfirmasi",
+    "pembeli(pesanan siap dikirim)",
+    "pembeli (pesanan siap dikirim)",
+    "pembeli pesanan siap dikirim",
+    "pembeli siap dikirim",
+    "pembeli(pesanan dibayar)",
+    "pembeli (pesanan dibayar)",
+    "pembeli pesanan dibayar",
+    "pembeli dibayar",
+
+    // 2. Placed Order / Created Order (Fallback only if confirmed not present)
+    "buyers(placed order)",
+    "buyers (placed order)",
+    "buyers placed order",
     "buyers(orders created)",
     "buyers (orders created)",
+    "buyers orders created",
+    "pembeli(pesanan dibuat)",
+    "pembeli (pesanan dibuat)",
+    "pembeli pesanan dibuat",
+    "pembeli dibuat",
+
+    // 3. Generic Fallbacks
     "pembeli",
     "buyers",
     "buyer",
@@ -862,9 +990,17 @@ export function parseReportingUploadRows(
                    findColIdx([...TIKTOK_HEADER_ALIASES.customers, ...SHOPEE_HEADER_ALIASES.buyers]);
 
   const aovIdx = findColIdx([
+    "sales per buyer(confirmed order)",
+    "sales per buyer (confirmed order)",
+    "sales per buyer confirmed order",
+    "sales per order(confirmed order)",
+    "sales per order (confirmed order)",
+    "sales per order confirmed order",
     "avg. price",
     "sales per buyer(orders paid)",
+    "sales per buyer (orders paid)",
     "sales per buyer(orders created)",
+    "sales per buyer (orders created)",
     "sales per buyer",
     "aov",
     "average order value",
@@ -1360,19 +1496,19 @@ export function validateReportingHeaders(
 
     if (checkLive) {
       if (findColIdx(SHOPEE_HEADER_ALIASES.gmv) === -1)
-        missingCols.push("Metrik: GMV (Kolom: Penjualan(Pesanan Siap Dikirim) / Sales(Orders Paid))");
+        missingCols.push("Metrik: GMV (Kolom: Sales(Confirmed Order) / Penjualan(Pesanan Siap Dikirim))");
       if (findColIdx(SHOPEE_HEADER_ALIASES.itemsSold) === -1)
-        missingCols.push("Metrik: Item Sold (Kolom: Produk Terjual(Pesanan Siap Dikirim) / Items Sold(Orders Paid))");
+        missingCols.push("Metrik: Item Sold (Kolom: Items Sold(Confirmed Order) / Produk Terjual(Pesanan Siap Dikirim))");
       if (findColIdx(SHOPEE_HEADER_ALIASES.orders) === -1)
-        missingCols.push("Metrik: Orders (Kolom: Pesanan(Pesanan Siap Dikirim) / Orders(Orders Paid))");
+        missingCols.push("Metrik: Orders (Kolom: Orders(Confirmed Order) / Pesanan(Pesanan Siap Dikirim))");
       if (findColIdx(SHOPEE_HEADER_ALIASES.addToCart) === -1)
-        missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang / Add to Cart)");
+        missingCols.push("Metrik: Add to Cart (Kolom: ATC / Tambah ke Keranjang / Add to Cart)");
       if (findColIdx(SHOPEE_HEADER_ALIASES.avgViewDuration) === -1)
-        missingCols.push("Metrik: Avg. View Duration (Kolom: Rata-rata durasi ditonton / Avg. Watch Duration)");
+        missingCols.push("Metrik: Avg. View Duration (Kolom: Avg. Viewing Duration / Rata-rata durasi ditonton)");
       if (findColIdx(SHOPEE_HEADER_ALIASES.viewerActive) === -1)
-        missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif / Active Viewers)");
+        missingCols.push("Metrik: Viewer Active (Kolom: Engaged Viewers / Penonton Aktif / Active Viewers)");
       if (findColIdx(SHOPEE_HEADER_ALIASES.views) === -1)
-        missingCols.push("Metrik: Views (Kolom: Penonton / Views)");
+        missingCols.push("Metrik: Views (Kolom: Viewers / Penonton / Views)");
     }
 
     if (checkEngagement) {

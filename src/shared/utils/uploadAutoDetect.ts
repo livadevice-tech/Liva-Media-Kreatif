@@ -76,19 +76,40 @@ export function detectReportingPlatformFromHeaders(headers: readonly string[]) {
         h.includes("shopee") ||
         h.includes("pesanan(pesanan") ||
         h.includes("orders(orders") ||
+        h.includes("orders(placed") ||
+        h.includes("orders(confirmed") ||
+        h.includes("orders (placed") ||
+        h.includes("orders (confirmed") ||
         h.includes("penjualan(pesanan") ||
         h.includes("sales(orders") ||
+        h.includes("sales(placed") ||
+        h.includes("sales(confirmed") ||
+        h.includes("sales (placed") ||
+        h.includes("sales (confirmed") ||
         h.includes("produk terjual(pesanan") ||
         h.includes("items sold(orders") ||
+        h.includes("items sold(placed") ||
+        h.includes("items sold(confirmed") ||
+        h.includes("items sold (placed") ||
+        h.includes("items sold (confirmed") ||
         h.includes("pembeli(pesanan") ||
         h.includes("buyers(orders") ||
+        h.includes("buyers(placed") ||
+        h.includes("buyers(confirmed") ||
+        h.includes("buyers (placed") ||
+        h.includes("buyers (confirmed") ||
         h.includes("tambah ke keranjang") ||
         h.includes("add to cart") ||
+        h.includes("atc") ||
         h.includes("penonton aktif") ||
         h.includes("active viewers") ||
+        h.includes("engaged viewers") ||
+        h.includes("livestream name") ||
         h.includes("durasi rata-rata menonton") ||
         h.includes("rata-rata durasi ditonton") ||
         h.includes("avg. watch duration") ||
+        h.includes("avg. viewing duration") ||
+        h.includes("avg viewing duration") ||
         h.includes("penonton tertinggi") ||
         h.includes("peak viewers") ||
         h.includes("voucher toko diklaim") ||
@@ -169,6 +190,9 @@ export function findReportingUploadHeaderRowIndex(
           cLower.includes("followers") ||
           cLower.includes("add to cart") ||
           cLower.includes("cart") ||
+          cLower === "atc" ||
+          cLower.includes("livestream") ||
+          cLower.includes("engaged viewers") ||
           cLower.includes("product clicks") ||
           cLower.includes("product impressions") ||
           cLower.includes("peak")
