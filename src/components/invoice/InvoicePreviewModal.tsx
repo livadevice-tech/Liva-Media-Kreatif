@@ -474,9 +474,9 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
 
                 {/* Right: Subtotal, Grand Total, Terbilang */}
                 <div className="space-y-1.5 text-right font-sans">
-                  <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1">
-                    <span>Subtotal:</span>
-                    <span className="font-bold text-slate-700">
+                  <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1 whitespace-nowrap gap-2">
+                    <span className="whitespace-nowrap">Subtotal:</span>
+                    <span className="font-bold text-slate-700 whitespace-nowrap">
                       Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
                     </span>
                   </div>
@@ -484,9 +484,9 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                   {/* Solid dark line */}
                   <div className="w-full border-t-2 border-[#0b132b] my-1" />
 
-                  <div className="flex justify-between items-center text-sm font-black text-slate-900 px-1">
-                    <span>TOTAL PROJECT:</span>
-                    <span className="text-base font-black text-slate-900">
+                  <div className="flex justify-between items-center text-xs sm:text-sm font-black text-slate-900 px-1 whitespace-nowrap gap-2">
+                    <span className="whitespace-nowrap">TOTAL PROJECT:</span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">
                       Rp {new Intl.NumberFormat('id-ID').format(subtotalProject)}
                     </span>
                   </div>
@@ -495,15 +495,15 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
                     <>
                       {/* Dashed purple line */}
                       <div className="w-full border-t border-dashed border-[#4f46e5] my-1.5" />
-                      <div className="flex justify-between items-center text-sm font-black text-[#4f46e5] px-1">
-                        <span>TAGIHAN DP ({dpPercent}%):</span>
-                        <span className="text-base font-black">
+                      <div className="flex justify-between items-center text-xs sm:text-sm font-black text-[#4f46e5] px-1 whitespace-nowrap gap-2">
+                        <span className="whitespace-nowrap">TAGIHAN DP ({dpPercent}%):</span>
+                        <span className="text-sm sm:text-base font-black whitespace-nowrap">
                           Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-xs font-medium text-slate-500 px-1 pt-0.5">
-                        <span>Sisa Pembayaran:</span>
-                        <span className="text-slate-600 font-semibold">
+                      <div className="flex justify-between items-center text-xs font-medium text-slate-500 px-1 pt-0.5 whitespace-nowrap gap-2">
+                        <span className="whitespace-nowrap">Sisa Pembayaran:</span>
+                        <span className="text-slate-600 font-semibold whitespace-nowrap">
                           Rp {new Intl.NumberFormat('id-ID').format(remainingAmount)}
                         </span>
                       </div>
@@ -512,17 +512,17 @@ Please kindly confirm the proof of transfer once payment is completed. Thank you
 
                   {paymentType === 'pelunasan' && (
                     <>
-                      <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1 pt-0.5">
-                        <span>DP Telah Dibayar:</span>
-                        <span className="text-[#059669] font-bold">
+                      <div className="flex justify-between items-center text-xs font-semibold text-slate-500 px-1 pt-0.5 whitespace-nowrap gap-2">
+                        <span className="whitespace-nowrap">DP Telah Dibayar:</span>
+                        <span className="text-[#059669] font-bold whitespace-nowrap">
                           -Rp {new Intl.NumberFormat('id-ID').format(dpAmount)}
                         </span>
                       </div>
                       {/* Dashed green line */}
                       <div className="w-full border-t border-dashed border-[#059669] my-1.5" />
-                      <div className="flex justify-between items-center text-sm font-black text-[#059669] px-1">
-                        <span>FINAL PAYMENT (PELUNASAN):</span>
-                        <span className="text-base font-black">
+                      <div className="flex justify-between items-center text-xs sm:text-sm font-black text-[#059669] px-1 whitespace-nowrap gap-2">
+                        <span className="whitespace-nowrap">FINAL PAYMENT (PELUNASAN):</span>
+                        <span className="text-sm sm:text-base font-black whitespace-nowrap">
                           Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
                         </span>
                       </div>

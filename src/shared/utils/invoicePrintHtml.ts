@@ -266,11 +266,12 @@ export function generateInvoicePrintHtml(params: {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 25px;
+            gap: 20px;
             margin-bottom: 24px;
           }
           .terms-card {
-            flex: 1.1;
+            flex: 1;
+            max-width: 360px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 12px 14px;
@@ -285,18 +286,22 @@ export function generateInvoicePrintHtml(params: {
             margin-bottom: 4px;
           }
           .calc-block {
-            flex: 0.9;
+            flex: 1.25;
+            min-width: 330px;
             text-align: right;
             font-family: inherit;
           }
           .subtotal-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 11px;
             font-weight: 600;
             color: #64748b;
             padding: 0 4px;
             margin-bottom: 5px;
+            white-space: nowrap;
+            gap: 8px;
           }
           .solid-line {
             border: none;
@@ -308,9 +313,11 @@ export function generateInvoicePrintHtml(params: {
             justify-content: space-between;
             align-items: center;
             padding: 2px 4px;
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 900;
             color: #0f172a;
+            white-space: nowrap;
+            gap: 8px;
           }
           .dp-paid-row {
             display: flex;
@@ -320,10 +327,13 @@ export function generateInvoicePrintHtml(params: {
             font-weight: 600;
             color: #64748b;
             padding: 2px 4px;
+            white-space: nowrap;
+            gap: 8px;
           }
           .dp-paid-val {
             color: #059669;
             font-weight: 700;
+            white-space: nowrap;
           }
           .dashed-green-line {
             border: none;
@@ -334,10 +344,12 @@ export function generateInvoicePrintHtml(params: {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            font-size: 11.5px;
             font-weight: 900;
             color: #059669;
             padding: 2px 4px;
+            white-space: nowrap;
+            gap: 8px;
           }
           .dashed-purple-line {
             border: none;
@@ -348,10 +360,12 @@ export function generateInvoicePrintHtml(params: {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            font-size: 11.5px;
             font-weight: 900;
             color: #4f46e5;
             padding: 2px 4px;
+            white-space: nowrap;
+            gap: 8px;
           }
           .remaining-row {
             display: flex;
@@ -361,6 +375,8 @@ export function generateInvoicePrintHtml(params: {
             font-weight: 600;
             color: #64748b;
             padding: 2px 4px;
+            white-space: nowrap;
+            gap: 8px;
           }
           .grand-total-box {
             display: flex;
@@ -531,38 +547,38 @@ export function generateInvoicePrintHtml(params: {
 
           <div class="calc-block">
             <div class="subtotal-row">
-              <span>Subtotal:</span>
-              <span style="color: #334155; font-weight: 700;">Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
+              <span style="white-space: nowrap;">Subtotal:</span>
+              <span style="color: #334155; font-weight: 700; white-space: nowrap;">Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
             </div>
 
             <hr class="solid-line" />
 
             <div class="project-total-row">
-              <span>TOTAL PROJECT:</span>
-              <span>Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
+              <span style="white-space: nowrap;">TOTAL PROJECT:</span>
+              <span style="white-space: nowrap; font-size: 12.5px;">Rp ${new Intl.NumberFormat('id-ID').format(subtotalProject)}</span>
             </div>
 
             ${paymentType === 'dp' ? `
               <hr class="dashed-purple-line" />
               <div class="dp-bill-row">
-                <span>TAGIHAN DP (${dpPercent}%):</span>
-                <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+                <span style="white-space: nowrap; letter-spacing: -0.2px;">TAGIHAN DP (${dpPercent}%):</span>
+                <span style="white-space: nowrap; font-size: 12.5px;">Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
               </div>
               <div class="remaining-row">
-                <span>Sisa Pembayaran:</span>
-                <span style="color: #475569; font-weight: 600;">Rp ${new Intl.NumberFormat('id-ID').format(remainingAmount)}</span>
+                <span style="white-space: nowrap;">Sisa Pembayaran:</span>
+                <span style="color: #475569; font-weight: 600; white-space: nowrap;">Rp ${new Intl.NumberFormat('id-ID').format(remainingAmount)}</span>
               </div>
             ` : ''}
 
             ${paymentType === 'pelunasan' ? `
               <div class="dp-paid-row">
-                <span>DP Telah Dibayar:</span>
-                <span class="dp-paid-val">-Rp ${new Intl.NumberFormat('id-ID').format(dpAmount)}</span>
+                <span style="white-space: nowrap;">DP Telah Dibayar:</span>
+                <span class="dp-paid-val" style="white-space: nowrap;">-Rp ${new Intl.NumberFormat('id-ID').format(dpAmount)}</span>
               </div>
               <hr class="dashed-green-line" />
               <div class="final-payment-row">
-                <span>FINAL PAYMENT (PELUNASAN):</span>
-                <span>Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
+                <span style="white-space: nowrap; letter-spacing: -0.2px;">FINAL PAYMENT (PELUNASAN):</span>
+                <span style="white-space: nowrap; font-size: 12.5px;">Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}</span>
               </div>
             ` : ''}
 
