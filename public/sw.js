@@ -1,5 +1,5 @@
 // Service Worker for Liva Agency PWA
-const CACHE_NAME = 'liva-pwa-v1';
+const CACHE_NAME = 'liva-pwa-v2';
 
 // Core assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -69,12 +69,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (JS, CSS, images, fonts): Stale-While-Revalidate
+  // For static assets (JS, CSS, images, fonts): Stale-While-Revalidate with MIME type check
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
+            const contentType = networkResponse.headers.get('content-type') || '';
+            const isJsOrCss = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+            // If server returned HTML (SPA fallback) for a JS/CSS file, do NOT cache it!
+            if (isJsOrCss && contentType.includes('text/html')) {
+              return cachedResponse || networkResponse;
+            }
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           }

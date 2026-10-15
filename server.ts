@@ -1301,6 +1301,9 @@ async function bootstrap() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
+      if (req.path.startsWith("/assets/") || req.path.startsWith("/api/")) {
+        return res.status(404).send("Not found");
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

@@ -27,6 +27,36 @@
         window.__deferredPwaPrompt = e;
         window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
       });
+
+      // Auto-recovery for stale PWA cache / missing bundle chunks after deployment
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message) ? String(e.message) : '';
+        var isChunkError = 
+          msg.indexOf('MIME type') !== -1 || 
+          msg.indexOf('Loading chunk') !== -1 || 
+          msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
+          msg.indexOf('Importing a module script failed') !== -1;
+        
+        if (isChunkError && !sessionStorage.getItem('pwa_chunk_recovered')) {
+          sessionStorage.setItem('pwa_chunk_recovered', '1');
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+            }).then(function() {
+              window.location.reload();
+            });
+          } else {
+            window.location.reload();
+          }
+        }
+      });
     </script>
   </head>
   <body>
