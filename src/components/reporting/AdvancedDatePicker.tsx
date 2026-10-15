@@ -392,16 +392,16 @@ export function AdvancedDatePicker({
 
     if (type === '1_month') {
       const d = new Date();
-      d.setDate(d.getDate() - 31);
-      applyStartDate = d.toISOString().split('T')[0];
-      applyEndDate = new Date().toISOString().split('T')[0];
+      d.setDate(d.getDate() - 30);
+      applyStartDate = formatDateYYYYMMDD(d);
+      applyEndDate = formatDateYYYYMMDD(new Date());
     }
 
     if (type === '3_months') {
       const d = new Date();
-      d.setMonth(d.getMonth() - 3);
-      applyStartDate = d.toISOString().split('T')[0];
-      applyEndDate = new Date().toISOString().split('T')[0];
+      d.setDate(d.getDate() - 90);
+      applyStartDate = formatDateYYYYMMDD(d);
+      applyEndDate = formatDateYYYYMMDD(new Date());
     }
     
     onApply(type, applyStartDate, applyEndDate, selectedMonth);

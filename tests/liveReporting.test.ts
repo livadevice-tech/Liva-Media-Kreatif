@@ -163,6 +163,60 @@ test("buildLiveReportViewModel builds month comparison windows", () => {
   assert.equal(result.prevTableLogs.length, 0);
 });
 
+test("buildLiveReportViewModel filters 1_month and computes previous period comparison", () => {
+  const multiMonthLogs = [
+    {
+      id: "1",
+      brandId: "brand-a",
+      reportType: "live",
+      date: "2024-03-01",
+      platform: "Shopee",
+      gmv: 50,
+    },
+    {
+      id: "2",
+      brandId: "brand-a",
+      reportType: "live",
+      date: "2024-04-10",
+      platform: "Shopee",
+      gmv: 100,
+    },
+    {
+      id: "3",
+      brandId: "brand-a",
+      reportType: "live",
+      date: "2024-05-01",
+      platform: "Shopee",
+      gmv: 200,
+    },
+    {
+      id: "4",
+      brandId: "brand-a",
+      reportType: "live",
+      date: "2024-05-20",
+      platform: "Shopee",
+      gmv: 300,
+    },
+  ] as const;
+
+  const result = buildLiveReportViewModel({
+    brandPerformanceLogs: multiMonthLogs,
+    activeReportBrandId: "brand-a",
+    dateFilterType: "1_month",
+    searchQuery: "",
+    platformFilter: "",
+    shiftFilters: [],
+  });
+
+  assert.equal(result.effectiveFilter, "1_month");
+  assert.equal(result.latestDateLabel, "1 Bulan Terakhir");
+  // Latest available date is 2024-05-20, so 30 days window is 2024-04-20 to 2024-05-20
+  assert.equal(result.tableLogs.length, 2); // 2024-05-01 and 2024-05-20
+  // Previous window (2024-03-20 to 2024-04-19)
+  assert.equal(result.prevTableLogs.length, 1); // 2024-04-10
+  assert.equal(result.prevTableLogs[0].date, "2024-04-10");
+});
+
 test("hasTikTokLiveLogs detects TikTok live platforms", () => {
   assert.equal(
     hasTikTokLiveLogs([

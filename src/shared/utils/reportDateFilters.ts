@@ -57,10 +57,10 @@ export function applyDateFilterSelection({
   currentEndDate,
 }: ApplyDateFilterSelectionArgs) {
   setFilterType(value);
-  if (value === "all" || value === "latest") {
+  if (value === "all" || value === "latest" || value === "1_month" || value === "3_months") {
     setCalendarOpen(false);
     setMonthOpen(false);
-  } else if (value === "monthly") {
+  } else if (value === "monthly" || value === "month") {
     setMonthOpen(true);
     setCalendarOpen(false);
   } else if (value === "custom") {
@@ -120,8 +120,17 @@ export function getReportPeriodLabel({
   targetLatestDate,
   customStartDate,
 }: GetReportPeriodLabelArgs) {
-  if (dateFilterType === "monthly" || dateFilterType === "all") {
-    return latestDateLabel || "Semua Waktu";
+  if (
+    dateFilterType === "monthly" ||
+    dateFilterType === "month" ||
+    dateFilterType === "all" ||
+    dateFilterType === "1_month" ||
+    dateFilterType === "3_months"
+  ) {
+    if (latestDateLabel) return latestDateLabel;
+    if (dateFilterType === "1_month") return "1 Bulan Terakhir";
+    if (dateFilterType === "3_months") return "3 Bulan Terakhir";
+    return "Semua Waktu";
   }
 
   let curD = new Date();

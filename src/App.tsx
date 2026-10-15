@@ -1490,7 +1490,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (operatorDateFilterType === "month") {
+    if (operatorDateFilterType === "month" || operatorDateFilterType === "monthly") {
       const [yearStr, monthStr] = operatorSelectedMonth.split("-");
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
@@ -1498,6 +1498,16 @@ export default function App() {
       const lastDay = new Date(year, month, 0);
       setOperatorCustomStartDate(formatDateYYYYMMDD(firstDay));
       setOperatorCustomEndDate(formatDateYYYYMMDD(lastDay));
+    } else if (operatorDateFilterType === "1_month") {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      setOperatorCustomStartDate(formatDateYYYYMMDD(d));
+      setOperatorCustomEndDate(formatDateYYYYMMDD(new Date()));
+    } else if (operatorDateFilterType === "3_months") {
+      const d = new Date();
+      d.setDate(d.getDate() - 90);
+      setOperatorCustomStartDate(formatDateYYYYMMDD(d));
+      setOperatorCustomEndDate(formatDateYYYYMMDD(new Date()));
     } else if (operatorDateFilterType === "all") {
       setOperatorCustomStartDate("");
       setOperatorCustomEndDate("");

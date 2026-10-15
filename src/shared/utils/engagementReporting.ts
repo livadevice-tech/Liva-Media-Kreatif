@@ -81,10 +81,20 @@ export function buildEngagementReportViewModel(
   if (input.operatorDateFilterType === "latest" && selectedLatestDate) {
     engagementDateLabel = selectedLatestDate.split(" ")[0];
   } else if (
-    (input.operatorDateFilterType === "custom" || input.operatorDateFilterType === "daily" || input.operatorDateFilterType === "weekly") &&
+    (input.operatorDateFilterType === "custom" ||
+      input.operatorDateFilterType === "daily" ||
+      input.operatorDateFilterType === "weekly" ||
+      input.operatorDateFilterType === "1_month" ||
+      input.operatorDateFilterType === "3_months") &&
     input.operatorCustomStartDate
   ) {
-    engagementDateLabel = `${input.operatorCustomStartDate} to ${input.operatorCustomEndDate}`;
+    if (input.operatorDateFilterType === "1_month") {
+      engagementDateLabel = "1 Bulan Terakhir";
+    } else if (input.operatorDateFilterType === "3_months") {
+      engagementDateLabel = "3 Bulan Terakhir";
+    } else {
+      engagementDateLabel = `${input.operatorCustomStartDate} to ${input.operatorCustomEndDate}`;
+    }
   } else if (
     (input.operatorDateFilterType === "month" || input.operatorDateFilterType === "monthly") &&
     input.operatorSelectedMonth
@@ -95,7 +105,10 @@ export function buildEngagementReportViewModel(
   const engagementPeriodLabel = (() => {
     if (
       input.operatorDateFilterType === "month" ||
-      input.operatorDateFilterType === "all"
+      input.operatorDateFilterType === "monthly" ||
+      input.operatorDateFilterType === "all" ||
+      input.operatorDateFilterType === "1_month" ||
+      input.operatorDateFilterType === "3_months"
     ) {
       return engagementDateLabel || "Semua Waktu";
     }
@@ -125,17 +138,22 @@ export function buildEngagementReportViewModel(
   if (input.operatorDateFilterType === "latest" && logs.length > 0) {
     logs = logs.filter((r) => r.date === selectedLatestDate);
   } else if (
-    input.operatorDateFilterType === "custom" &&
+    (input.operatorDateFilterType === "custom" ||
+      input.operatorDateFilterType === "daily" ||
+      input.operatorDateFilterType === "weekly" ||
+      input.operatorDateFilterType === "1_month" ||
+      input.operatorDateFilterType === "3_months") &&
     input.operatorCustomStartDate
   ) {
     logs = logs.filter(
       (r) =>
-        r.date >= input.operatorCustomStartDate &&
+        r.date &&
+        r.date >= input.operatorCustomStartDate! &&
         r.date <=
-          (input.operatorCustomEndDate || input.operatorCustomStartDate),
+          (input.operatorCustomEndDate || input.operatorCustomStartDate!),
     );
   } else if (
-    input.operatorDateFilterType === "month" &&
+    (input.operatorDateFilterType === "month" || input.operatorDateFilterType === "monthly") &&
     input.operatorSelectedMonth
   ) {
     logs = logs.filter((r) => r.date?.startsWith(input.operatorSelectedMonth!));

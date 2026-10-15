@@ -4,6 +4,7 @@ import {
   type ReportLogLike,
 } from "./reportTable";
 import { getAvailableReportDates } from "./reportDateFilters";
+import { formatDateYYYYMMDD } from "./date";
 import type { BrandPerformanceLogEntry } from "../types/reporting";
 
 export type LiveReportChartPoint = {
@@ -75,12 +76,48 @@ export function buildLiveReportViewModel(
   let latestDateLabel = "";
   let prevStartDate = "";
   let prevEndDate = "";
+  let customStartDate = input.customStartDate || "";
+  let customEndDate = input.customEndDate || "";
   const availableReportDates = getAvailableReportDates({
     logs: filteredDb,
     platformFilter: input.platformFilter,
   });
   const latestAvailableReportDate =
     availableReportDates[availableReportDates.length - 1] || "";
+
+  if (effectiveFilter === "1_month") {
+    if (
+      latestAvailableReportDate &&
+      (!customStartDate || !customEndDate || customStartDate > latestAvailableReportDate)
+    ) {
+      const refDate = new Date(latestAvailableReportDate);
+      const startD = new Date(refDate);
+      startD.setDate(startD.getDate() - 30);
+      customStartDate = formatDateYYYYMMDD(startD);
+      customEndDate = formatDateYYYYMMDD(refDate);
+    } else if (!customStartDate || !customEndDate) {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      customStartDate = formatDateYYYYMMDD(d);
+      customEndDate = formatDateYYYYMMDD(new Date());
+    }
+  } else if (effectiveFilter === "3_months") {
+    if (
+      latestAvailableReportDate &&
+      (!customStartDate || !customEndDate || customStartDate > latestAvailableReportDate)
+    ) {
+      const refDate = new Date(latestAvailableReportDate);
+      const startD = new Date(refDate);
+      startD.setDate(startD.getDate() - 90);
+      customStartDate = formatDateYYYYMMDD(startD);
+      customEndDate = formatDateYYYYMMDD(refDate);
+    } else if (!customStartDate || !customEndDate) {
+      const d = new Date();
+      d.setDate(d.getDate() - 90);
+      customStartDate = formatDateYYYYMMDD(d);
+      customEndDate = formatDateYYYYMMDD(new Date());
+    }
+  }
 
   if (effectiveFilter === "latest") {
     if (latestAvailableReportDate) {
@@ -98,7 +135,7 @@ export function buildLiveReportViewModel(
     } else {
       effectiveFilter = "all";
     }
-  } else if (effectiveFilter === "monthly" && input.selectedMonth) {
+  } else if ((effectiveFilter === "monthly" || effectiveFilter === "month") && input.selectedMonth) {
     latestDateLabel = input.selectedMonth;
     const [yearStr, monthStr] = input.selectedMonth.split("-");
     let year = parseInt(yearStr, 10);
@@ -111,15 +148,26 @@ export function buildLiveReportViewModel(
     prevStartDate = `${prevMonth}-01`;
     prevEndDate = `${prevMonth}-31`;
   } else if (
-    (effectiveFilter === "custom" || effectiveFilter === "daily" || effectiveFilter === "weekly") &&
-    input.customStartDate &&
-    input.customEndDate
+    (effectiveFilter === "custom" ||
+      effectiveFilter === "daily" ||
+      effectiveFilter === "weekly" ||
+      effectiveFilter === "1_month" ||
+      effectiveFilter === "3_months") &&
+    customStartDate &&
+    customEndDate
   ) {
-    latestDateLabel = `${input.customStartDate} ke ${input.customEndDate}`;
-    const start = new Date(input.customStartDate);
-    const end = new Date(input.customEndDate);
-    const durationDays = Math.round(
-      (end.getTime() - start.getTime()) / (1000 * 3600 * 24),
+    if (effectiveFilter === "1_month") {
+      latestDateLabel = "1 Bulan Terakhir";
+    } else if (effectiveFilter === "3_months") {
+      latestDateLabel = "3 Bulan Terakhir";
+    } else {
+      latestDateLabel = `${customStartDate} ke ${customEndDate}`;
+    }
+    const start = new Date(customStartDate);
+    const end = new Date(customEndDate);
+    const durationDays = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)),
     );
     const prevEnd = new Date(start);
     prevEnd.setDate(prevEnd.getDate() - 1);
@@ -139,8 +187,8 @@ export function buildLiveReportViewModel(
     prevStartDate,
     prevEndDate,
     selectedMonth: input.selectedMonth,
-    customStartDate: input.customStartDate,
-    customEndDate: input.customEndDate,
+    customStartDate,
+    customEndDate,
     searchQuery: input.searchQuery,
     platformFilter: input.platformFilter,
     shiftFilters: input.shiftFilters,
@@ -155,8 +203,8 @@ export function buildLiveReportViewModel(
           prevStartDate,
           prevEndDate,
           selectedMonth: input.selectedMonth,
-          customStartDate: input.customStartDate,
-          customEndDate: input.customEndDate,
+          customStartDate,
+          customEndDate,
           searchQuery: input.searchQuery,
           platformFilter: input.platformFilter,
           shiftFilters: input.shiftFilters,

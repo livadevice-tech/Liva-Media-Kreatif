@@ -74,6 +74,26 @@ test("getReportPeriodLabel returns readable labels for each mode", () => {
     }),
     "Kamis, 2 Juli 2026",
   );
+
+  assert.equal(
+    getReportPeriodLabel({
+      dateFilterType: "1_month",
+      latestDateLabel: "1 Bulan Terakhir",
+      targetLatestDate: "",
+      customStartDate: "",
+    }),
+    "1 Bulan Terakhir",
+  );
+
+  assert.equal(
+    getReportPeriodLabel({
+      dateFilterType: "3_months",
+      latestDateLabel: "",
+      targetLatestDate: "",
+      customStartDate: "",
+    }),
+    "3 Bulan Terakhir",
+  );
 });
 
 test("shiftReportPeriodByOneDay keeps custom mode and moves the date", () => {

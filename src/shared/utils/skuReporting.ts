@@ -49,7 +49,11 @@ export const filterSkuLogs = (
       (r) => r.date && r.date.startsWith(options.latestDate!.substring(0, 10)),
     );
   } else if (
-    (options.dateFilterType === "custom" || options.dateFilterType === "daily" || options.dateFilterType === "weekly") &&
+    (options.dateFilterType === "custom" ||
+      options.dateFilterType === "daily" ||
+      options.dateFilterType === "weekly" ||
+      options.dateFilterType === "1_month" ||
+      options.dateFilterType === "3_months") &&
     options.customStartDate
   ) {
     res = res.filter(

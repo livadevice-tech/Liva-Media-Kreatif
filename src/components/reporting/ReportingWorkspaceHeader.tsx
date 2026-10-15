@@ -625,10 +625,12 @@ export function ReportingWorkspaceHeader({
                     initialMonth={selectedMonth}
                     onApply={(type, startDate, endDate, month) => {
                       onDateFilterTypeSelect(type);
-                      if (type === "custom" || type === "daily" || type === "weekly") {
+                      if (type === "custom" || type === "daily" || type === "weekly" || type === "1_month" || type === "3_months") {
                         onApplyCustom(startDate, endDate);
                       } else if (type === "monthly") {
                         setSelectedMonth(month);
+                      } else if (type === "all") {
+                        onApplyCustom("", "");
                       }
                       closeAllMenus();
                     }}
@@ -874,10 +876,12 @@ export function ReportingWorkspaceHeader({
                     initialMonth={selectedMonth}
                     onApply={(type, startDate, endDate, month) => {
                       onDateFilterTypeSelect(type);
-                      if (type === 'custom' || type === 'daily' || type === 'weekly') {
+                      if (type === 'custom' || type === 'daily' || type === 'weekly' || type === '1_month' || type === '3_months') {
                         onApplyCustom(startDate, endDate);
                       } else if (type === 'monthly') {
                         setSelectedMonth(month);
+                      } else if (type === 'all') {
+                        onApplyCustom('', '');
                       }
                       closeAllMenus();
                     }}
