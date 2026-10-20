@@ -458,8 +458,30 @@ export function BrandOverviewDashboard({
   const [isDurationVisible, setIsDurationVisible] = useState(true);
 
   const hm = brandDashboardSettings?.hiddenMetrics || [];
-  const isMetricHidden = (id: string) =>
-    hm.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
+  const isMetricHidden = (id: string) => {
+    const platformPrefix = isShopee ? "shopee_" : "tiktok_";
+    return (
+      hm.includes(`${platformPrefix}live_${id}`) ||
+      hm.includes(`${platformPrefix}engagement_${id}`) ||
+      hm.includes(`${platformPrefix}product_${id}`) ||
+      hm.includes(`${platformPrefix}${id}`) ||
+      hm.includes(`live_${id}`) ||
+      hm.includes(id)
+    );
+  };
+
+  const hcm = brandDashboardSettings?.hiddenChartMetrics || [];
+  const isChartMetricHidden = (id: string) => {
+    const platformPrefix = isShopee ? "shopee_" : "tiktok_";
+    return (
+      hcm.includes(`${platformPrefix}live_${id}`) ||
+      hcm.includes(`${platformPrefix}engagement_${id}`) ||
+      hcm.includes(`${platformPrefix}product_${id}`) ||
+      hcm.includes(`${platformPrefix}${id}`) ||
+      hcm.includes(`live_${id}`) ||
+      hcm.includes(id)
+    );
+  };
 
   // Metric Growths
   const gmvGrowth = calcGrowth(stats.totalGmvDb, stats.pTotalGmvDb);
@@ -942,8 +964,8 @@ export function BrandOverviewDashboard({
           },
         ];
 
-    return list;
-  }, [isShopee]);
+    return list.filter((opt) => !isChartMetricHidden(opt.key));
+  }, [isShopee, hcm]);
 
   const isMetricActive = (key: string) => {
     if (activeMetrics.includes(key)) return true;
@@ -1175,152 +1197,174 @@ export function BrandOverviewDashboard({
         {/* 8 Metric Cards Grid (2 rows x 4 cols on desktop) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: GMV */}
-          <SaleCard
-            icon={<DollarSign className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-600"
-            title="GMV"
-            value={formatCurrency(stats.totalGmvDb)}
-            growth={gmvGrowth}
-            sparklineData={gmvSeries}
-            sparklineColor="#10b981"
-          />
+          {!isMetricHidden("gmv") && (
+            <SaleCard
+              icon={<DollarSign className="h-5 w-5" strokeWidth={2.5} />}
+              iconBg="bg-emerald-50"
+              iconColor="text-emerald-600"
+              title="GMV"
+              value={formatCurrency(stats.totalGmvDb)}
+              growth={gmvGrowth}
+              sparklineData={gmvSeries}
+              sparklineColor="#10b981"
+            />
+          )}
 
           {/* Card 2: Item Sold */}
-          <SaleCard
-            icon={<Package className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-blue-50"
-            iconColor="text-blue-600"
-            title="Item Sold"
-            value={formatCompactNumber(stats.totalItemsSoldDb)}
-            growth={itemsSoldGrowth}
-            sparklineData={itemSoldSeries}
-            sparklineColor="#3b82f6"
-          />
+          {!isMetricHidden("items_sold") && (
+            <SaleCard
+              icon={<Package className="h-5 w-5" strokeWidth={2.5} />}
+              iconBg="bg-blue-50"
+              iconColor="text-blue-600"
+              title="Item Sold"
+              value={formatCompactNumber(stats.totalItemsSoldDb)}
+              growth={itemsSoldGrowth}
+              sparklineData={itemSoldSeries}
+              sparklineColor="#3b82f6"
+            />
+          )}
 
           {/* Card 3: Orders */}
-          <SaleCard
-            icon={<ClipboardList className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-purple-50"
-            iconColor="text-purple-600"
-            title="Orders"
-            value={formatCompactNumber(stats.totalOrdersDb)}
-            growth={ordersGrowth}
-            sparklineData={ordersSeries}
-            sparklineColor="#8b5cf6"
-          />
+          {!isMetricHidden("orders") && (
+            <SaleCard
+              icon={<ClipboardList className="h-5 w-5" strokeWidth={2.5} />}
+              iconBg="bg-purple-50"
+              iconColor="text-purple-600"
+              title="Orders"
+              value={formatCompactNumber(stats.totalOrdersDb)}
+              growth={ordersGrowth}
+              sparklineData={ordersSeries}
+              sparklineColor="#8b5cf6"
+            />
+          )}
 
           {/* Card 4: AOV */}
-          <SaleCard
-            icon={<Calculator className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-rose-50"
-            iconColor="text-rose-600"
-            title="AOV"
-            value={formatCurrency(
-              stats.avgAovDb ||
-                (stats.totalOrdersDb > 0
-                  ? Math.round(stats.totalGmvDb / stats.totalOrdersDb)
-                  : 0)
-            )}
-            growth={aovGrowth}
-            sparklineData={aovSeries}
-            sparklineColor="#f43f5e"
-          />
+          {!isMetricHidden("aov") && (
+            <SaleCard
+              icon={<Calculator className="h-5 w-5" strokeWidth={2.5} />}
+              iconBg="bg-rose-50"
+              iconColor="text-rose-600"
+              title="AOV"
+              value={formatCurrency(
+                stats.avgAovDb ||
+                  (stats.totalOrdersDb > 0
+                    ? Math.round(stats.totalGmvDb / stats.totalOrdersDb)
+                    : 0)
+              )}
+              growth={aovGrowth}
+              sparklineData={aovSeries}
+              sparklineColor="#f43f5e"
+            />
+          )}
 
           {/* Row 2: Card 5, 6, 7 */}
           {isShopee ? (
             <>
               {/* Card 5 (Shopee): Add to Cart */}
-              <SaleCard
-                icon={<ShoppingCart className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-amber-50"
-                iconColor="text-amber-600"
-                title="Add to Cart"
-                value={formatCompactNumber(stats.totalClicksDb)}
-                growth={clicksGrowth}
-                sparklineData={clicksSeries}
-                sparklineColor="#f59e0b"
-              />
+              {!isMetricHidden("product_clicks") && (
+                <SaleCard
+                  icon={<ShoppingCart className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-amber-50"
+                  iconColor="text-amber-600"
+                  title="Add to Cart"
+                  value={formatCompactNumber(stats.totalClicksDb)}
+                  growth={clicksGrowth}
+                  sparklineData={clicksSeries}
+                  sparklineColor="#f59e0b"
+                />
+              )}
 
               {/* Card 6 (Shopee): Avg. View Duration */}
-              <SaleCard
-                icon={<TrendingUp className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-indigo-50"
-                iconColor="text-indigo-600"
-                title="Avg. View Duration"
-                value={
-                  stats.avgViewDurationDb
-                    ? `${stats.avgViewDurationDb.toFixed(1)}s`
-                    : "0s"
-                }
-                growth={avgDurationGrowth}
-                sparklineData={durationSeries}
-                sparklineColor="#6366f1"
-              />
+              {!isMetricHidden("avg_view_duration") && (
+                <SaleCard
+                  icon={<TrendingUp className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-indigo-50"
+                  iconColor="text-indigo-600"
+                  title="Avg. View Duration"
+                  value={
+                    stats.avgViewDurationDb
+                      ? `${stats.avgViewDurationDb.toFixed(1)}s`
+                      : "0s"
+                  }
+                  growth={avgDurationGrowth}
+                  sparklineData={durationSeries}
+                  sparklineColor="#6366f1"
+                />
+              )}
 
               {/* Card 7 (Shopee): Viewer Active */}
-              <SaleCard
-                icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-cyan-50"
-                iconColor="text-cyan-600"
-                title="Viewer Active"
-                value={formatCompactNumber(stats.totalDbLiveVisits)}
-                growth={viewerActiveGrowth}
-                sparklineData={liveVisitsSeries}
-                sparklineColor="#06b6d4"
-              />
+              {!isMetricHidden("live_viewer") && !isMetricHidden("viewers") && (
+                <SaleCard
+                  icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-cyan-50"
+                  iconColor="text-cyan-600"
+                  title="Viewer Active"
+                  value={formatCompactNumber(stats.totalDbLiveVisits)}
+                  growth={viewerActiveGrowth}
+                  sparklineData={liveVisitsSeries}
+                  sparklineColor="#06b6d4"
+                />
+              )}
             </>
           ) : (
             <>
               {/* Card 5 (TikTok): Customer */}
-              <SaleCard
-                icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-purple-50"
-                iconColor="text-purple-600"
-                title="Customer"
-                value={formatCompactNumber(stats.totalBuyersDb)}
-                growth={buyersGrowth}
-                sparklineData={buyersSeries}
-                sparklineColor="#8b5cf6"
-              />
+              {!isMetricHidden("viewers") && (
+                <SaleCard
+                  icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-purple-50"
+                  iconColor="text-purple-600"
+                  title="Customer"
+                  value={formatCompactNumber(stats.totalBuyersDb)}
+                  growth={buyersGrowth}
+                  sparklineData={buyersSeries}
+                  sparklineColor="#8b5cf6"
+                />
+              )}
 
               {/* Card 6 (TikTok): Product Impressions */}
-              <SaleCard
-                icon={<Eye className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-orange-50"
-                iconColor="text-orange-600"
-                title="Product Impressions"
-                value={formatCompactNumber(stats.totalDbProductImpressions)}
-                growth={productImpressionsGrowth}
-                sparklineData={productImpressionsSeries}
-                sparklineColor="#f97316"
-              />
+              {!isMetricHidden("product_impressions") && (
+                <SaleCard
+                  icon={<Eye className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-orange-50"
+                  iconColor="text-orange-600"
+                  title="Product Impressions"
+                  value={formatCompactNumber(stats.totalDbProductImpressions)}
+                  growth={productImpressionsGrowth}
+                  sparklineData={productImpressionsSeries}
+                  sparklineColor="#f97316"
+                />
+              )}
 
               {/* Card 7 (TikTok): Product Clicks */}
-              <SaleCard
-                icon={<MousePointerClick className="h-5 w-5" strokeWidth={2.5} />}
-                iconBg="bg-emerald-50"
-                iconColor="text-emerald-600"
-                title="Product Clicks"
-                value={formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
-                growth={clicksGrowth}
-                sparklineData={clicksSeries}
-                sparklineColor="#10b981"
-              />
+              {!isMetricHidden("product_clicks") && (
+                <SaleCard
+                  icon={<MousePointerClick className="h-5 w-5" strokeWidth={2.5} />}
+                  iconBg="bg-emerald-50"
+                  iconColor="text-emerald-600"
+                  title="Product Clicks"
+                  value={formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
+                  growth={clicksGrowth}
+                  sparklineData={clicksSeries}
+                  sparklineColor="#10b981"
+                />
+              )}
             </>
           )}
 
           {/* Card 8: GMV/Hours */}
-          <SaleCard
-            icon={<Clock className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-purple-50"
-            iconColor="text-purple-600"
-            title="GMV/Hours"
-            value={formatCurrency(stats.gmvPerHour)}
-            growth={gmvPerHourGrowth}
-            sparklineData={gmvPerHourSeries}
-            sparklineColor="#f43f5e"
-          />
+          {!isMetricHidden("est_income") && (
+            <SaleCard
+              icon={<Clock className="h-5 w-5" strokeWidth={2.5} />}
+              iconBg="bg-purple-50"
+              iconColor="text-purple-600"
+              title="GMV/Hours"
+              value={formatCurrency(stats.gmvPerHour)}
+              growth={gmvPerHourGrowth}
+              sparklineData={gmvPerHourSeries}
+              sparklineColor="#f43f5e"
+            />
+          )}
         </div>
       </section>
 
@@ -1664,154 +1708,186 @@ export function BrandOverviewDashboard({
           {isShopee ? (
             <>
               {/* Card 1 (Shopee): Views */}
-              <EngagementCard
-                label="Views"
-                value={formatCompactNumber(stats.totalPenontonDb || liveImpressionsValue)}
-                growth={viewersGrowth}
-                sparklineData={viewersSeries}
-                sparklineColor="#10b981"
-              />
+              {!isMetricHidden("impressions") && (
+                <EngagementCard
+                  label="Views"
+                  value={formatCompactNumber(stats.totalPenontonDb || liveImpressionsValue)}
+                  growth={viewersGrowth}
+                  sparklineData={viewersSeries}
+                  sparklineColor="#10b981"
+                />
+              )}
 
               {/* Card 2 (Shopee): Peak Viewer */}
-              <EngagementCard
-                label="Peak Viewer"
-                value={formatCompactNumber(stats.totalPeakViewersDb)}
-                growth={peakViewersGrowth}
-                sparklineData={peakViewersSeries}
-                sparklineColor="#06b6d4"
-              />
+              {!isMetricHidden("peak_viewers") && (
+                <EngagementCard
+                  label="Peak Viewer"
+                  value={formatCompactNumber(stats.totalPeakViewersDb)}
+                  growth={peakViewersGrowth}
+                  sparklineData={peakViewersSeries}
+                  sparklineColor="#06b6d4"
+                />
+              )}
 
               {/* Card 3 (Shopee): Voucher Claim */}
-              <EngagementCard
-                label="Voucher Claim"
-                value={formatCompactNumber(stats.totalShopVouchersDb)}
-                growth={voucherClaimGrowth}
-                sparklineData={shopVouchersSeries}
-                sparklineColor="#f59e0b"
-              />
+              {!isMetricHidden("shop_vouchers") && (
+                <EngagementCard
+                  label="Voucher Claim"
+                  value={formatCompactNumber(stats.totalShopVouchersDb)}
+                  growth={voucherClaimGrowth}
+                  sparklineData={shopVouchersSeries}
+                  sparklineColor="#f59e0b"
+                />
+              )}
 
               {/* Card 4 (Shopee): Customer */}
-              <EngagementCard
-                label="Customer"
-                value={formatCompactNumber(stats.totalBuyersDb)}
-                growth={buyersGrowth}
-                sparklineData={buyersSeries}
-                sparklineColor="#8b5cf6"
-              />
+              {!isMetricHidden("viewers") && (
+                <EngagementCard
+                  label="Customer"
+                  value={formatCompactNumber(stats.totalBuyersDb)}
+                  growth={buyersGrowth}
+                  sparklineData={buyersSeries}
+                  sparklineColor="#8b5cf6"
+                />
+              )}
 
               {/* Card 5 (Shopee): Likes */}
-              <EngagementCard
-                label="Likes"
-                value={formatCompactNumber(stats.totalLikesDb)}
-                growth={likesGrowth}
-                sparklineData={likesSeries}
-                sparklineColor="#ec4899"
-              />
+              {!isMetricHidden("likes") && (
+                <EngagementCard
+                  label="Likes"
+                  value={formatCompactNumber(stats.totalLikesDb)}
+                  growth={likesGrowth}
+                  sparklineData={likesSeries}
+                  sparklineColor="#ec4899"
+                />
+              )}
 
               {/* Card 6 (Shopee): Comments */}
-              <EngagementCard
-                label="Comments"
-                value={formatCompactNumber(stats.totalCommentsDb)}
-                growth={commentsGrowth}
-                sparklineData={commentsSeries}
-                sparklineColor="#3b82f6"
-              />
+              {!isMetricHidden("comments") && (
+                <EngagementCard
+                  label="Comments"
+                  value={formatCompactNumber(stats.totalCommentsDb)}
+                  growth={commentsGrowth}
+                  sparklineData={commentsSeries}
+                  sparklineColor="#3b82f6"
+                />
+              )}
 
               {/* Card 7 (Shopee): Shares */}
-              <EngagementCard
-                label="Shares"
-                value={formatCompactNumber(stats.totalSharesDb)}
-                growth={sharesGrowth}
-                sparklineData={sharesSeries}
-                sparklineColor="#f43f5e"
-              />
+              {!isMetricHidden("shares") && (
+                <EngagementCard
+                  label="Shares"
+                  value={formatCompactNumber(stats.totalSharesDb)}
+                  growth={sharesGrowth}
+                  sparklineData={sharesSeries}
+                  sparklineColor="#f43f5e"
+                />
+              )}
 
               {/* Card 8 (Shopee): ERR % */}
-              <EngagementCard
-                label="ERR %"
-                value={`${errRate.toFixed(2)}%`}
-                growth={errRateGrowth}
-                sparklineData={errSeries}
-                sparklineColor="#10b981"
-              />
+              {!isMetricHidden("err") && (
+                <EngagementCard
+                  label="ERR %"
+                  value={`${errRate.toFixed(2)}%`}
+                  growth={errRateGrowth}
+                  sparklineData={errSeries}
+                  sparklineColor="#10b981"
+                />
+              )}
             </>
           ) : (
             <>
               {/* Card 1 (TikTok): Live Impressions */}
-              <EngagementCard
-                label="Live Impressions"
-                value={formatCompactNumber(liveImpressionsValue)}
-                growth={impressionsGrowth}
-                sparklineData={impressionsSeries}
-                sparklineColor={impressionsGrowth.isUp ? "#10b981" : "#f43f5e"}
-              />
+              {!isMetricHidden("impressions") && (
+                <EngagementCard
+                  label="Live Impressions"
+                  value={formatCompactNumber(liveImpressionsValue)}
+                  growth={impressionsGrowth}
+                  sparklineData={impressionsSeries}
+                  sparklineColor={impressionsGrowth.isUp ? "#10b981" : "#f43f5e"}
+                />
+              )}
 
               {/* Card 2 (TikTok): Viewer */}
-              <EngagementCard
-                label="Viewer"
-                value={formatCompactNumber(stats.totalPenontonDb)}
-                growth={viewersGrowth}
-                sparklineData={viewersSeries}
-                sparklineColor="#10b981"
-              />
+              {!isMetricHidden("live_viewer") && (
+                <EngagementCard
+                  label="Viewer"
+                  value={formatCompactNumber(stats.totalPenontonDb)}
+                  growth={viewersGrowth}
+                  sparklineData={viewersSeries}
+                  sparklineColor="#10b981"
+                />
+              )}
 
               {/* Card 3 (TikTok): Likes */}
-              <EngagementCard
-                label="Likes"
-                value={formatCompactNumber(stats.totalLikesDb)}
-                growth={likesGrowth}
-                sparklineData={likesSeries}
-                sparklineColor="#8b5cf6"
-              />
+              {!isMetricHidden("likes") && (
+                <EngagementCard
+                  label="Likes"
+                  value={formatCompactNumber(stats.totalLikesDb)}
+                  growth={likesGrowth}
+                  sparklineData={likesSeries}
+                  sparklineColor="#8b5cf6"
+                />
+              )}
 
               {/* Card 4 (TikTok): Comments */}
-              <EngagementCard
-                label="Comments"
-                value={formatCompactNumber(stats.totalCommentsDb)}
-                growth={commentsGrowth}
-                sparklineData={commentsSeries}
-                sparklineColor="#3b82f6"
-              />
+              {!isMetricHidden("comments") && (
+                <EngagementCard
+                  label="Comments"
+                  value={formatCompactNumber(stats.totalCommentsDb)}
+                  growth={commentsGrowth}
+                  sparklineData={commentsSeries}
+                  sparklineColor="#3b82f6"
+                />
+              )}
 
               {/* Card 5 (TikTok): Shares */}
-              <EngagementCard
-                label="Shares"
-                value={formatCompactNumber(stats.totalSharesDb)}
-                growth={sharesGrowth}
-                sparklineData={sharesSeries}
-                sparklineColor="#f43f5e"
-              />
+              {!isMetricHidden("shares") && (
+                <EngagementCard
+                  label="Shares"
+                  value={formatCompactNumber(stats.totalSharesDb)}
+                  growth={sharesGrowth}
+                  sparklineData={sharesSeries}
+                  sparklineColor="#f43f5e"
+                />
+              )}
 
               {/* Card 6 (TikTok): New followers */}
-              <EngagementCard
-                label="New followers"
-                value={formatCompactNumber(stats.totalFollowersDb)}
-                growth={followersGrowth}
-                sparklineData={followersSeries}
-                sparklineColor="#f97316"
-              />
+              {!isMetricHidden("new_followers") && (
+                <EngagementCard
+                  label="New followers"
+                  value={formatCompactNumber(stats.totalFollowersDb)}
+                  growth={followersGrowth}
+                  sparklineData={followersSeries}
+                  sparklineColor="#f97316"
+                />
+              )}
 
               {/* Card 7 (TikTok): Avg. View Duration */}
-              <EngagementCard
-                label="Avg. View Duration"
-                value={
-                  stats.avgViewDurationDb
-                    ? `${stats.avgViewDurationDb.toFixed(1)}s`
-                    : "0s"
-                }
-                growth={avgDurationGrowth}
-                sparklineData={durationSeries}
-                sparklineColor="#8b5cf6"
-              />
+              {!isMetricHidden("avg_view_duration") && (
+                <EngagementCard
+                  label="Avg. View Duration"
+                  value={
+                    stats.avgViewDurationDb
+                      ? `${stats.avgViewDurationDb.toFixed(1)}s`
+                      : "0s"
+                  }
+                  growth={avgDurationGrowth}
+                  sparklineData={durationSeries}
+                  sparklineColor="#8b5cf6"
+                />
+              )}
 
               {/* Card 8 (TikTok): ERR % */}
-              <EngagementCard
-                label="ERR %"
-                value={`${errRate.toFixed(2)}%`}
-                growth={errRateGrowth}
-                sparklineData={errSeries}
-                sparklineColor="#10b981"
-              />
+              {!isMetricHidden("err") && (
+                <EngagementCard
+                  label="ERR %"
+                  value={`${errRate.toFixed(2)}%`}
+                  growth={errRateGrowth}
+                  sparklineData={errSeries}
+                  sparklineColor="#10b981"
+                />
+              )}
             </>
           )}
         </div>

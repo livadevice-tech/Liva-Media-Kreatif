@@ -7,14 +7,25 @@ export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
     build: {
+      target: ['es2018', 'chrome75', 'safari13', 'edge79', 'firefox68'],
+      cssTarget: ['chrome75', 'safari13', 'edge79', 'firefox68'],
       rollupOptions: {
         output: {
-          manualChunks: {
-            react: ["react", "react-dom"],
-            charts: ["recharts"],
-            spreadsheet: ["xlsx"],
-            motion: ["motion"],
-            icons: ["lucide-react"],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('xlsx')) {
+                return 'vendor-xlsx';
+              }
+              if (id.includes('html2canvas') || id.includes('jspdf')) {
+                return 'vendor-export';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('framer-motion') || id.includes('motion')) {
+                return 'vendor-motion';
+              }
+            }
           },
         },
       },

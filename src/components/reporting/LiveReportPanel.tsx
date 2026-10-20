@@ -11,9 +11,7 @@ import { MobileLiveDailyTable } from "./MobileLiveDailyTable";
 import { MobileLiveMetricsPanel } from "./MobileLiveMetricsPanel";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import { LiveReportChartSection } from "./LiveReportChartSection";
-import { BrandOverviewDashboard } from "./BrandOverviewDashboard";
 import type { BrandDashboardSettings } from "../../types";
-import { type ReportLogLike } from "../../shared/utils/reportTable";
 
 interface LiveReportPanelProps {
   brandName?: string;
@@ -125,7 +123,11 @@ export function LiveReportPanel({
   if (activeTab === "metrics") {
     return (
       <div className="w-full">
-        <MobileLiveMetricsPanel stats={stats} isShopee={!isTikTokLive} />
+        <MobileLiveMetricsPanel
+          stats={stats}
+          isShopee={!isTikTokLive}
+          brandDashboardSettings={brandDashboardSettings}
+        />
       </div>
     );
   }

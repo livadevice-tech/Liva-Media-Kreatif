@@ -60,6 +60,7 @@ type ReportingWorkspaceHeaderProps = {
   setOperatorShiftFilters?: Setter<string[]>;
   availableShifts?: string[];
   brandDashboardSettings?: any;
+  isActive?: boolean;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
   onDeleteAllBrandRawData?: (brandId: string, brandName: string, platform?: string) => void;
   onExport?: () => void;
@@ -180,6 +181,7 @@ export function ReportingWorkspaceHeader({
   setOperatorShiftFilters,
   availableShifts = [],
   brandDashboardSettings,
+  isActive = true,
   sessionCount,
   onDeleteBrandDataByDateRange,
   onDeleteAllBrandRawData,
@@ -261,6 +263,19 @@ export function ReportingWorkspaceHeader({
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  const effectiveAvailableShifts = useMemo(() => {
+    if (!brandDashboardSettings?.allowedShifts) return availableShifts;
+    return availableShifts.filter((sh: string) => brandDashboardSettings.allowedShifts.includes(sh));
+  }, [availableShifts, brandDashboardSettings?.allowedShifts]);
+
+  const isAllSessionAllowed = useMemo(() => {
+    if (!brandDashboardSettings?.allowedShifts) return true;
+    return (
+      brandDashboardSettings.allowedShifts.includes("All Time") ||
+      brandDashboardSettings.allowedShifts.includes("All Session")
+    );
+  }, [brandDashboardSettings?.allowedShifts]);
 
   const [dateMenuAlign, setDateMenuAlign] = useState<"left" | "right">("left");
 
@@ -495,10 +510,17 @@ export function ReportingWorkspaceHeader({
                 <h1 className="text-lg font-black text-slate-900 leading-tight truncate">
                   {brandName || "Nama Brand"}
                 </h1>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-100/80">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Live Brand
-                </span>
+                {isActive === false ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 border border-slate-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                    Tidak Aktif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-100/80">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Live Brand
+                  </span>
+                )}
               </div>
               <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">
                 ID: {brandCode}
@@ -713,7 +735,7 @@ export function ReportingWorkspaceHeader({
             </div>
 
             {/* Shift Filter Dropdown (compact for desktop) */}
-            {setOperatorShiftFilters && availableShifts.length > 0 && (
+            {setOperatorShiftFilters && (effectiveAvailableShifts.length > 0 || isAllSessionAllowed) && (
               <div className="relative flex-shrink-0">
                 <button
                   type="button"
@@ -731,18 +753,20 @@ export function ReportingWorkspaceHeader({
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsShiftDropdownOpen(false)} />
                     <div className="absolute right-0 top-full z-50 mt-2 w-[240px] max-h-[260px] overflow-y-auto rounded-[18px] border border-slate-200 bg-white p-2.5 shadow-xl space-y-1">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
-                          checked={operatorShiftFilters.length === 0}
-                          onChange={(e) => {
-                            if (e.target.checked) setOperatorShiftFilters([]);
-                          }}
-                        />
-                        <span>All Session (Semua)</span>
-                      </label>
-                      {availableShifts.map((sh) => (
+                      {isAllSessionAllowed && (
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                            checked={operatorShiftFilters.length === 0}
+                            onChange={(e) => {
+                              if (e.target.checked) setOperatorShiftFilters([]);
+                            }}
+                          />
+                          <span>All Session (Semua)</span>
+                        </label>
+                      )}
+                      {effectiveAvailableShifts.map((sh) => (
                         <label key={sh} className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700">
                           <input
                             type="checkbox"
@@ -1008,19 +1032,13 @@ export function ReportingWorkspaceHeader({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsShiftDropdownOpen(false)} />
                   <div className="absolute left-0 right-0 z-50 mt-2 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-white p-3 shadow-lg max-h-[250px] overflow-y-auto">
-                    {(() => {
-                      const isAllAllowed = brandDashboardSettings?.allowedShifts
-                        ? brandDashboardSettings.allowedShifts.includes("All Time") || brandDashboardSettings.allowedShifts.includes("All Session")
-                        : true;
-                      if (!isAllAllowed) return null;
-                      return (
-                        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
-                          <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.length === 0} onChange={(e) => { if (e.target.checked) setOperatorShiftFilters([]); }} />
-                          <span className="text-xs font-semibold text-slate-700">All Session (Semua Sesi)</span>
-                        </label>
-                      );
-                    })()}
-                    {availableShifts.map((sh) => (
+                    {isAllSessionAllowed && (
+                      <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
+                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.length === 0} onChange={(e) => { if (e.target.checked) setOperatorShiftFilters([]); }} />
+                        <span className="text-xs font-semibold text-slate-700">All Session (Semua Sesi)</span>
+                      </label>
+                    )}
+                    {effectiveAvailableShifts.map((sh) => (
                       <label key={sh} className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
                         <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.includes(sh)}
                           onChange={(e) => {
@@ -1085,13 +1103,15 @@ export function ReportingWorkspaceTabs({
 
 
           {/* METRIKS TAB - MOBILE ONLY (posisi ke-2 di mobile) */}
-          <button
-            type="button"
-            onClick={() => onTabChange("metrics")}
-            className={`${tabClass("metrics")} md:hidden`}
-          >
-            Metriks
-          </button>
+          {!isCategoryHidden("live") && !isCategoryHidden("metrics") && (
+            <button
+              type="button"
+              onClick={() => onTabChange("metrics")}
+              className={`${tabClass("metrics")} md:hidden`}
+            >
+              Metriks
+            </button>
+          )}
 
           {/* TAB: ANALYSIS PERFORMANCE */}
           {!isCategoryHidden("analysis") && (

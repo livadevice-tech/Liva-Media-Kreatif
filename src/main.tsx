@@ -15,3 +15,5 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
+(window as any).__liva_app_mounted = true;
+

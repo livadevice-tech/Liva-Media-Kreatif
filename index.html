@@ -19,48 +19,105 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
-    <!-- Early PWA Install Prompt Capture for Android -->
+    <!-- Early PWA Install Prompt Capture & Resilient Stale-Cache Auto Recovery -->
     <script>
-      window.__deferredPwaPrompt = null;
-      window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
-        window.__deferredPwaPrompt = e;
-        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
-      });
+      (function() {
+        window.__deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          window.__deferredPwaPrompt = e;
+          window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+        });
 
-      // Auto-recovery for stale PWA cache / missing bundle chunks after deployment
-      window.addEventListener('error', function(e) {
-        var msg = (e && e.message) ? String(e.message) : '';
-        var isChunkError = 
-          msg.indexOf('MIME type') !== -1 || 
-          msg.indexOf('Loading chunk') !== -1 || 
-          msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
-          msg.indexOf('Importing a module script failed') !== -1;
-        
-        if (isChunkError && !sessionStorage.getItem('pwa_chunk_recovered')) {
-          sessionStorage.setItem('pwa_chunk_recovered', '1');
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              for (var i = 0; i < regs.length; i++) {
-                regs[i].unregister();
-              }
-            });
-          }
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-            }).then(function() {
+        function clearAllCachesAndReload() {
+          try {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var i = 0; i < regs.length; i++) {
+                  regs[i].unregister();
+                }
+              });
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              }).then(function() {
+                window.location.reload();
+              }).catch(function() {
+                window.location.reload();
+              });
+            } else {
               window.location.reload();
-            });
-          } else {
+            }
+          } catch (err) {
             window.location.reload();
           }
         }
-      });
+
+        // Capture script loading errors (network fail, 404 old chunk, MIME error) using capture phase
+        window.addEventListener('error', function(e) {
+          var target = e && e.target;
+          var isScriptTagError = target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK');
+          var msg = (e && e.message) ? String(e.message) : '';
+          var isChunkError = 
+            isScriptTagError ||
+            msg.indexOf('MIME type') !== -1 || 
+            msg.indexOf('Loading chunk') !== -1 || 
+            msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
+            msg.indexOf('Importing a module script failed') !== -1;
+          
+          if (isChunkError) {
+            var alreadyRetried = false;
+            try {
+              alreadyRetried = !!sessionStorage.getItem('pwa_chunk_recovered');
+            } catch (storageErr) {}
+
+            if (!alreadyRetried) {
+              try {
+                sessionStorage.setItem('pwa_chunk_recovered', '1');
+              } catch (storageErr) {}
+              clearAllCachesAndReload();
+            } else {
+              var subtext = document.getElementById('initial-loader-subtext');
+              if (subtext) {
+                subtext.innerHTML = '<span style="color:#dc2626;font-weight:bold;">Gagal memuat sistem terbaru.</span><br><br>' +
+                  '<button onclick="try{localStorage.clear();sessionStorage.clear();}catch(e){}if(\'caches\' in window){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});location.reload();});}else{location.reload();}" style="background:#5600e0;color:white;border:none;padding:10px 18px;border-radius:12px;font-weight:bold;cursor:pointer;font-size:13px;box-shadow:0 4px 12px rgba(86,0,224,0.3);">Bersihkan Cache & Muat Ulang</button>';
+              }
+            }
+          }
+        }, true);
+
+        // Timeout fallback if page remains on loader for more than 10 seconds
+        setTimeout(function() {
+          var loader = document.getElementById('initial-loader');
+          if (loader && !window.__liva_app_mounted) {
+            var subtext = document.getElementById('initial-loader-subtext');
+            if (subtext) {
+              subtext.innerHTML = 'Memuat memakan waktu lebih lama dari biasanya.<br><br>' +
+                '<button onclick="location.reload()" style="background:#5600e0;color:white;border:none;padding:8px 16px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:12px;margin-right:8px;">Muat Ulang</button>' +
+                '<button onclick="if(\'caches\' in window){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});location.reload();});}else{location.reload();}" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;padding:8px 16px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:12px;">Reset Cache</button>';
+            }
+          }
+        }, 10000);
+      })();
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafafd;font-family:system-ui,-apple-system,sans-serif;padding:24px;text-align:center;">
+        <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#7928ca,#5600e0);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px -5px rgba(86,0,224,0.3);margin-bottom:20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div style="width:36px;height:36px;border:3px solid #e0e7ff;border-top-color:#5600e0;border-radius:50%;animation:liva-spin 0.8s linear infinite;margin-bottom:16px;"></div>
+        <p style="margin:0;font-size:15px;font-weight:800;color:#0f172a;letter-spacing:-0.2px;">Liva Media Kreatif</p>
+        <p style="margin:6px 0 0;font-size:12px;color:#64748b;font-weight:500;" id="initial-loader-subtext">Memuat sistem operasional...</p>
+        <style>
+          @keyframes liva-spin { to { transform: rotate(360deg); } }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

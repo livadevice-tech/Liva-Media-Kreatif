@@ -1,5 +1,5 @@
 // Service Worker for Liva Agency PWA
-const CACHE_NAME = 'liva-pwa-v2';
+const CACHE_NAME = 'liva-pwa-v3';
 
 // Core assets to pre-cache on install
 const PRECACHE_ASSETS = [

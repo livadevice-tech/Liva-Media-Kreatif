@@ -119,10 +119,13 @@ app.post("/api/auth/login", asyncHandler(async (req, res) => {
     }
   } else if (role === "brand") {
     const brand = await queryOne(
-      `SELECT id, client_password FROM client_brands WHERE LOWER(client_username) = LOWER(?) LIMIT 1`,
+      `SELECT id, client_password, is_active FROM client_brands WHERE LOWER(client_username) = LOWER(?) LIMIT 1`,
       [username],
     );
     if (brand && isStoredPasswordValid(password, brand.client_password || "")) {
+      if (brand.is_active === 0 || brand.is_active === false) {
+        return res.status(403).json({ error: "Akun brand ini telah dinonaktifkan oleh administrator." });
+      }
       session = { role: "brand", subjectId: brand.id, expiresAt: 0 };
     }
   } else {

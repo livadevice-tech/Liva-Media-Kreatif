@@ -1422,6 +1422,22 @@ export default function App() {
     () => new Date().getFullYear(),
   );
 
+  useEffect(() => {
+    const activeId = loggedInClientBrandId || hostActiveReportingBrandId;
+    if (!activeId) return;
+    const currentBrand = clientBrands.find((b) => b.id === activeId);
+    const hiddenCats = currentBrand?.dashboardSettings?.hiddenCategories || [];
+    if ((clientReportingTab === "live" || clientReportingTab === "overview") && hiddenCats.includes("live")) {
+      if (!hiddenCats.includes("analysis")) {
+        setClientReportingTab("analysis");
+      }
+    } else if (clientReportingTab === "analysis" && hiddenCats.includes("analysis")) {
+      if (!hiddenCats.includes("live")) {
+        setClientReportingTab("live");
+      }
+    }
+  }, [loggedInClientBrandId, hostActiveReportingBrandId, clientBrands, clientReportingTab]);
+
 
   const [operatorDateFilterType, setOperatorDateFilterType] = useState<any>("latest");
   const [operatorSelectedLatestDate, setOperatorSelectedLatestDate] =
@@ -5625,6 +5641,9 @@ export default function App() {
           const clientBrand = clientBrands.find(
             (b) => b.id === activeClientBrandId,
           );
+          const clientHiddenCategories = clientBrand?.dashboardSettings?.hiddenCategories || [];
+          const isLiveHidden = clientHiddenCategories.includes("live");
+          const isAnalysisHidden = clientHiddenCategories.includes("analysis");
           const hostBrandNavList = isHostView && activeHostObj?.brands
             ? activeHostObj.brands
                 .map((bName) => clientBrands.find((cb) => cb.name === bName || cb.id === bName))
@@ -5771,6 +5790,7 @@ export default function App() {
                       brandName={clientBrand?.name || "Nama Brand"}
                       brandId={activeClientBrandId || undefined}
                       brandLogoUrl={clientBrand?.logoUrl}
+                      isActive={clientBrand?.isActive !== false}
                       onBack={isHostView ? () => setHostActiveReportingBrandId(null) : undefined}
                       onPrevBrand={hostPrevBrandItem ? () => setHostActiveReportingBrandId(hostPrevBrandItem.id) : undefined}
                       onNextBrand={hostNextBrandItem ? () => setHostActiveReportingBrandId(hostNextBrandItem.id) : undefined}
@@ -5937,17 +5957,24 @@ export default function App() {
                       })()}
                     />
                       </div>
+                    {clientBrand?.isActive === false && (
+                      <div className="mx-4 sm:mx-6 lg:mx-8 mb-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-medium flex items-center gap-2.5">
+                        <div className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                        <span>Status akun brand ini sedang <strong>Tidak Aktif</strong> di panel admin. Hubungi tim admin jika ada pertanyaan.</span>
+                      </div>
+                    )}
                     <div className="w-full">
                       <ReportingWorkspaceTabs
                         activeTab={clientReportingTab}
                         onTabChange={setClientReportingTab}
                         hideSettingsTab={true}
+                        brandDashboardSettings={clientBrand?.dashboardSettings}
                       />
                     </div>
                     </div>
 
                     <div className="w-full">
-                    {(clientReportingTab === "overview" || clientReportingTab === "live") && (
+                    {!isLiveHidden && (clientReportingTab === "overview" || clientReportingTab === "live") && (
                       <React.Suspense
                         fallback={
                           <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
@@ -5986,14 +6013,14 @@ export default function App() {
                           brandUploadHistory={brandUploadHistory}
                           uploadHistory={uploadHistory}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
-                          brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
+                          brandDashboardSettings={clientBrand?.dashboardSettings}
                           hideUploadHistory={true}
                           hideRawTableControls={true}
                           isClientView={true}
                         />
                       </React.Suspense>
                     )}
-                    {clientReportingTab === "analysis" && activeClientBrandId && (
+                    {!isAnalysisHidden && clientReportingTab === "analysis" && activeClientBrandId && (
                       <AnalysisPerformanceTab
                         brandId={activeClientBrandId}
                         logs={brandPerformanceLogs.filter(l => l.brandId === activeClientBrandId)}
@@ -6001,6 +6028,19 @@ export default function App() {
                       />
                     )}
 
+                    {isLiveHidden && isAnalysisHidden && (
+                      <div className="p-12 text-center bg-white rounded-2xl border border-slate-100 my-6 max-w-lg mx-auto">
+                        <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                          <EyeOff className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-bold text-slate-800 mb-1">
+                          Tampilan Dashboard Dinonaktifkan
+                        </h3>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                          Menu Live Performance dan Analysis Performance telah dinonaktifkan oleh administrator pada pengaturan brand ini.
+                        </p>
+                      </div>
+                    )}
 
                     </div>
 
