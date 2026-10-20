@@ -18,9 +18,71 @@ import {
   Phone,
   X,
   ShieldCheck,
+  Filter,
+  RotateCcw,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { formatContractDate, formatLivePeriod } from '../shared/utils/dateFormatting';
+
+export type InvoiceStatusFilter = 'ALL' | 'OVERDUE' | 'OPEN' | 'DRAFT' | 'PAID' | 'CANCELLED';
+
+const STATUS_FILTER_OPTIONS: {
+  key: InvoiceStatusFilter;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  colorActive: string;
+  badgeActive: string;
+  badgeInactive: string;
+}[] = [
+  {
+    key: 'ALL',
+    label: 'Semua Status',
+    icon: FileText,
+    colorActive: 'bg-slate-900 text-white shadow-xs',
+    badgeActive: 'bg-slate-800 text-slate-200',
+    badgeInactive: 'bg-slate-100 text-slate-700',
+  },
+  {
+    key: 'OVERDUE',
+    label: 'Jatuh Tempo (Overdue)',
+    icon: AlertTriangle,
+    colorActive: 'bg-rose-600 text-white shadow-xs',
+    badgeActive: 'bg-rose-700 text-rose-100',
+    badgeInactive: 'bg-rose-100 text-rose-800',
+  },
+  {
+    key: 'OPEN',
+    label: 'Terkirim (Open)',
+    icon: Send,
+    colorActive: 'bg-blue-600 text-white shadow-xs',
+    badgeActive: 'bg-blue-700 text-blue-100',
+    badgeInactive: 'bg-blue-100 text-blue-800',
+  },
+  {
+    key: 'DRAFT',
+    label: 'Draft',
+    icon: Clock,
+    colorActive: 'bg-slate-700 text-white shadow-xs',
+    badgeActive: 'bg-slate-800 text-slate-200',
+    badgeInactive: 'bg-slate-100 text-slate-700',
+  },
+  {
+    key: 'PAID',
+    label: 'Lunas (Paid)',
+    icon: CheckCircle2,
+    colorActive: 'bg-emerald-600 text-white shadow-xs',
+    badgeActive: 'bg-emerald-700 text-emerald-100',
+    badgeInactive: 'bg-emerald-100 text-emerald-800',
+  },
+  {
+    key: 'CANCELLED',
+    label: 'Dibatalkan',
+    icon: X,
+    colorActive: 'bg-zinc-700 text-white shadow-xs',
+    badgeActive: 'bg-zinc-800 text-zinc-200',
+    badgeInactive: 'bg-zinc-100 text-zinc-600',
+  },
+];
 
 interface InvoiceTableProps {
   allInvoices: (BrandInvoice & { brandId: string; brandName: string })[];
@@ -56,6 +118,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   formatDateUI,
 }) => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatusFilter>('ALL');
   const [downloadMenuOpenId, setDownloadMenuOpenId] = useState<string | null>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
 
@@ -77,31 +140,58 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
 
   // Helper to check if an invoice is overdue
   const isOverdue = (inv: BrandInvoice) => {
-    if (inv.status === 'Paid') return false;
+    if (inv.status === 'Paid' || inv.status === 'Cancelled') return false;
     return inv.dueDate ? inv.dueDate < todayStr : false;
   };
 
-  // Counts for summary cards
-  const counts = useMemo(() => {
+  // Counts for summary cards & status filter pills
+  const statusCounts = useMemo(() => {
     let draft = 0;
     let open = 0;
     let paid = 0;
     let overdue = 0;
+    let cancelled = 0;
 
     allInvoices.forEach((inv) => {
       if (inv.status === 'Paid') {
         paid++;
-      } else if (isOverdue(inv) || inv.status === 'Overdue') {
-        overdue++;
-      } else if (inv.status === 'Open Invoice') {
-        open++;
-      } else {
+      } else if (inv.status === 'Cancelled') {
+        cancelled++;
+      } else if (inv.status === 'Draft') {
         draft++;
+      }
+
+      if (inv.status !== 'Paid' && inv.status !== 'Cancelled') {
+        if (inv.status === 'Overdue' || isOverdue(inv)) {
+          overdue++;
+        }
+      }
+
+      if (inv.status === 'Open Invoice') {
+        open++;
       }
     });
 
-    return { total: allInvoices.length, draft, open, paid, overdue };
+    return {
+      ALL: allInvoices.length,
+      OVERDUE: overdue,
+      OPEN: open,
+      DRAFT: draft,
+      PAID: paid,
+      CANCELLED: cancelled,
+    };
   }, [allInvoices, todayStr]);
+
+  // Backward compatibility alias for KPI cards
+  const counts = useMemo(() => {
+    return {
+      total: statusCounts.ALL,
+      draft: statusCounts.DRAFT,
+      open: statusCounts.OPEN,
+      paid: statusCounts.PAID,
+      overdue: statusCounts.OVERDUE,
+    };
+  }, [statusCounts]);
 
   // Financial summary
   const summary = useMemo(() => {
@@ -110,19 +200,33 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       .filter((i) => i.status === 'Paid')
       .reduce((acc, i) => acc + (i.totalAmount || 0), 0);
     const pendingAmount = allInvoices
-      .filter((i) => i.status !== 'Paid')
+      .filter((i) => i.status === 'Open Invoice')
       .reduce((acc, i) => acc + (i.totalAmount || 0), 0);
     const overdueAmount = allInvoices
-      .filter((i) => i.status !== 'Paid' && (isOverdue(i) || i.status === 'Overdue'))
+      .filter((i) => i.status !== 'Paid' && i.status !== 'Cancelled' && (isOverdue(i) || i.status === 'Overdue'))
       .reduce((acc, i) => acc + (i.totalAmount || 0), 0);
 
     return { totalAmount, paidAmount, pendingAmount, overdueAmount };
   }, [allInvoices, todayStr]);
 
-  // Filtered list (search & sort)
+  // Filtered list (status, search & sort)
   const filteredInvoices = useMemo(() => {
     return allInvoices
       .filter((inv) => {
+        // Status filter
+        if (statusFilter === 'OVERDUE') {
+          const isInvOverdue = inv.status === 'Overdue' || (inv.status !== 'Paid' && inv.status !== 'Cancelled' && isOverdue(inv));
+          if (!isInvOverdue) return false;
+        } else if (statusFilter === 'OPEN') {
+          if (inv.status !== 'Open Invoice') return false;
+        } else if (statusFilter === 'DRAFT') {
+          if (inv.status !== 'Draft') return false;
+        } else if (statusFilter === 'PAID') {
+          if (inv.status !== 'Paid') return false;
+        } else if (statusFilter === 'CANCELLED') {
+          if (inv.status !== 'Cancelled') return false;
+        }
+
         // Search query
         if (searchQuery) {
           const q = searchQuery.toLowerCase().trim();
@@ -143,7 +247,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           ? a.invoiceNumber.localeCompare(b.invoiceNumber)
           : b.invoiceNumber.localeCompare(a.invoiceNumber);
       });
-  }, [allInvoices, searchQuery, sortOrder]);
+  }, [allInvoices, statusFilter, searchQuery, sortOrder, todayStr]);
 
   return (
     <div className="space-y-3.5 animate-fadeIn w-full min-w-0">
@@ -182,13 +286,28 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
       )}
 
-      {/* KPI Metrics Cards (4 Columns - Clean & Compact) */}
+      {/* KPI Metrics Cards (4 Columns - Clean, Compact & Interactive Filters) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         {/* Total Invoices */}
-        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between min-w-0">
+        <div
+          onClick={() => setStatusFilter('ALL')}
+          className={`p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden flex flex-col justify-between min-w-0 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'ALL'
+              ? 'bg-slate-50 border-slate-900 ring-2 ring-slate-900/10'
+              : 'bg-white border-slate-200/80 hover:border-slate-300'
+          }`}
+          title="Klik untuk tampilkan semua invoice"
+        >
           <div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
-              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Total Tagihan
+            <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between gap-1.5 truncate">
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Total Tagihan
+              </span>
+              {statusFilter === 'ALL' && (
+                <span className="text-[9px] bg-slate-900 text-white font-black px-1.5 py-0.2 rounded shrink-0">
+                  Aktif
+                </span>
+              )}
             </div>
             <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
               {counts.total}
@@ -200,10 +319,25 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Paid / Lunas */}
-        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/20 min-w-0">
+        <div
+          onClick={() => setStatusFilter((prev) => (prev === 'PAID' ? 'ALL' : 'PAID'))}
+          className={`p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/20 min-w-0 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'PAID'
+              ? 'bg-emerald-50/50 border-emerald-600 ring-2 ring-emerald-500/20'
+              : 'border-emerald-200/80 hover:border-emerald-300'
+          }`}
+          title="Klik untuk filter invoice lunas (Paid)"
+        >
           <div>
-            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Sudah Dibayar (Lunas)
+            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1 flex items-center justify-between gap-1.5 truncate">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Sudah Dibayar (Lunas)
+              </span>
+              {statusFilter === 'PAID' && (
+                <span className="text-[9px] bg-emerald-600 text-white font-black px-1.5 py-0.2 rounded shrink-0">
+                  Aktif
+                </span>
+              )}
             </div>
             <div className="text-lg sm:text-xl font-black text-emerald-700 leading-tight">
               {counts.paid}
@@ -215,10 +349,25 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Open / Terkirim */}
-        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-blue-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/20 min-w-0">
+        <div
+          onClick={() => setStatusFilter((prev) => (prev === 'OPEN' ? 'ALL' : 'OPEN'))}
+          className={`p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/20 min-w-0 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'OPEN'
+              ? 'bg-blue-50/50 border-blue-600 ring-2 ring-blue-500/20'
+              : 'border-blue-200/80 hover:border-blue-300'
+          }`}
+          title="Klik untuk filter invoice terkirim (Open Invoice)"
+        >
           <div>
-            <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
-              <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Menunggu Pembayaran
+            <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center justify-between gap-1.5 truncate">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Menunggu Pembayaran
+              </span>
+              {statusFilter === 'OPEN' && (
+                <span className="text-[9px] bg-blue-600 text-white font-black px-1.5 py-0.2 rounded shrink-0">
+                  Aktif
+                </span>
+              )}
             </div>
             <div className="text-lg sm:text-xl font-black text-blue-700 leading-tight">
               {counts.open}
@@ -230,10 +379,25 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Overdue / Jatuh Tempo */}
-        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-rose-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/20 min-w-0">
+        <div
+          onClick={() => setStatusFilter((prev) => (prev === 'OVERDUE' ? 'ALL' : 'OVERDUE'))}
+          className={`p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/20 min-w-0 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'OVERDUE'
+              ? 'bg-rose-50/50 border-rose-600 ring-2 ring-rose-500/20'
+              : 'border-rose-200/80 hover:border-rose-300'
+          }`}
+          title="Klik untuk filter invoice jatuh tempo (Overdue)"
+        >
           <div>
-            <div className="text-[10px] font-black text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" /> Jatuh Tempo (Overdue)
+            <div className="text-[10px] font-black text-rose-600 uppercase tracking-wider mb-1 flex items-center justify-between gap-1.5 truncate">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" /> Jatuh Tempo (Overdue)
+              </span>
+              {statusFilter === 'OVERDUE' && (
+                <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.2 rounded shrink-0">
+                  Aktif
+                </span>
+              )}
             </div>
             <div className="text-lg sm:text-xl font-black text-rose-700 leading-tight">
               {counts.overdue}
@@ -247,7 +411,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
 
       {/* Main Table Card */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden w-full min-w-0">
-        {/* Table Toolbar: Filter Bulan (dengan pilihan Semua Bulan / ALL) & Pencarian */}
+        {/* Table Toolbar Row 1: Filter Bulan & Pencarian */}
         <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full min-w-0">
           {/* Month Filter Controls */}
           <div className="flex flex-wrap items-center gap-2">
@@ -292,7 +456,9 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </div>
 
             <span className="text-[11px] font-semibold text-slate-400 ml-1 hidden lg:inline">
-              ({filteredInvoices.length} tagihan)
+              {filteredInvoices.length !== allInvoices.length
+                ? `(${filteredInvoices.length} dari ${allInvoices.length} tagihan)`
+                : `(${allInvoices.length} tagihan)`}
             </span>
           </div>
 
@@ -319,14 +485,101 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           </div>
         </div>
 
+        {/* Table Toolbar Row 2: Status Filter Pills (Overdue, Terkirim, Draft, Lunas, Dibatalkan, Semua) */}
+        <div className="px-3.5 py-2 border-b border-slate-100 bg-white flex flex-wrap items-center justify-between gap-2 w-full min-w-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
+            <div className="flex items-center gap-1 text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Status:</span>
+            </div>
+
+            {STATUS_FILTER_OPTIONS.map((opt) => {
+              const count = statusCounts[opt.key];
+              const isActive = statusFilter === opt.key;
+              const Icon = opt.icon;
+
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setStatusFilter(opt.key)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                    isActive
+                      ? `${opt.colorActive} shadow-xs`
+                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80 shadow-2xs hover:border-slate-300'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{opt.label}</span>
+                  <span
+                    className={`text-[10px] font-black px-1.5 py-0.2 rounded-md ${
+                      isActive ? opt.badgeActive : opt.badgeInactive
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Reset Button if not ALL */}
+          {statusFilter !== 'ALL' && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className="text-[11px] font-bold text-slate-500 hover:text-rose-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all cursor-pointer shrink-0"
+              title="Reset filter status ke Semua"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Status</span>
+            </button>
+          )}
+        </div>
+
         {/* Invoice Table */}
         {filteredInvoices.length === 0 ? (
           <div className="py-12 px-4 text-center text-slate-500 flex flex-col items-center justify-center w-full">
             <FileText className="w-10 h-10 text-slate-300 mb-2.5" />
-            <p className="font-bold text-slate-700 text-sm">Tidak ada invoice pada filter ini.</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Coba pilih "Semua Bulan (All)", periksa kata kunci pencarian, atau klik tombol "Buat Invoice Baru".
+            <p className="font-bold text-slate-700 text-sm">
+              Tidak ada invoice yang sesuai kriteria filter.
             </p>
+            <p className="text-xs text-slate-400 mt-1 max-w-md">
+              {statusFilter !== 'ALL'
+                ? `Tidak ditemukan invoice dengan status "${STATUS_FILTER_OPTIONS.find((o) => o.key === statusFilter)?.label}".`
+                : 'Coba pilih "Semua Bulan (All)", periksa kata kunci pencarian, atau klik tombol "Buat Invoice Baru".'}
+            </p>
+            {(statusFilter !== 'ALL' || searchQuery || (filterMonth && filterMonth !== 'ALL')) && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                {statusFilter !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('ALL')}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Tampilkan Semua Status
+                  </button>
+                )}
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <X className="w-3.5 h-3.5" /> Hapus Pencarian
+                  </button>
+                )}
+                {filterMonth && filterMonth !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterMonth('ALL')}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Calendar className="w-3.5 h-3.5" /> Tampilkan Semua Bulan
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto w-full min-h-[260px]">
