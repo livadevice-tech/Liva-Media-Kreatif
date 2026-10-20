@@ -11,6 +11,7 @@ import { MobileLiveDailyTable } from "./MobileLiveDailyTable";
 import { MobileLiveMetricsPanel } from "./MobileLiveMetricsPanel";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import { LiveReportChartSection } from "./LiveReportChartSection";
+import { BrandOverviewDashboard } from "./BrandOverviewDashboard";
 import type { BrandDashboardSettings } from "../../types";
 
 interface LiveReportPanelProps {
