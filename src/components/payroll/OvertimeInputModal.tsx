@@ -7,9 +7,7 @@ import {
   DollarSign,
   FileText,
   AlertCircle,
-  CheckCircle2,
   Sparkles,
-  RefreshCw,
   Loader2,
 } from "lucide-react";
 import type { HostEmployee, OvertimeRecord } from "../../types";
@@ -36,7 +34,6 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
   availableCutoffMonths,
   defaultCutoff = "",
   defaultHostId = "",
-  hourlyRate = 20000,
   onSaved,
   formatIDR,
   initialData,
@@ -48,9 +45,8 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
   const [cutoffPeriod, setCutoffPeriod] = useState<string>(defaultCutoff);
   const [date, setDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [hours, setHours] = useState<number>(2);
-  const [amount, setAmount] = useState<number>(40000);
+  const [amount, setAmount] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
-  const [isManualAmount, setIsManualAmount] = useState<boolean>(false);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -66,33 +62,20 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
       setHours(initialData.hours || 0);
       setAmount(initialData.amount || 0);
       setNotes(initialData.notes || "");
-      setIsManualAmount(true);
     } else {
       setHostId(defaultHostId || (hosts.length > 0 ? hosts[0].id : ""));
       setCutoffPeriod(defaultCutoff || (availableCutoffMonths[0] || ""));
       setDate(new Date().toISOString().split("T")[0]);
-      const initialHours = 2;
-      setHours(initialHours);
-      setAmount(initialHours * (hourlyRate || 20000));
+      setHours(2);
+      setAmount(0);
       setNotes("");
-      setIsManualAmount(false);
     }
     setErrorMsg("");
-  }, [isOpen, initialData, defaultCutoff, defaultHostId, hosts, availableCutoffMonths, hourlyRate]);
+  }, [isOpen, initialData, defaultCutoff, defaultHostId, hosts, availableCutoffMonths]);
 
-  // Auto-calc amount when hours change (unless user manually overrode with custom value)
   const handleHoursChange = (newHours: number) => {
     const validH = Math.max(0, newHours);
     setHours(validH);
-    if (!isManualAmount) {
-      setAmount(Math.round(validH * (hourlyRate || 20000)));
-    }
-  };
-
-  const handleResetToStandardRate = () => {
-    const stdAmount = Math.round(hours * (hourlyRate || 20000));
-    setAmount(stdAmount);
-    setIsManualAmount(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,6 +90,10 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
     }
     if (hours <= 0) {
       setErrorMsg("Jumlah jam lembur harus lebih besar dari 0.");
+      return;
+    }
+    if (amount <= 0) {
+      setErrorMsg("Masukkan nominal jumlah yang dibayarkan.");
       return;
     }
 
@@ -165,7 +152,7 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
                 {isEditing ? "Edit Data Lembur" : "Kit Input Lembur Host"}
               </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Tambahkan jam lembur & nominal tambahan ke cut-off terpilih
+                Input jam & langsung isi nominal yang dibayarkan untuk cut-off terpilih
               </p>
             </div>
           </div>
@@ -302,26 +289,13 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Jumlah yang Dibayarkan (Rp) */}
-          <div className="p-3.5 rounded-2xl bg-violet-50/50 border border-violet-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-violet-600" />
-                <span>Jumlah yang Dibayarkan</span>
-                <span className="text-red-500">*</span>
-              </label>
-              {isManualAmount && (
-                <button
-                  type="button"
-                  onClick={handleResetToStandardRate}
-                  className="text-[10px] text-violet-700 hover:text-violet-900 font-bold flex items-center gap-1 hover:underline cursor-pointer"
-                  title="Kembalikan ke tarif standar per jam"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Tarif Standar ({formatIDR(hourlyRate)}/jam)</span>
-                </button>
-              )}
-            </div>
+          {/* 3. Jumlah yang Dibayarkan (Nominal Langsung) */}
+          <div className="p-4 rounded-2xl bg-violet-50/50 border border-violet-100 space-y-2.5">
+            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-violet-600" />
+              <span>Jumlah yang Dibayarkan (Nominal Langsung)</span>
+              <span className="text-red-500">*</span>
+            </label>
 
             <div className="flex items-center rounded-xl border border-violet-200/90 bg-white focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-600/10 transition-all overflow-hidden shadow-2xs">
               <span className="px-3.5 py-2.5 text-xs font-black text-violet-700 bg-violet-100/50 border-r border-violet-200/80 shrink-0 select-none">
@@ -329,27 +303,40 @@ export const OvertimeInputModal: React.FC<OvertimeInputModalProps> = ({
               </span>
               <input
                 type="text"
-                value={new Intl.NumberFormat("id-ID").format(amount)}
+                value={amount > 0 ? new Intl.NumberFormat("id-ID").format(amount) : ""}
                 onChange={(e) => {
                   const raw = e.target.value.replace(/\D/g, "");
                   const parsed = raw ? parseInt(raw, 10) : 0;
                   setAmount(parsed);
-                  setIsManualAmount(true);
                 }}
-                className="w-full bg-transparent px-3.5 py-2.5 text-sm font-black text-slate-900 outline-none font-mono"
-                placeholder="0"
+                className="w-full bg-transparent px-3.5 py-2.5 text-sm font-black text-slate-900 outline-none font-mono placeholder:text-slate-400 placeholder:font-normal"
+                placeholder="Ketik langsung nominal uang lembur, cth: 50.000"
+                autoFocus
               />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-500">
-              <span>Tarif standar: {formatIDR(hourlyRate)} / jam</span>
-              {isManualAmount ? (
-                <span className="text-amber-600 font-semibold">(Nominal Kustom)</span>
-              ) : (
-                <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Dihitung Otomatis
-                </span>
-              )}
+
+            {/* Quick Nominal Chips */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[10px] text-slate-400 font-medium mr-0.5">Pilihan Cepat:</span>
+              {[25000, 50000, 75000, 100000, 150000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setAmount(val)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                    amount === val
+                      ? "bg-violet-600 text-white border-violet-600 shadow-2xs"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:bg-violet-50"
+                  }`}
+                >
+                  +{formatIDR(val)}
+                </button>
+              ))}
             </div>
+
+            <p className="text-[10px] text-slate-500">
+              Ketik langsung nominal rupiah yang akan ditambahkan ke gaji host (bukan perkalian tarif per jam).
+            </p>
           </div>
 
           {/* 4. Keterangan */}

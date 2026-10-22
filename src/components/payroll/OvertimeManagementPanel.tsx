@@ -63,9 +63,8 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
   const [quickCutoff, setQuickCutoff] = useState(activeCutoff || (availableCutoffMonths[0] || ""));
   const [quickDate, setQuickDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [quickHours, setQuickHours] = useState(2);
-  const [quickAmount, setQuickAmount] = useState(40000);
+  const [quickAmount, setQuickAmount] = useState(0);
   const [quickNotes, setQuickNotes] = useState("");
-  const [quickManualAmount, setQuickManualAmount] = useState(false);
   const [quickLoading, setQuickLoading] = useState(false);
   const [quickError, setQuickError] = useState("");
   const [quickSuccess, setQuickSuccess] = useState("");
@@ -73,9 +72,6 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
   const handleQuickHoursChange = (h: number) => {
     const val = Math.max(0, h);
     setQuickHours(val);
-    if (!quickManualAmount) {
-      setQuickAmount(Math.round(val * (hourlyRate || 20000)));
-    }
   };
 
   const handleQuickSubmit = async (e: React.FormEvent) => {
@@ -90,6 +86,10 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
     }
     if (quickHours <= 0) {
       setQuickError("Jam lembur harus lebih besar dari 0.");
+      return;
+    }
+    if (quickAmount <= 0) {
+      setQuickError("Masukkan nominal jumlah yang dibayarkan.");
       return;
     }
 
@@ -115,8 +115,7 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
       setQuickSuccess(`Lembur ${hostName} (${quickHours} jam) berhasil disimpan!`);
       setQuickNotes("");
       setQuickHours(2);
-      setQuickAmount(2 * (hourlyRate || 20000));
-      setQuickManualAmount(false);
+      setQuickAmount(0);
       setTimeout(() => setQuickSuccess(""), 4000);
     } catch (err: any) {
       setQuickError(err?.message || "Gagal menyimpan lembur.");
@@ -283,7 +282,7 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
               </span>
             </div>
             <span className="text-[10px] text-slate-500 font-medium">
-              Tarif standar: {formatIDR(hourlyRate)}/jam
+              Nominal langsung ditambahkan ke draf gaji
             </span>
           </div>
 
@@ -366,25 +365,14 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
                 </div>
               </div>
 
-              {/* Jumlah yang Dibayarkan */}
+              {/* Jumlah yang Dibayarkan (Nominal Langsung) */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <DollarSign className="w-3 h-3 text-violet-600" />
-                    <span>Dibayarkan (Rp)</span>
+                    <span>Dibayarkan (Nominal Rp)</span>
+                    <span className="text-red-500">*</span>
                   </span>
-                  {quickManualAmount && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuickAmount(Math.round(quickHours * (hourlyRate || 20000)));
-                        setQuickManualAmount(false);
-                      }}
-                      className="text-[9px] text-violet-600 hover:underline font-bold"
-                    >
-                      Reset Standar
-                    </button>
-                  )}
                 </label>
                 <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden focus-within:bg-white focus-within:border-violet-500 transition-all">
                   <span className="px-2.5 py-2 text-xs font-bold text-slate-400 bg-slate-100/60 border-r border-slate-200">
@@ -392,14 +380,13 @@ export const OvertimeManagementPanel: React.FC<OvertimeManagementPanelProps> = (
                   </span>
                   <input
                     type="text"
-                    value={new Intl.NumberFormat("id-ID").format(quickAmount)}
+                    value={quickAmount > 0 ? new Intl.NumberFormat("id-ID").format(quickAmount) : ""}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/\D/g, "");
                       setQuickAmount(raw ? parseInt(raw, 10) : 0);
-                      setQuickManualAmount(true);
                     }}
-                    className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 outline-none font-mono"
-                    placeholder="0"
+                    className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 outline-none font-mono placeholder:text-slate-400 placeholder:font-normal"
+                    placeholder="Cth: 50.000"
                   />
                 </div>
               </div>
