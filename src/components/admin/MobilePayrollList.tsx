@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { CheckCircle2, ChevronDown, Check, CreditCard, Copy, Info } from "lucide-react";
+import { CheckCircle2,
+  Clock, ChevronDown, Check, CreditCard, Copy, Info } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 type MobilePayrollListProps = {
@@ -274,6 +275,30 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                           <div className="flex-1 bg-rose-50 rounded-lg p-2 flex flex-col justify-center items-center text-center">
                             <span className="text-[9px] font-bold text-rose-600 uppercase">Potongan</span>
                             <span className="text-[11px] font-mono font-bold text-rose-700 truncate max-w-full">-{formatIDR(item.deductionTotal)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Lembur (Overtime) Section */}
+                    {item.totalOvertimeHours > 0 && (
+                      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-1.5">
+                        <div className="flex justify-between items-center text-xs font-bold text-indigo-900">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Lembur ({item.totalOvertimeHours} Jam)</span>
+                          </span>
+                          <span className="font-mono text-emerald-700">
+                            +{formatIDR(item.calculatedOvertimePay)}
+                          </span>
+                        </div>
+                        {item.overtimeRecords && item.overtimeRecords.length > 0 && (
+                          <div className="pt-1 border-t border-indigo-100 space-y-1">
+                            {item.overtimeRecords.map((ot: any) => (
+                              <div key={ot.id} className="flex justify-between items-center text-[10px] text-slate-700">
+                                <span className="truncate pr-1">• {ot.date ? ot.date.split("T")[0] : ""} ({ot.hours}h): {ot.notes || "Lembur"}</span>
+                                <span className="font-mono font-semibold shrink-0">{formatIDR(ot.amount)}</span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

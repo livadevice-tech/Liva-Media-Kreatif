@@ -19,6 +19,7 @@ import type {
   ShiftSchedule,
   ThrPeriod,
   ThrItem,
+  OvertimeRecord,
 } from "./types";
 import type {
   BrandPerformanceLogEntry,
@@ -499,3 +500,33 @@ export const thrApi = {
     request<ThrItem[]>('POST', `/thr/periods/${periodId}/batch-save`, { items, updateHostProfiles }),
 };
 
+
+// ==================================================================
+// OVERTIME (LEMBUR) API
+// ==================================================================
+export const overtimesApi = {
+  getAll: (params?: { cutoffPeriod?: string; hostId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.cutoffPeriod && params.cutoffPeriod !== "Semua") {
+      q.append("cutoff_period", params.cutoffPeriod);
+    }
+    if (params?.hostId && params.hostId !== "Semua") {
+      q.append("host_id", params.hostId);
+    }
+    const queryStr = q.toString() ? `?${q.toString()}` : "";
+    return request<OvertimeRecord[]>("GET", `/overtimes${queryStr}`);
+  },
+  getSummary: (cutoffPeriod?: string) => {
+    const q = cutoffPeriod && cutoffPeriod !== "Semua" ? `?cutoff_period=${encodeURIComponent(cutoffPeriod)}` : "";
+    return request<{
+      totalEntries: number;
+      totalHosts: number;
+      totalHours: number;
+      totalAmount: number;
+    }>("GET", `/overtimes/summary${q}`);
+  },
+  getById: (id: string) => request<OvertimeRecord>("GET", `/overtimes/${id}`),
+  create: (item: Partial<OvertimeRecord>) => request<OvertimeRecord>("POST", "/overtimes", item),
+  update: (id: string, item: Partial<OvertimeRecord>) => request<OvertimeRecord>("PUT", `/overtimes/${id}`, item),
+  delete: (id: string) => request<{ success: boolean; message?: string }>("DELETE", `/overtimes/${id}`),
+};

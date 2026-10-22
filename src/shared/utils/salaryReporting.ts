@@ -1,4 +1,4 @@
-import type { AttendanceLog, HostEmployee } from "../../types";
+import type { AttendanceLog, HostEmployee, OvertimeRecord } from "../../types";
 
 export type HostSalarySettings = {
   overtimePayPerHour?: number;
@@ -33,6 +33,7 @@ export type HostReportRow = HostEmployee & {
   ordersSum: number;
   hasViolations: boolean;
   violationsCount: number;
+  overtimeRecords?: OvertimeRecord[];
 };
 
 export type HostDateMatcher = (rawDate: string) => boolean;
@@ -45,6 +46,8 @@ export const buildHostReportList = (
   isDateMatching: HostDateMatcher,
   getLogDateInput: HostDateExtractor,
   violations?: readonly any[],
+  overtimes?: readonly OvertimeRecord[],
+  activeCutoff?: string,
 ): HostReportRow[] => {
   return hosts.map((host) => {
     const records = logs.filter(
@@ -77,12 +80,32 @@ export const buildHostReportList = (
       (r) => r.status === "Present" || r.status === "Late",
     ).length;
 
-    const totalOvertimeHours = records.reduce(
+    // Explicit overtime records for this host in the selected cutoff
+    const hostOvertimes = (overtimes || []).filter(
+      (o) =>
+        (o.hostId === host.id || o.hostName === host.name) &&
+        (!activeCutoff || activeCutoff === "Semua" || o.cutoffPeriod === activeCutoff),
+    );
+
+    const recordedOvertimeHours = hostOvertimes.reduce(
+      (sum, o) => sum + (Number(o.hours) || 0),
+      0,
+    );
+    const recordedOvertimePay = hostOvertimes.reduce(
+      (sum, o) => sum + (Number(o.amount) || 0),
+      0,
+    );
+
+    const logOvertimeHours = records.reduce(
       (sum, r) => sum + (r.overtimeHours || 0),
       0,
     );
-    const calculatedOvertimePay =
-      totalOvertimeHours * (salarySettings.overtimePayPerHour || 20000);
+    const logOvertimePay =
+      logOvertimeHours * (salarySettings.overtimePayPerHour || 20000);
+
+    // If explicit overtimes exist, use them. Otherwise fallback to attendance log overtime.
+    const totalOvertimeHours = hostOvertimes.length > 0 ? recordedOvertimeHours : logOvertimeHours;
+    const calculatedOvertimePay = hostOvertimes.length > 0 ? recordedOvertimePay : logOvertimePay;
 
     const isTanggamus = host.studio && host.studio.includes("Tanggamus");
     const hostType = host.hostType || "Reguler";
@@ -163,6 +186,7 @@ export const buildHostReportList = (
       ordersSum: records.reduce((sum, r) => sum + (r.orders || 0), 0),
       hasViolations,
       violationsCount: hostViolations.length,
+      overtimeRecords: hostOvertimes,
     };
   });
 };

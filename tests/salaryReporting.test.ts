@@ -104,3 +104,88 @@ test("buildHostReportList calculates regular host salary components", () => {
   assert.equal(result[0].totalOvertimeHours, 1);
   assert.equal(result[0].netSalary, 1370000);
 });
+
+
+test("buildHostReportList applies explicit overtime records to selected cutoff", () => {
+  const hosts = [
+    {
+      id: "host-1",
+      name: "Ayu",
+      employeeId: "EMP-1",
+      avatar: "",
+      role: "Senior Host",
+      platforms: ["TikTok Live"],
+      brands: ["Brand A"],
+      studio: "Studio Bandar Lampung",
+      hostType: "Reguler" as const,
+      customWorkingDaysTarget: 26,
+      customBaseSalary: 2600000,
+    },
+  ];
+
+  const logs = [
+    {
+      id: "log-1",
+      hostId: "host-1",
+      hostName: "Ayu",
+      date: "2026-10-01",
+      status: "Present" as const,
+    },
+  ];
+
+  const overtimes = [
+    {
+      id: "ot-1",
+      hostId: "host-1",
+      hostName: "Ayu",
+      cutoffPeriod: "2026-10",
+      date: "2026-10-05",
+      hours: 3.5,
+      amount: 70000,
+      notes: "Lembur 10.10",
+    },
+    {
+      id: "ot-2",
+      hostId: "host-1",
+      hostName: "Ayu",
+      cutoffPeriod: "2026-11", // different cutoff
+      date: "2026-11-02",
+      hours: 2,
+      amount: 50000,
+      notes: "Lembur 11.11",
+    },
+  ];
+
+  const resultCutoff10 = buildHostReportList(
+    hosts,
+    logs,
+    { workingDays: 26, tanggamusRegulerBase: 2600000, bandarLampungRegulerBase: 2600000 },
+    () => true,
+    (log) => log.date || "",
+    [],
+    overtimes,
+    "2026-10",
+  );
+
+  assert.equal(resultCutoff10[0].totalOvertimeHours, 3.5);
+  assert.equal(resultCutoff10[0].calculatedOvertimePay, 70000);
+  assert.equal(resultCutoff10[0].overtimeRecords?.length, 1);
+  // Base: (2.600.000 / 26) * 1 = 100.000 + Overtime 70.000 = 170.000
+  assert.equal(resultCutoff10[0].netSalary, 170000);
+
+  const resultCutoff11 = buildHostReportList(
+    hosts,
+    logs,
+    { workingDays: 26, tanggamusRegulerBase: 2600000, bandarLampungRegulerBase: 2600000 },
+    () => true,
+    (log) => log.date || "",
+    [],
+    overtimes,
+    "2026-11",
+  );
+
+  assert.equal(resultCutoff11[0].totalOvertimeHours, 2);
+  assert.equal(resultCutoff11[0].calculatedOvertimePay, 50000);
+  assert.equal(resultCutoff11[0].overtimeRecords?.length, 1);
+  assert.equal(resultCutoff11[0].netSalary, 150000);
+});

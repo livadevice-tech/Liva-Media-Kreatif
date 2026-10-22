@@ -31,6 +31,7 @@ import { registerOperationsRoutes } from "./server/routes/operations";
 import { registerClientRoutes } from "./server/routes/client";
 import { registerViolationRoutes } from "./server/routes/violations";
 import { registerThrRoutes } from "./server/routes/thr";
+import { registerOvertimeRoutes } from "./server/routes/overtimes";
 import { validateProductionConfig } from "./server/productionConfig";
 
 dns.setDefaultResultOrder('ipv4first');
@@ -188,6 +189,7 @@ registerOperationsRoutes(app);
 registerClientRoutes(app);
 registerViolationRoutes(app);
 registerThrRoutes(app);
+registerOvertimeRoutes(app);
 
 // ==================================================================
 // Lazy-initialized Gemini Client

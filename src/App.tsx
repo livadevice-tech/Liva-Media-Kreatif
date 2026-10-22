@@ -140,6 +140,7 @@ import {
   ShiftSchedule,
   ScheduleTemplate,
   AdminAccount,
+  OvertimeRecord,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
@@ -202,6 +203,8 @@ import {
   type SkuLogEntry,
 } from "./shared/types/reporting";
 import { ThrManagementPanel } from "./components/payroll/ThrManagementPanel";
+import { OvertimeManagementPanel } from "./components/payroll/OvertimeManagementPanel";
+import { OvertimeInputModal } from "./components/payroll/OvertimeInputModal";
 import {
   getAvatarUrl,
   isPlatformMatch,
@@ -274,6 +277,7 @@ import {
   reportingBrandApi,
   activityLogsApi,
   violationsApi,
+  overtimesApi,
   hostNotificationsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
@@ -891,6 +895,9 @@ export default function App() {
   const [logs, _setLogs] = useState<AttendanceLog[]>([]);
   const [clientBrands, _setClientBrands] = useState<ClientBrand[]>([]);
   const [violations, setViolations] = useState<any[]>([]);
+  const [overtimes, setOvertimes] = useState<OvertimeRecord[]>([]);
+  const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
+  const [overtimeModalHostId, setOvertimeModalHostId] = useState('');
 
   const activeBrandNames = useMemo(() => clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map(cb => cb.name) : brands, [clientBrands, brands]);
   const defaultBrandName = activeBrandNames[0] || "";
@@ -1119,6 +1126,16 @@ export default function App() {
               if (!cancelled) setViolations(data);
             })
             .catch((err) => console.error("Error loading violations:", err)),
+        );
+
+        // Overtimes (Lembur)
+        loadTasks.push(
+          overtimesApi
+            .getAll()
+            .then((data) => {
+              if (!cancelled) setOvertimes(data);
+            })
+            .catch((err) => console.error("Error loading overtimes:", err)),
         );
 
         // 2. hosts
@@ -3968,9 +3985,18 @@ export default function App() {
   };
 
   const [isPayrollConfigOpen, setIsPayrollConfigOpen] = useState(false);
-  const [payrollSubTab, setPayrollSubTab] = useState<"streamer_payroll" | "thr_management">("streamer_payroll");
+  const [payrollSubTab, setPayrollSubTab] = useState<"streamer_payroll" | "overtime_management" | "thr_management">("streamer_payroll");
 
   const [salaryRecapLocationTab, setSalaryRecapLocationTab] = useState("Semua Host");
+
+  const refreshOvertimes = useCallback(async () => {
+    try {
+      const data = await overtimesApi.getAll();
+      setOvertimes(data);
+    } catch (err) {
+      console.warn("Gagal refresh data lembur:", err);
+    }
+  }, []);
 
   // --- HOST PERSONAL ANALYTICS ---
   const [hostCutoffPeriod, setHostCutoffPeriod] = useState<string>(() => {
@@ -4194,6 +4220,19 @@ export default function App() {
     });
   };
 
+  // Active cutoff month string for filtering overtimes
+  const currentActiveCutoff = useMemo(() => {
+    if (timeFilter === "Semua") return "Semua";
+    if (salarySettings.useCutOff) {
+      return getCutoffMonthForDate(filterReferenceDate);
+    }
+    const refDateObj = new Date(filterReferenceDate);
+    if (isNaN(refDateObj.getTime())) return "";
+    const targetMonth = refDateObj.getMonth();
+    const targetYear = refDateObj.getFullYear();
+    return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}`;
+  }, [timeFilter, salarySettings.useCutOff, filterReferenceDate]);
+
   // Operator-level list of Host detailed stats & Salary recapitulation
   const hostReportList = useMemo(
     () =>
@@ -4204,8 +4243,10 @@ export default function App() {
         (rawDate) => isLogDateMatchingMemo(rawDate),
         getLogDateInput,
         violations,
+        overtimes,
+        currentActiveCutoff,
       ),
-    [hosts, logs, salarySettings, isLogDateMatchingMemo, violations],
+    [hosts, logs, salarySettings, isLogDateMatchingMemo, violations, overtimes, currentActiveCutoff],
   );
 
   // Filtered and sorted salary report list
@@ -6487,7 +6528,9 @@ export default function App() {
                       <span>
                         {payrollSubTab === "thr_management"
                           ? "Manajemen Tunjangan Hari Raya (THR)"
-                          : "Kalkulator & Penggajian Streamer"}
+                          : payrollSubTab === "overtime_management"
+                            ? "Manajemen Lembur Host"
+                            : "Kalkulator & Penggajian Streamer"}
                       </span>
                     )}
                     {operatorTab === "database" && (
@@ -8940,6 +8983,21 @@ export default function App() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => setPayrollSubTab("overtime_management")}
+                          className={`py-1.5 px-3.5 text-xs font-bold transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
+                            payrollSubTab === "overtime_management"
+                              ? "bg-white text-violet-700 shadow-sm border border-slate-200/60"
+                              : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+                          }`}
+                        >
+                          <Clock className={`w-3.5 h-3.5 ${payrollSubTab === "overtime_management" ? "text-violet-600" : "text-slate-400"}`} />
+                          <span>Tab Lembur</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200/70">
+                            Baru
+                          </span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setPayrollSubTab("thr_management")}
                           className={`py-1.5 px-3.5 text-xs font-bold transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
                             payrollSubTab === "thr_management"
@@ -8949,9 +9007,6 @@ export default function App() {
                         >
                           <Gift className={`w-3.5 h-3.5 ${payrollSubTab === "thr_management" ? "text-violet-600" : "text-slate-400"}`} />
                           <span>Tab THR</span>
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                            Baru
-                          </span>
                         </button>
                       </div>
                     </div>
@@ -9046,6 +9101,19 @@ export default function App() {
                                 selectClassName="w-full h-full appearance-none cursor-pointer"
                               />
                          </div>
+
+                         {/* Mobile Catat Lembur Button */}
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setOvertimeModalHostId("");
+                             setIsOvertimeModalOpen(true);
+                           }}
+                           className="w-full py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-md shadow-violet-600/20 active:scale-95 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                         >
+                           <Clock className="w-4 h-4 text-violet-200" />
+                           <span>+ Input Lembur Host</span>
+                         </button>
 
                          {/* Mobile Summary Metric Button */}
                          <details className="group w-full block list-none [&::-webkit-details-marker]:hidden bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden transition-all">
@@ -9743,6 +9811,20 @@ export default function App() {
                           containerClassName="flex-1 lg:max-w-md min-w-0 flex items-center bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 focus-within:bg-white transition-all shadow-2xs group cursor-pointer"
                           selectClassName="w-full min-w-0 truncate bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-sans appearance-none pr-2"
                         />
+
+                        {/* Desktop Input Lembur Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOvertimeModalHostId("");
+                            setIsOvertimeModalOpen(true);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md shadow-violet-600/20 flex items-center gap-1.5 cursor-pointer shrink-0"
+                          title="Catat lembur untuk host pada cut-off ini"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-violet-200" />
+                          <span>+ Input Lembur</span>
+                        </button>
                       </div>
                     </div>
 
@@ -10386,13 +10468,33 @@ export default function App() {
                                               <Edit2 className="w-3 h-3" />
                                               Kustom
                                             </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOvertimeModalHostId(item.id);
+                                                setIsOvertimeModalOpen(true);
+                                              }}
+                                              title="Catat Lembur Khusus Host Ini"
+                                              className="ml-1 px-1.5 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[10px] font-bold rounded border border-violet-200 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                            >
+                                              <Clock className="w-3 h-3 text-violet-600" />
+                                              Lembur
+                                            </button>
                                           </div>
-                                          <div
-                                            className="text-[10px] text-slate-500 font-medium flex items-center gap-1 hover:text-indigo-600 transition-colors mt-0.5"
-                                            title="Klik baris ini untuk melihat rincian rumus penggajian"
-                                          >
-                                            <Info className="w-3.5 h-3.5" />
-                                            <span>Lihat rincian</span>
+                                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                            <div
+                                              className="text-[10px] text-slate-500 font-medium flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                                              title="Klik baris ini untuk melihat rincian rumus penggajian"
+                                            >
+                                              <Info className="w-3.5 h-3.5" />
+                                              <span>Lihat rincian</span>
+                                            </div>
+                                            {item.totalOvertimeHours > 0 && (
+                                              <span className="text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                                                <Clock className="w-2.5 h-2.5 text-violet-600" />
+                                                +{item.totalOvertimeHours}h ({formatIDR(item.calculatedOvertimePay)})
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       )}
@@ -10620,24 +10722,31 @@ export default function App() {
                                                   </div>
                                                 )}
 
-                                                {item.totalOvertimeHours >
-                                                  0 && (
-                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
-                                                    <div className="text-indigo-700 font-semibold flex justify-between items-center">
-                                                      <span>
-                                                        Lembur (
-                                                        {
-                                                          item.totalOvertimeHours
-                                                        }{" "}
-                                                        Jam):
+                                                {item.totalOvertimeHours > 0 && (
+                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 text-[10px] space-y-1.5 shadow-3xs">
+                                                    <div className="text-indigo-800 font-bold flex justify-between items-center">
+                                                      <span className="flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                                                        <span>Lembur ({item.totalOvertimeHours} Jam):</span>
                                                       </span>
-                                                      <span>
-                                                        +
-                                                        {formatIDR(
-                                                          item.calculatedOvertimePay,
-                                                        )}
+                                                      <span className="font-mono text-xs text-indigo-900 font-bold">
+                                                        +{formatIDR(item.calculatedOvertimePay)}
                                                       </span>
                                                     </div>
+                                                    {item.overtimeRecords && item.overtimeRecords.length > 0 && (
+                                                      <div className="space-y-1 pt-1.5 border-t border-indigo-100">
+                                                        {item.overtimeRecords.map((ot) => (
+                                                          <div key={ot.id} className="flex justify-between items-center text-slate-700">
+                                                            <span className="truncate pr-2">
+                                                              • {ot.date ? ot.date.split("T")[0] : ""} ({ot.hours} Jam): {ot.notes || "Lembur"}
+                                                            </span>
+                                                            <span className="font-mono font-semibold shrink-0">
+                                                              {formatIDR(ot.amount)}
+                                                            </span>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 )}
 
@@ -10672,24 +10781,31 @@ export default function App() {
                                                   </div>
                                                 </div>
 
-                                                {item.totalOvertimeHours >
-                                                  0 && (
-                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
-                                                    <div className="text-indigo-700 font-semibold flex justify-between items-center">
-                                                      <span>
-                                                        Lembur (
-                                                        {
-                                                          item.totalOvertimeHours
-                                                        }{" "}
-                                                        Jam):
+                                                {item.totalOvertimeHours > 0 && (
+                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 text-[10px] space-y-1.5 shadow-3xs">
+                                                    <div className="text-indigo-800 font-bold flex justify-between items-center">
+                                                      <span className="flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                                                        <span>Lembur ({item.totalOvertimeHours} Jam):</span>
                                                       </span>
-                                                      <span>
-                                                        +
-                                                        {formatIDR(
-                                                          item.calculatedOvertimePay,
-                                                        )}
+                                                      <span className="font-mono text-xs text-indigo-900 font-bold">
+                                                        +{formatIDR(item.calculatedOvertimePay)}
                                                       </span>
                                                     </div>
+                                                    {item.overtimeRecords && item.overtimeRecords.length > 0 && (
+                                                      <div className="space-y-1 pt-1.5 border-t border-indigo-100">
+                                                        {item.overtimeRecords.map((ot) => (
+                                                          <div key={ot.id} className="flex justify-between items-center text-slate-700">
+                                                            <span className="truncate pr-2">
+                                                              • {ot.date ? ot.date.split("T")[0] : ""} ({ot.hours} Jam): {ot.notes || "Lembur"}
+                                                            </span>
+                                                            <span className="font-mono font-semibold shrink-0">
+                                                              {formatIDR(ot.amount)}
+                                                            </span>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 )}
 
@@ -10757,6 +10873,8 @@ export default function App() {
                               "Terlambat",
                               "Tidak Hadir (Izin/Alpa)",
                               "Gaji Pokok / Rate Basis",
+                              "Jam Lembur",
+                              "Uang Lembur",
                               "Estimasi Gaji Bersih",
                             ];
 
@@ -10769,6 +10887,8 @@ export default function App() {
                               h.countTerlambat,
                               h.countIzin + h.countAlpa,
                               h.basePayRate,
+                              h.totalOvertimeHours,
+                              h.calculatedOvertimePay,
                               h.netSalary,
                             ]);
 
@@ -10810,6 +10930,35 @@ export default function App() {
                       </div>
                     </div>
                   </>
+                ) : payrollSubTab === "overtime_management" ? (
+                  <OvertimeManagementPanel
+                    hosts={hosts}
+                    overtimes={overtimes}
+                    onRefreshOvertimes={refreshOvertimes}
+                    availableCutoffMonths={availableCutoffMonths}
+                    activeCutoff={currentActiveCutoff}
+                    onCutoffChange={(val) => {
+                      if (val === "Semua") {
+                        setTimeFilter("Semua");
+                        return;
+                      }
+                      const [yearStr, monthStr] = val.split("-");
+                      const year = Number(yearStr);
+                      const monthIdx = Number(monthStr) - 1;
+                      const dateToSet = new Date(year, monthIdx, 15);
+                      const formatted = `${dateToSet.getFullYear()}-${String(dateToSet.getMonth() + 1).padStart(2, "0")}-15`;
+                      setFilterReferenceDate(formatted);
+                      setTimeFilter("Bulanan");
+                      setSalarySettings((prev) => ({
+                        ...prev,
+                        useCutOff: true,
+                        cutOffStartDay: 16,
+                        cutOffEndDay: 15,
+                      }));
+                    }}
+                    hourlyRate={salarySettings.overtimePayPerHour}
+                    formatIDR={formatIDR}
+                  />
                 ) : (
                   <ThrManagementPanel
                     hosts={hosts}
@@ -14381,6 +14530,24 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* GLOBAL OVERTIME INPUT MODAL */}
+      <OvertimeInputModal
+        isOpen={isOvertimeModalOpen}
+        onClose={() => {
+          setIsOvertimeModalOpen(false);
+          setOvertimeModalHostId("");
+        }}
+        hosts={hosts}
+        availableCutoffMonths={availableCutoffMonths}
+        defaultCutoff={currentActiveCutoff !== "Semua" ? currentActiveCutoff : availableCutoffMonths[0]}
+        defaultHostId={overtimeModalHostId}
+        hourlyRate={salarySettings.overtimePayPerHour}
+        onSaved={async () => {
+          await refreshOvertimes();
+        }}
+        formatIDR={formatIDR}
+      />
 
       <PWAInstallPrompt />
     </div>

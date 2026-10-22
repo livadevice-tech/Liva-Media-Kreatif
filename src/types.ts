@@ -353,3 +353,16 @@ export interface ThrItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface OvertimeRecord {
+  id: string;
+  hostId: string;
+  hostName: string;
+  cutoffPeriod: string;
+  date?: string | null;
+  hours: number;
+  amount: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
