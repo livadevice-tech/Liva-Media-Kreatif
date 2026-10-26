@@ -49,6 +49,7 @@ import {
   MessageSquare,
   AlertTriangle,
   Plus,
+  Minus,
   Search,
   Download,
   RefreshCw,
@@ -1658,6 +1659,7 @@ export default function App() {
   const handleUpdateHost = async (
     hostId: string,
     updatedFields: Partial<HostEmployee>,
+    silent = false,
   ) => {
     const normalizedFields =
       typeof updatedFields.studio === "string"
@@ -1684,10 +1686,14 @@ export default function App() {
           return h;
         }),
       );
-      customAlert("Data host berhasil diperbarui di database!");
+      if (!silent) {
+        customAlert("Data host berhasil diperbarui di database!");
+      }
     } catch (error) {
       console.error("Gagal update host:", error);
-      customAlert("Gagal memperbarui data host ke server.");
+      if (!silent) {
+        customAlert("Gagal memperbarui data host ke server.");
+      }
     }
   };
 
@@ -10008,6 +10014,7 @@ export default function App() {
                         data={filteredHostReportList}
                         formatIDR={formatIDR}
                         getAvatarUrl={getAvatarUrl}
+                        onUpdateHost={handleUpdateHost}
                       />
                       {/* DESKTOP VIEW: Rendered as a highly polished, responsive table */}
                       <div className="hidden md:block overflow-x-auto">
@@ -10224,31 +10231,79 @@ export default function App() {
                                     <td className="text-center font-mono font-bold text-slate-900 py-4 px-4">
                                       {hostType === "Reguler" ? (
                                         <div className="inline-flex flex-col items-center">
-                                          <div className="flex items-center gap-1.5 justify-center">
+                                          <div
+                                            className="flex items-center gap-1.5 justify-center"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
                                             <span className="text-[11px] text-slate-700 font-medium bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
                                               {item.totalHadir}
                                             </span>
                                             <span className="text-slate-400">/</span>
-                                            <input
-                                              type="number"
-                                              min={1}
-                                              max={31}
-                                              value={item.requiredWorkingDays}
-                                              onChange={(e) => {
-                                                const val = Math.max(
-                                                  1,
-                                                  Math.min(
-                                                    31,
-                                                    Number(e.target.value),
-                                                  ),
-                                                );
-                                                handleUpdateHost(item.id, {
-                                                  customWorkingDaysTarget: val,
-                                                });
-                                              }}
-                                              title="Ubah Target Hari Kerja Khusus Host Ini"
-                                              className="w-12 bg-white border border-slate-300 hover:border-slate-400 focus:border-indigo-500 rounded px-1.5 py-0.5 text-center font-mono font-medium text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                            />
+                                            <div className="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs hover:border-slate-400 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all overflow-hidden">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const current = Number(item.requiredWorkingDays) || 26;
+                                                  const next = Math.max(1, current - 1);
+                                                  handleUpdateHost(
+                                                    item.id,
+                                                    { customWorkingDaysTarget: next },
+                                                    true,
+                                                  );
+                                                }}
+                                                disabled={item.requiredWorkingDays <= 1}
+                                                title="Kurangi 1 hari kerja"
+                                                className="w-5 h-6 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed transition-colors border-r border-slate-200 cursor-pointer"
+                                              >
+                                                <Minus className="w-2.5 h-2.5" />
+                                              </button>
+
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                max={31}
+                                                value={item.requiredWorkingDays}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => {
+                                                  const val = Math.max(
+                                                    1,
+                                                    Math.min(
+                                                      31,
+                                                      Number(e.target.value) || 1,
+                                                    ),
+                                                  );
+                                                  handleUpdateHost(
+                                                    item.id,
+                                                    {
+                                                      customWorkingDaysTarget: val,
+                                                    },
+                                                    true,
+                                                  );
+                                                }}
+                                                title="Target Hari Kerja Host (ketik angka atau gunakan tombol +/-)"
+                                                className="w-8 bg-transparent py-0.5 text-center font-mono font-bold text-[11px] text-slate-800 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                              />
+
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const current = Number(item.requiredWorkingDays) || 26;
+                                                  const next = Math.min(31, current + 1);
+                                                  handleUpdateHost(
+                                                    item.id,
+                                                    { customWorkingDaysTarget: next },
+                                                    true,
+                                                  );
+                                                }}
+                                                disabled={item.requiredWorkingDays >= 31}
+                                                title="Tambah 1 hari kerja"
+                                                className="w-5 h-6 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed transition-colors border-l border-slate-200 cursor-pointer"
+                                              >
+                                                <Plus className="w-2.5 h-2.5" />
+                                              </button>
+                                            </div>
                                             <span className="text-[10px] text-slate-500 font-medium">
                                               Hari
                                             </span>

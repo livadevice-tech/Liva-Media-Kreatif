@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import { CheckCircle2,
-  Clock, ChevronDown, Check, CreditCard, Copy, Info } from "lucide-react";
+  Clock, ChevronDown, Check, CreditCard, Copy, Info, Minus, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 type MobilePayrollListProps = {
   data: any[];
   formatIDR: (val: number) => string;
   getAvatarUrl: (name: string) => string;
+  onUpdateHost?: (hostId: string, fields: any, silent?: boolean) => void;
 };
 
 export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
   data,
   formatIDR,
   getAvatarUrl,
+  onUpdateHost,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedBankId, setCopiedBankId] = useState<string | null>(null);
@@ -159,6 +161,61 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                     
                     {hostType === "Reguler" ? (
                       <div className="bg-slate-50 p-3 rounded-xl space-y-2">
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-slate-500 font-medium">Target Hari Kerja</span>
+                          {onUpdateHost ? (
+                            <div className="inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const current = Number(item.requiredWorkingDays) || 26;
+                                    const next = Math.max(1, current - 1);
+                                    onUpdateHost(item.id, { customWorkingDaysTarget: next }, true);
+                                  }}
+                                  disabled={item.requiredWorkingDays <= 1}
+                                  title="Kurangi 1 hari kerja"
+                                  className="w-5 h-6 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors border-r border-slate-200 cursor-pointer"
+                                >
+                                  <Minus className="w-2.5 h-2.5" />
+                                </button>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={31}
+                                  value={item.requiredWorkingDays}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    const val = Math.max(1, Math.min(31, Number(e.target.value) || 1));
+                                    onUpdateHost(item.id, { customWorkingDaysTarget: val }, true);
+                                  }}
+                                  title="Target Hari Kerja Host"
+                                  className="w-8 bg-transparent py-0.5 text-center font-mono font-bold text-[11px] text-slate-800 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const current = Number(item.requiredWorkingDays) || 26;
+                                    const next = Math.min(31, current + 1);
+                                    onUpdateHost(item.id, { customWorkingDaysTarget: next }, true);
+                                  }}
+                                  disabled={item.requiredWorkingDays >= 31}
+                                  title="Tambah 1 hari kerja"
+                                  className="w-5 h-6 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors border-l border-slate-200 cursor-pointer"
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                              <span className="text-[10px] text-slate-500 font-medium">Hari</span>
+                            </div>
+                          ) : (
+                            <span className="font-mono font-medium text-slate-700">
+                              {item.requiredWorkingDays} Hari
+                            </span>
+                          )}
+                        </div>
                         <div className="flex justify-between items-center text-[11px]">
                           <span className="text-slate-500">Gaji Pokok / Hari</span>
                           <span className="font-mono font-medium text-slate-700">
