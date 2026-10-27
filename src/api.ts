@@ -478,6 +478,18 @@ export const violationsApi = {
   },
   delete: async (id: string) => {
     return request<{ success: boolean }>('DELETE', `/violations/${id}`);
+  },
+  update: async (id: string, formData: FormData): Promise<{ success: boolean; id: string; proof_url?: string }> => {
+    const res = await fetch(`${API_BASE}/violations/${id}`, {
+      method: "PUT",
+      body: formData,
+      credentials: "same-origin",
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    return res.json();
   }
 };
 

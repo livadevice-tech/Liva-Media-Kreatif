@@ -88,6 +88,69 @@ export function registerViolationRoutes(app: Express) {
     return res.json({ success: true, id });
   }));
 
+  // Update a violation
+  app.put("/api/violations/:id", upload.single("proof"), asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { host_id, brand_id, shift, platform, violation_type, consequence, violation_date, remove_proof } = req.body;
+
+    const existing = await queryOne<any>(`SELECT * FROM host_violations WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Catatan pelanggaran tidak ditemukan." });
+    }
+
+    if (!host_id || !violation_type) {
+      return res.status(400).json({ error: "Host dan jenis pelanggaran wajib diisi." });
+    }
+
+    let proof_url = existing.proof_url;
+
+    if (req.file) {
+      // If a new file is uploaded, remove the old file if it exists
+      if (existing.proof_url) {
+        const oldPath = path.join(process.cwd(), existing.proof_url);
+        if (fs.existsSync(oldPath)) {
+          try {
+            fs.unlinkSync(oldPath);
+          } catch (e) {
+            console.warn("Could not delete old proof file:", oldPath, e);
+          }
+        }
+      }
+      proof_url = `/uploads/violations/${req.file.filename}`;
+    } else if (remove_proof === "true" || remove_proof === true) {
+      if (existing.proof_url) {
+        const oldPath = path.join(process.cwd(), existing.proof_url);
+        if (fs.existsSync(oldPath)) {
+          try {
+            fs.unlinkSync(oldPath);
+          } catch (e) {
+            console.warn("Could not delete proof file:", oldPath, e);
+          }
+        }
+      }
+      proof_url = null;
+    }
+
+    await execute(
+      `UPDATE host_violations
+       SET host_id = ?, brand_id = ?, shift = ?, platform = ?, violation_type = ?, proof_url = ?, consequence = ?, violation_date = ?
+       WHERE id = ?`,
+      [
+        host_id,
+        brand_id || null,
+        shift || null,
+        platform || null,
+        violation_type,
+        proof_url || null,
+        consequence || null,
+        violation_date || null,
+        id
+      ]
+    );
+
+    return res.json({ success: true, id, proof_url });
+  }));
+
   // Delete a violation
   app.delete("/api/violations/:id", asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;

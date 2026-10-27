@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Trash2, Search, AlertOctagon, X, Image, FileImage, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Search, AlertOctagon, X, Image, FileImage, ExternalLink, Pencil, Edit2 } from "lucide-react";
 import { violationsApi } from "../../api";
 import type { HostEmployee, ClientBrand } from "../../types";
 
@@ -24,6 +24,11 @@ export default function HostViolationsPanel({
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Edit state
+  const [editingViolationId, setEditingViolationId] = useState<string | null>(null);
+  const [existingProofUrl, setExistingProofUrl] = useState<string | null>(null);
+  const [removeProof, setRemoveProof] = useState(false);
 
   // Form states
   const [selectedHostId, setSelectedHostId] = useState("");
@@ -80,6 +85,53 @@ export default function HostViolationsPanel({
     );
   }, [brands, brandSearch]);
 
+  const resetForm = () => {
+    setEditingViolationId(null);
+    setSelectedHostId("");
+    setHostSearch("");
+    setSelectedBrandId("");
+    setBrandSearch("");
+    setSelectedShift("");
+    setSelectedPlatform("");
+    setViolationType("");
+    setConsequence("");
+    setProofFile(null);
+    setExistingProofUrl(null);
+    setRemoveProof(false);
+    setViolationDate(new Date().toISOString().split("T")[0]);
+    setErrorMsg("");
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (v: any) => {
+    resetForm();
+    setEditingViolationId(v.id);
+    setSelectedHostId(v.host_id || "");
+    setHostSearch(v.host_name || v.host_id || "");
+    setSelectedBrandId(v.brand_id || "");
+    setBrandSearch(v.brand_name || (v.brand_id ? "" : "Umum / Semua"));
+    setSelectedShift(v.shift || "");
+    setSelectedPlatform(v.platform || "");
+    setViolationType(v.violation_type || "");
+    setConsequence(v.consequence || "");
+
+    let d = new Date().toISOString().split("T")[0];
+    if (v.violation_date) {
+      d = String(v.violation_date).split("T")[0].split(" ")[0];
+    } else if (v.created_at) {
+      d = String(v.created_at).split("T")[0].split(" ")[0];
+    }
+    setViolationDate(d);
+
+    setExistingProofUrl(v.proof_url || null);
+    setRemoveProof(false);
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -108,22 +160,17 @@ export default function HostViolationsPanel({
         formData.append("proof", proofFile);
       }
 
-      await violationsApi.create(formData);
-      setSuccessMsg("Pelanggaran host berhasil dicatat!");
+      if (editingViolationId) {
+        formData.append("remove_proof", removeProof ? "true" : "false");
+        await violationsApi.update(editingViolationId, formData);
+        setSuccessMsg("Catatan pelanggaran host berhasil diperbarui!");
+      } else {
+        await violationsApi.create(formData);
+        setSuccessMsg("Pelanggaran host berhasil dicatat!");
+      }
       
-      // Reset form
-      setSelectedHostId("");
-      setHostSearch("");
-      setSelectedBrandId("");
-      setBrandSearch("");
-      setSelectedShift("");
-      setSelectedPlatform("");
-      setViolationType("");
-      setConsequence("");
-      setProofFile(null);
-      setViolationDate(new Date().toISOString().split("T")[0]);
+      resetForm();
       setShowForm(false);
-      
       fetchViolations();
     } catch (err: any) {
       setErrorMsg(err.message || "Gagal menyimpan pelanggaran host.");
@@ -176,7 +223,7 @@ export default function HostViolationsPanel({
 
         <button
           type="button"
-          onClick={() => setShowForm(true)}
+          onClick={handleOpenCreate}
           className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer select-none shadow-sm"
         >
           <Plus size={16} />
@@ -267,13 +314,24 @@ export default function HostViolationsPanel({
                         {v.consequence || "-"}
                       </td>
                       <td className="px-5 py-4 text-center">
-                        <button
-                          onClick={() => handleDelete(v.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                          title="Hapus Catatan"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(v)}
+                            className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Catatan Pelanggaran"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(v.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Hapus Catatan"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
 
@@ -350,12 +408,22 @@ export default function HostViolationsPanel({
                               <span className="text-slate-400 italic text-[10px]">Tidak ada bukti</span>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleDelete(v.id)}
-                            className="flex items-center gap-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors"
-                          >
-                            <Trash2 size={13} /> Hapus
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(v)}
+                              className="flex items-center gap-1 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors cursor-pointer"
+                            >
+                              <Pencil size={13} /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(v.id)}
+                              className="flex items-center gap-1 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={13} /> Hapus
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -378,12 +446,24 @@ export default function HostViolationsPanel({
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 my-auto sm:my-4 z-10 relative">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <AlertOctagon className="text-purple-600 w-5 h-5" />
-                Catat Pelanggaran Host Baru
+                {editingViolationId ? (
+                  <>
+                    <Edit2 className="text-indigo-600 w-5 h-5" />
+                    Edit Catatan Pelanggaran Host
+                  </>
+                ) : (
+                  <>
+                    <AlertOctagon className="text-purple-600 w-5 h-5" />
+                    Catat Pelanggaran Host Baru
+                  </>
+                )}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  resetForm();
+                }}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50 cursor-pointer"
               >
                 <X size={18} />
@@ -566,21 +646,64 @@ export default function HostViolationsPanel({
               {/* Upload Bukti */}
               <div>
                 <label className="block text-[11px] text-slate-600 mb-1.5">Upload Bukti Pelanggaran (Gambar)</label>
+                {existingProofUrl && !removeProof && !proofFile && (
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl mb-2.5 text-xs">
+                    <a
+                      href={existingProofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-purple-600 font-bold hover:underline"
+                    >
+                      <Image size={14} /> Lihat Bukti Saat Ini <ExternalLink size={10} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveProof(true)}
+                      className="text-red-500 hover:text-red-700 text-[11px] font-bold cursor-pointer"
+                    >
+                      Hapus Bukti
+                    </button>
+                  </div>
+                )}
+                {removeProof && (
+                  <div className="flex items-center justify-between p-2 bg-rose-50 border border-rose-200 rounded-xl mb-2.5 text-[11px] text-rose-700 font-bold">
+                    <span>Bukti gambar lama akan dihapus.</span>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveProof(false)}
+                      className="text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                      Batalkan
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <label className="flex items-center gap-2 border border-dashed border-slate-300 hover:border-purple-500 bg-slate-50/50 hover:bg-slate-50 px-4 py-3 rounded-xl cursor-pointer transition-colors text-slate-500 text-xs font-bold">
                     <FileImage size={16} />
-                    <span>Pilih Gambar</span>
+                    <span>{existingProofUrl && !removeProof ? "Ganti Gambar Bukti" : "Pilih Gambar"}</span>
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setProofFile(file);
+                        if (file) setRemoveProof(false);
+                      }}
                       className="hidden"
                     />
                   </label>
                   {proofFile && (
-                    <span className="text-slate-600 font-bold truncate max-w-[200px]">
-                      {proofFile.name}
-                    </span>
+                    <div className="flex items-center gap-2 text-slate-700 font-bold text-xs truncate max-w-[200px]">
+                      <span className="truncate">{proofFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setProofFile(null)}
+                        className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                        title="Batal pilih file baru"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -588,7 +711,10 @@ export default function HostViolationsPanel({
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    resetForm();
+                  }}
                   className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold cursor-pointer transition-colors"
                 >
                   Batal
@@ -598,7 +724,9 @@ export default function HostViolationsPanel({
                   disabled={loading}
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-3 rounded-xl font-bold cursor-pointer transition-colors"
                 >
-                  {loading ? "Menyimpan..." : "Simpan Pelanggaran"}
+                  {loading
+                    ? (editingViolationId ? "Menyimpan Perubahan..." : "Menyimpan...")
+                    : (editingViolationId ? "Simpan Perubahan" : "Simpan Pelanggaran")}
                 </button>
               </div>
             </form>
