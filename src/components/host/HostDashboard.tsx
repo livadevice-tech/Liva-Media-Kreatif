@@ -145,6 +145,7 @@ function createCaptionedImage(
   source: File | string,
   line1: string,
   line2: string,
+  line3: string,
   filename: string
 ): Promise<{ file: File; dataUrl: string }> {
   return new Promise((resolve, reject) => {
@@ -170,12 +171,12 @@ function createCaptionedImage(
         // Draw original photo
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Dimensions for bottom caption banner
-        const baseFontSize = Math.max(20, Math.round(width * 0.042));
-        const lineSpacing = Math.round(baseFontSize * 1.35);
+        // Dimensions for bottom caption banner (3 lines)
+        const baseFontSize = Math.max(18, Math.round(width * 0.038));
+        const lineSpacing = Math.round(baseFontSize * 1.32);
         const padX = Math.round(width * 0.04);
-        const padY = Math.round(width * 0.035);
-        const cardHeight = lineSpacing * 2 + padY * 1.5;
+        const padY = Math.round(width * 0.032);
+        const cardHeight = lineSpacing * 3 + padY * 1.4;
         const cardY = height - cardHeight - padY;
         const cardWidth = width - padX * 2;
         const cornerRadius = Math.max(12, Math.round(width * 0.025));
@@ -226,26 +227,36 @@ function createCaptionedImage(
         const textStartX = padX + accentWidth + padX * 0.7;
         const maxTextWidth = cardWidth - (accentWidth + padX * 1.5);
 
-        // Draw Line 1 (Host Name - Brand)
-        let line1Size = baseFontSize;
-        ctx.font = `bold ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-        while (ctx.measureText(line1).width > maxTextWidth && line1Size > 14) {
+        // Draw Line 1 (Tanggal Absen)
+        let line1Size = Math.round(baseFontSize * 0.88);
+        ctx.font = `600 ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        while (ctx.measureText(line1).width > maxTextWidth && line1Size > 12) {
           line1Size -= 2;
-          ctx.font = `bold ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+          ctx.font = `600 ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        }
+        ctx.fillStyle = '#93C5FD'; // Soft sky blue accent
+        ctx.textBaseline = 'top';
+        ctx.fillText(line1, textStartX, cardY + padY * 0.75);
+
+        // Draw Line 2 (Host Name - Brand)
+        let line2Size = baseFontSize;
+        ctx.font = `bold ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        while (ctx.measureText(line2).width > maxTextWidth && line2Size > 14) {
+          line2Size -= 2;
+          ctx.font = `bold ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         }
         ctx.fillStyle = '#FFFFFF';
-        ctx.textBaseline = 'top';
-        ctx.fillText(line1, textStartX, cardY + padY * 0.85);
+        ctx.fillText(line2, textStartX, cardY + padY * 0.75 + lineSpacing);
 
-        // Draw Line 2 (Shift - Platform)
-        let line2Size = Math.round(baseFontSize * 0.88);
-        ctx.font = `600 ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-        while (ctx.measureText(line2).width > maxTextWidth && line2Size > 12) {
-          line2Size -= 2;
-          ctx.font = `600 ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        // Draw Line 3 (Shift - Platform)
+        let line3Size = Math.round(baseFontSize * 0.88);
+        ctx.font = `600 ${line3Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        while (ctx.measureText(line3).width > maxTextWidth && line3Size > 12) {
+          line3Size -= 2;
+          ctx.font = `600 ${line3Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         }
         ctx.fillStyle = '#A7F3D0'; // Emerald-200 accent
-        ctx.fillText(line2, textStartX, cardY + padY * 0.85 + lineSpacing);
+        ctx.fillText(line3, textStartX, cardY + padY * 0.75 + lineSpacing * 2);
 
         ctx.restore();
 
@@ -614,14 +625,35 @@ export default function HostDashboard({
     }
   };
 
+  const formatAbsenDate = (dateVal?: string) => {
+    if (!dateVal) {
+      const now = new Date();
+      return now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    const parts = String(dateVal).split('T')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const dt = new Date(y, m, d);
+      return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    const parsed = new Date(dateVal);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    return String(dateVal);
+  };
+
   const generateWaMessage = (data: any) => {
     if (!data) return '';
+    const dateStr = formatAbsenDate(data.date || data.attendanceDate);
     const hostName = data.hostName || activeHostObj?.name || '-';
     const brand = data.brandHandled || data.brand || '-';
     const shift = data.shiftHours || data.shift || '-';
     const platform = data.platform || '-';
 
-    return `${hostName}-${brand}\n${shift}-${platform}`;
+    return `${dateStr}\n${hostName}-${brand}\n${shift}-${platform}`;
   };
 
   const getPhotoFileFromData = async (data: any): Promise<File | null> => {
@@ -726,17 +758,19 @@ export default function HostDashboard({
     const photoSrc = rawFile || data.proofImage || data.proof_image || data.proofUrl || data.proof_url || hostForm.photo;
     if (!photoSrc) return null;
 
+    const dateStr = formatAbsenDate(data.date || data.attendanceDate);
     const hostName = data.hostName || activeHostObj?.name || '-';
     const brand = data.brandHandled || data.brand || '-';
     const shift = data.shiftHours || data.shift || '-';
     const platform = data.platform || '-';
 
-    const line1 = `${hostName}-${brand}`;
-    const line2 = `${shift}-${platform}`;
+    const line1 = dateStr;
+    const line2 = `${hostName}-${brand}`;
+    const line3 = `${shift}-${platform}`;
     const filename = `absen-${hostName.replace(/\s+/g, '_')}-${Date.now()}.jpg`;
 
     try {
-      return await createCaptionedImage(photoSrc, line1, line2, filename);
+      return await createCaptionedImage(photoSrc, line1, line2, line3, filename);
     } catch (e) {
       console.warn('Gagal membuat foto bercaption:', e);
       if (rawFile) {
