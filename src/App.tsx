@@ -2140,9 +2140,10 @@ export default function App() {
       }
       setLogs((prev) => [newLog, ...prev]);
       
-      // Save for WhatsApp redirection modal with instant photo preview
+      // Save for WhatsApp redirection modal with instant photo preview & file sharing
       setLastSubmittedAttendanceLog({
         ...newLog,
+        photoFile: hostForm.photoFile || undefined,
         proofUrl: hostForm.photo || proofUrl || undefined,
         proof_url: hostForm.photo || proofUrl || undefined,
         proofImage: hostForm.photo || proofImageBase64 || undefined,

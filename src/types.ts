@@ -70,6 +70,7 @@ export interface AttendanceLog {
   proof_url?: string;
   proofImage?: string;
   proof_image?: string;
+  photoFile?: File;
 }
 
 export interface StudioItem {

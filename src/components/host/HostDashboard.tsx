@@ -419,6 +419,8 @@ export default function HostDashboard({
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [waModalData, setWaModalData] = useState<any>(null);
   const [waCopied, setWaCopied] = useState(false);
+  const [waPhotoCopied, setWaPhotoCopied] = useState(false);
+  const [isSendingWa, setIsSendingWa] = useState(false);
 
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const galleryInputRef = React.useRef<HTMLInputElement>(null);
@@ -464,45 +466,148 @@ export default function HostDashboard({
     return `${hostName}-${brand}\n${shift}-${platform}`;
   };
 
-  const handleSendToWhatsApp = async () => {
-    if (!waModalData) return;
-    const text = generateWaMessage(waModalData);
-
-    // If photoFile exists and browser supports sharing files (mobile browsers)
-    if (hostForm.photoFile && navigator.canShare && navigator.canShare({ files: [hostForm.photoFile] })) {
-      try {
-        await navigator.share({
-          title: `Absensi Host - ${waModalData.hostName || activeHostObj?.name}`,
-          text: text,
-          files: [hostForm.photoFile],
-        });
-        return;
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        console.warn('Native share failed, fallback to URL:', err);
-      }
+  const getPhotoFileFromData = async (data: any): Promise<File | null> => {
+    if (data?.photoFile instanceof File) {
+      return data.photoFile;
     }
+    if (hostForm.photoFile instanceof File) {
+      return hostForm.photoFile;
+    }
+    const photoData = data?.proofImage || data?.proof_image || data?.proofUrl || data?.proof_url || hostForm.photo;
+    if (!photoData || typeof photoData !== 'string') return null;
 
-    // Fallback: Copy to clipboard and open WhatsApp
     try {
-      await navigator.clipboard.writeText(text);
-      setWaCopied(true);
-      setTimeout(() => setWaCopied(false), 3000);
-    } catch (e) {}
-
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, '_blank');
+      const cleanName = (data?.hostName || activeHostObj?.name || 'host').replace(/\s+/g, '_');
+      if (photoData.startsWith('data:image/')) {
+        const arr = photoData.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const ext = mime.includes('png') ? 'png' : 'jpg';
+        return new File([u8arr], `absen-${cleanName}-${Date.now()}.${ext}`, { type: mime });
+      } else if (photoData.startsWith('blob:') || photoData.startsWith('http') || photoData.startsWith('/')) {
+        const res = await fetch(photoData);
+        const blob = await res.blob();
+        const ext = blob.type.includes('png') ? 'png' : 'jpg';
+        return new File([blob], `absen-${cleanName}-${Date.now()}.${ext}`, { type: blob.type || 'image/jpeg' });
+      }
+    } catch (err) {
+      console.warn('Gagal mengubah data foto ke File:', err);
+    }
+    return null;
   };
 
-  const handleDownloadPhoto = () => {
-    const photoSrc = waModalData?.proofUrl || waModalData?.proof_url || hostForm.photo;
-    if (!photoSrc) return;
-    const a = document.createElement('a');
-    a.href = photoSrc;
-    a.download = `absen-${(activeHostObj?.name || 'host').replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const copyPhotoToClipboard = async (file: File): Promise<boolean> => {
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') return false;
+    try {
+      let blobToCopy: Blob = file;
+      if (file.type !== 'image/png') {
+        const bmp = await createImageBitmap(file);
+        const canvas = document.createElement('canvas');
+        canvas.width = bmp.width;
+        canvas.height = bmp.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false;
+        ctx.drawImage(bmp, 0, 0);
+        const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (pngBlob) blobToCopy = pngBlob;
+      }
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blobToCopy }),
+      ]);
+      return true;
+    } catch (e) {
+      console.warn('Gagal salin foto ke clipboard:', e);
+      return false;
+    }
+  };
+
+  const handleSendToWhatsApp = async () => {
+    if (!waModalData) return;
+    setIsSendingWa(true);
+    const text = generateWaMessage(waModalData);
+
+    try {
+      const photoFile = await getPhotoFileFromData(waModalData);
+
+      // 1. Cek Web Share API (Khususnya di Mobile Android/iOS yang support kirim file langsung ke WhatsApp)
+      if (photoFile && navigator.canShare && navigator.canShare({ files: [photoFile] })) {
+        try {
+          await navigator.share({
+            title: `Absensi Host - ${waModalData.hostName || activeHostObj?.name || 'Host'}`,
+            text: text,
+            files: [photoFile],
+          });
+          setIsSendingWa(false);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') {
+            setIsSendingWa(false);
+            return;
+          }
+          console.warn('navigator.share gagal, melanjutkan ke WhatsApp Web URL:', shareErr);
+        }
+      }
+
+      // 2. Fallback untuk Desktop/Laptop (WhatsApp Web tidak mendukung kirim file via URL parameter):
+      // Salin foto ke clipboard agar user di WhatsApp Web tinggal tekan Ctrl+V (Paste) foto
+      if (photoFile) {
+        const copied = await copyPhotoToClipboard(photoFile);
+        if (copied) {
+          setWaPhotoCopied(true);
+          setTimeout(() => setWaPhotoCopied(false), 5000);
+        }
+      }
+
+      // Salin teks juga sebagai cadangan
+      try {
+        await navigator.clipboard.writeText(text);
+        setWaCopied(true);
+        setTimeout(() => setWaCopied(false), 3000);
+      } catch (e) {}
+
+      // Buka WhatsApp Web / Desktop
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+    } catch (err) {
+      console.error('Error saat share WhatsApp:', err);
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+    } finally {
+      setIsSendingWa(false);
+    }
+  };
+
+  const handleDownloadPhoto = async () => {
+    try {
+      const file = await getPhotoFileFromData(waModalData);
+      if (!file) {
+        const photoSrc = waModalData?.proofImage || waModalData?.proof_image || waModalData?.proofUrl || waModalData?.proof_url || hostForm.photo;
+        if (!photoSrc) return;
+        const a = document.createElement('a');
+        a.href = photoSrc;
+        a.download = `absen-${(activeHostObj?.name || 'host').replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn('Gagal unduh foto:', e);
+    }
   };
 
   useEffect(() => {
@@ -2325,17 +2430,25 @@ export default function HostDashboard({
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto space-y-4">
                 {/* Photo Preview if available */}
-                {(waModalData.proofUrl || waModalData.proof_url || hostForm.photo) && (
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-900">
+                {(waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo) && (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-900 group">
                     <img
-                      src={waModalData.proofUrl || waModalData.proof_url || hostForm.photo}
+                      src={waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo}
                       alt="Foto Absen"
                       className="w-full h-44 object-cover object-center"
                     />
-                    <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>Foto Berhasil Disimpan</span>
+                    <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Foto Absen Disertakan</span>
                     </div>
+                  </div>
+                )}
+
+                {/* Feedback saat foto disalin ke clipboard */}
+                {waPhotoCopied && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-semibold">Foto disalin ke clipboard! Tekan <b>Ctrl+V</b> di WhatsApp untuk tempel foto.</span>
                   </div>
                 )}
 
@@ -2359,16 +2472,35 @@ export default function HostDashboard({
                 <button
                   type="button"
                   onClick={handleSendToWhatsApp}
-                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-[#25D366]/30 active:scale-[0.98] transition-all cursor-pointer"
+                  disabled={isSendingWa}
+                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-[#25D366]/30 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-75"
                 >
-                  <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 fill-white shrink-0" viewBox="0 0 24 24">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                   </svg>
-                  <span>Kirim ke WhatsApp Group Liva</span>
+                  <span>{isSendingWa ? 'Menyiapkan Foto & WhatsApp...' : 'Kirim Foto + Format ke WhatsApp Group'}</span>
                 </button>
 
-                {/* Secondary Actions */}
-                <div className="flex gap-2.5">
+                {/* Secondary Actions: Salin Foto, Salin Teks, Unduh Foto */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const file = await getPhotoFileFromData(waModalData);
+                      if (file) {
+                        const ok = await copyPhotoToClipboard(file);
+                        if (ok) {
+                          setWaPhotoCopied(true);
+                          setTimeout(() => setWaPhotoCopied(false), 4000);
+                        }
+                      }
+                    }}
+                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {waPhotoCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Camera className="w-3.5 h-3.5 text-slate-500" />}
+                    <span className="truncate">{waPhotoCopied ? 'Tersalin!' : 'Salin Foto'}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -2378,24 +2510,24 @@ export default function HostDashboard({
                         setTimeout(() => setWaCopied(false), 3000);
                       });
                     }}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    {waCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
-                    <span>{waCopied ? 'Tersalin!' : 'Salin Format Teks'}</span>
+                    {waCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                    <span className="truncate">{waCopied ? 'Tersalin!' : 'Salin Teks'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleDownloadPhoto}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Download className="w-4 h-4 text-slate-500" />
-                    <span>Unduh Foto</span>
+                    <Download className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="truncate">Unduh Foto</span>
                   </button>
                 </div>
 
                 <p className="text-[11px] text-slate-400 text-center font-medium leading-relaxed">
-                  Data absensi Anda telah sukses tersimpan di sistem Liva. Tekan tombol hijau di atas untuk membagikan bukti absensi ke WhatsApp Group Liva.
+                  Di HP/Smartphone, WhatsApp akan langsung terbuka dengan foto terlampir & teks caption. Di Laptop/PC, foto otomatis disalin ke clipboard agar bisa langsung di-paste (Ctrl+V) ke chat.
                 </p>
 
                 <button
