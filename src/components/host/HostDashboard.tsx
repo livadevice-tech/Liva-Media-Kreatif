@@ -141,6 +141,161 @@ function compressImage(file: File, maxWidth = 1280, quality = 0.82): Promise<{ d
   });
 }
 
+function createCaptionedImage(
+  source: File | string,
+  line1: string,
+  line2: string,
+  filename: string
+): Promise<{ file: File; dataUrl: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+
+    const processCanvas = () => {
+      try {
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          if (source instanceof File) {
+            return resolve({ file: source, dataUrl: img.src });
+          }
+          return reject(new Error('Canvas context not available'));
+        }
+
+        // Draw original photo
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Dimensions for bottom caption banner
+        const baseFontSize = Math.max(20, Math.round(width * 0.042));
+        const lineSpacing = Math.round(baseFontSize * 1.35);
+        const padX = Math.round(width * 0.04);
+        const padY = Math.round(width * 0.035);
+        const cardHeight = lineSpacing * 2 + padY * 1.5;
+        const cardY = height - cardHeight - padY;
+        const cardWidth = width - padX * 2;
+        const cornerRadius = Math.max(12, Math.round(width * 0.025));
+
+        // Draw sleek card backdrop with rounded corners
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(padX + cornerRadius, cardY);
+        ctx.lineTo(padX + cardWidth - cornerRadius, cardY);
+        ctx.arcTo(padX + cardWidth, cardY, padX + cardWidth, cardY + cornerRadius, cornerRadius);
+        ctx.lineTo(padX + cardWidth, cardY + cardHeight - cornerRadius);
+        ctx.arcTo(padX + cardWidth, cardY + cardHeight, padX + cardWidth - cornerRadius, cardY + cardHeight, cornerRadius);
+        ctx.lineTo(padX + cornerRadius, cardY + cardHeight);
+        ctx.arcTo(padX, cardY + cardHeight, padX, cardY + cardHeight - cornerRadius, cornerRadius);
+        ctx.lineTo(padX, cardY + cornerRadius);
+        ctx.arcTo(padX, cardY, padX + cornerRadius, cardY, cornerRadius);
+        ctx.closePath();
+
+        // Dark glass background
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.fill();
+
+        // Subtle border
+        ctx.lineWidth = Math.max(1.5, Math.round(width * 0.002));
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.stroke();
+
+        // Left accent bar (WhatsApp Emerald accent)
+        const accentWidth = Math.max(5, Math.round(width * 0.012));
+        ctx.beginPath();
+        ctx.moveTo(padX + cornerRadius, cardY);
+        ctx.lineTo(padX + accentWidth, cardY);
+        ctx.lineTo(padX + accentWidth, cardY + cardHeight);
+        ctx.lineTo(padX + cornerRadius, cardY + cardHeight);
+        ctx.arcTo(padX, cardY + cardHeight, padX, cardY + cardHeight - cornerRadius, cornerRadius);
+        ctx.lineTo(padX, cardY + cornerRadius);
+        ctx.arcTo(padX, cardY, padX + cornerRadius, cardY, cornerRadius);
+        ctx.closePath();
+        ctx.fillStyle = '#25D366';
+        ctx.fill();
+
+        // Shadow for text legibility
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = Math.round(baseFontSize * 0.35);
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
+
+        const textStartX = padX + accentWidth + padX * 0.7;
+        const maxTextWidth = cardWidth - (accentWidth + padX * 1.5);
+
+        // Draw Line 1 (Host Name - Brand)
+        let line1Size = baseFontSize;
+        ctx.font = `bold ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        while (ctx.measureText(line1).width > maxTextWidth && line1Size > 14) {
+          line1Size -= 2;
+          ctx.font = `bold ${line1Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        }
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textBaseline = 'top';
+        ctx.fillText(line1, textStartX, cardY + padY * 0.85);
+
+        // Draw Line 2 (Shift - Platform)
+        let line2Size = Math.round(baseFontSize * 0.88);
+        ctx.font = `600 ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        while (ctx.measureText(line2).width > maxTextWidth && line2Size > 12) {
+          line2Size -= 2;
+          ctx.font = `600 ${line2Size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        }
+        ctx.fillStyle = '#A7F3D0'; // Emerald-200 accent
+        ctx.fillText(line2, textStartX, cardY + padY * 0.85 + lineSpacing);
+
+        ctx.restore();
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], filename, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve({ file, dataUrl });
+            } else {
+              if (source instanceof File) {
+                resolve({ file: source, dataUrl });
+              } else {
+                reject(new Error('Canvas blob conversion failed'));
+              }
+            }
+          },
+          'image/jpeg',
+          0.88
+        );
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onload = processCanvas;
+    img.onerror = () => {
+      if (source instanceof File) {
+        resolve({ file: source, dataUrl: '' });
+      } else {
+        reject(new Error('Failed to load image for captioning'));
+      }
+    };
+
+    if (source instanceof File) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(source);
+    } else {
+      img.src = source;
+    }
+  });
+}
+
 interface HostDashboardProps {
   activeHostObj: any;
   hostForm: any;
@@ -420,7 +575,10 @@ export default function HostDashboard({
   const [waModalData, setWaModalData] = useState<any>(null);
   const [waCopied, setWaCopied] = useState(false);
   const [waPhotoCopied, setWaPhotoCopied] = useState(false);
+  const [waBothCopied, setWaBothCopied] = useState(false);
   const [isSendingWa, setIsSendingWa] = useState(false);
+  const [captionedPhoto, setCaptionedPhoto] = useState<{ file: File; dataUrl: string } | null>(null);
+  const [isGeneratingCaptionPhoto, setIsGeneratingCaptionPhoto] = useState(false);
 
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const galleryInputRef = React.useRef<HTMLInputElement>(null);
@@ -502,30 +660,117 @@ export default function HostDashboard({
     return null;
   };
 
-  const copyPhotoToClipboard = async (file: File): Promise<boolean> => {
-    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') return false;
+  const copyPhotoAndTextToClipboard = async (file: File, text: string): Promise<boolean> => {
+    if (!navigator.clipboard) return false;
     try {
-      let blobToCopy: Blob = file;
+      let pngBlob: Blob = file;
       if (file.type !== 'image/png') {
         const bmp = await createImageBitmap(file);
         const canvas = document.createElement('canvas');
         canvas.width = bmp.width;
         canvas.height = bmp.height;
         const ctx = canvas.getContext('2d');
-        if (!ctx) return false;
-        ctx.drawImage(bmp, 0, 0);
-        const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-        if (pngBlob) blobToCopy = pngBlob;
+        if (ctx) {
+          ctx.drawImage(bmp, 0, 0);
+          const converted = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
+          if (converted) pngBlob = converted;
+        }
       }
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blobToCopy }),
-      ]);
+
+      const textBlob = new Blob([text], { type: 'text/plain' });
+
+      if (typeof ClipboardItem !== 'undefined') {
+        // Coba salin keduanya (image/png dan text/plain) sekaligus dalam satu ClipboardItem
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': pngBlob,
+              'text/plain': textBlob,
+            }),
+          ]);
+          return true;
+        } catch (multiErr) {
+          console.warn('Multi-MIME clipboard write tidak didukung, coba image saja:', multiErr);
+        }
+
+        // Jika multi-mime ditolak OS/browser, salin image saja (yang sudah ada watermark teksnya)
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': pngBlob,
+            }),
+          ]);
+          return true;
+        } catch (imgErr) {
+          console.warn('Image clipboard write gagal, fallback ke teks saja:', imgErr);
+        }
+      }
+
+      // Fallback: salin teks biasa
+      await navigator.clipboard.writeText(text);
       return true;
     } catch (e) {
-      console.warn('Gagal salin foto ke clipboard:', e);
-      return false;
+      console.warn('Gagal salin ke clipboard:', e);
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        return false;
+      }
     }
   };
+
+  const getCaptionedPhotoFile = async (data: any): Promise<{ file: File; dataUrl: string } | null> => {
+    if (!data) return null;
+    const rawFile = await getPhotoFileFromData(data);
+    const photoSrc = rawFile || data.proofImage || data.proof_image || data.proofUrl || data.proof_url || hostForm.photo;
+    if (!photoSrc) return null;
+
+    const hostName = data.hostName || activeHostObj?.name || '-';
+    const brand = data.brandHandled || data.brand || '-';
+    const shift = data.shiftHours || data.shift || '-';
+    const platform = data.platform || '-';
+
+    const line1 = `${hostName}-${brand}`;
+    const line2 = `${shift}-${platform}`;
+    const filename = `absen-${hostName.replace(/\s+/g, '_')}-${Date.now()}.jpg`;
+
+    try {
+      return await createCaptionedImage(photoSrc, line1, line2, filename);
+    } catch (e) {
+      console.warn('Gagal membuat foto bercaption:', e);
+      if (rawFile) {
+        return { file: rawFile, dataUrl: typeof photoSrc === 'string' ? photoSrc : '' };
+      }
+      return null;
+    }
+  };
+
+  // Generate otomatis foto yang sudah tersemat format teksnya saat modal WA terbuka
+  useEffect(() => {
+    if (!waModalData) {
+      setCaptionedPhoto(null);
+      return;
+    }
+    let isCancelled = false;
+    setIsGeneratingCaptionPhoto(true);
+
+    getCaptionedPhotoFile(waModalData)
+      .then((res) => {
+        if (!isCancelled && res) {
+          setCaptionedPhoto(res);
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsGeneratingCaptionPhoto(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [waModalData]);
 
   const handleSendToWhatsApp = async () => {
     if (!waModalData) return;
@@ -533,7 +778,9 @@ export default function HostDashboard({
     const text = generateWaMessage(waModalData);
 
     try {
-      const photoFile = await getPhotoFileFromData(waModalData);
+      // Prioritaskan foto yang sudah ada tulisan / formatnya
+      const targetPhoto = captionedPhoto || (await getCaptionedPhotoFile(waModalData));
+      const photoFile = targetPhoto?.file || (await getPhotoFileFromData(waModalData));
 
       // 1. Cek Web Share API (Khususnya di Mobile Android/iOS yang support kirim file langsung ke WhatsApp)
       if (photoFile && navigator.canShare && navigator.canShare({ files: [photoFile] })) {
@@ -555,21 +802,18 @@ export default function HostDashboard({
       }
 
       // 2. Fallback untuk Desktop/Laptop (WhatsApp Web tidak mendukung kirim file via URL parameter):
-      // Salin foto ke clipboard agar user di WhatsApp Web tinggal tekan Ctrl+V (Paste) foto
+      // Salin foto + teks sekaligus ke clipboard agar user di WhatsApp Web tinggal tekan Ctrl+V (Paste) foto
       if (photoFile) {
-        const copied = await copyPhotoToClipboard(photoFile);
-        if (copied) {
-          setWaPhotoCopied(true);
-          setTimeout(() => setWaPhotoCopied(false), 5000);
-        }
+        await copyPhotoAndTextToClipboard(photoFile, text);
+        setWaBothCopied(true);
+        setTimeout(() => setWaBothCopied(false), 5000);
+      } else {
+        try {
+          await navigator.clipboard.writeText(text);
+          setWaCopied(true);
+          setTimeout(() => setWaCopied(false), 3000);
+        } catch (e) {}
       }
-
-      // Salin teks juga sebagai cadangan
-      try {
-        await navigator.clipboard.writeText(text);
-        setWaCopied(true);
-        setTimeout(() => setWaCopied(false), 3000);
-      } catch (e) {}
 
       // Buka WhatsApp Web / Desktop
       const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -583,9 +827,31 @@ export default function HostDashboard({
     }
   };
 
+  const handleCopyPhotoAndText = async () => {
+    if (!waModalData) return;
+    const text = generateWaMessage(waModalData);
+    const targetPhoto = captionedPhoto || (await getCaptionedPhotoFile(waModalData));
+    const photoFile = targetPhoto?.file || (await getPhotoFileFromData(waModalData));
+
+    if (photoFile) {
+      const ok = await copyPhotoAndTextToClipboard(photoFile, text);
+      if (ok) {
+        setWaBothCopied(true);
+        setTimeout(() => setWaBothCopied(false), 4500);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        setWaCopied(true);
+        setTimeout(() => setWaCopied(false), 3000);
+      } catch (e) {}
+    }
+  };
+
   const handleDownloadPhoto = async () => {
     try {
-      const file = await getPhotoFileFromData(waModalData);
+      const targetPhoto = captionedPhoto || (await getCaptionedPhotoFile(waModalData));
+      const file = targetPhoto?.file || (await getPhotoFileFromData(waModalData));
       if (!file) {
         const photoSrc = waModalData?.proofImage || waModalData?.proof_image || waModalData?.proofUrl || waModalData?.proof_url || hostForm.photo;
         if (!photoSrc) return;
@@ -2429,26 +2695,32 @@ export default function HostDashboard({
 
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto space-y-4">
-                {/* Photo Preview if available */}
-                {(waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo) && (
+                {/* Photo Preview if available with embedded caption */}
+                {(captionedPhoto?.dataUrl || waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo) && (
                   <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-900 group">
                     <img
-                      src={waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo}
+                      src={captionedPhoto?.dataUrl || waModalData.proofImage || waModalData.proof_image || waModalData.proofUrl || waModalData.proof_url || hostForm.photo}
                       alt="Foto Absen"
-                      className="w-full h-44 object-cover object-center"
+                      className="w-full max-h-56 object-contain bg-slate-950"
                     />
                     <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Foto Absen Disertakan</span>
+                      <span>Foto + Teks Terpadu</span>
                     </div>
+                    {isGeneratingCaptionPhoto && (
+                      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold gap-2">
+                        <Sparkles className="w-4 h-4 animate-spin text-emerald-400" />
+                        <span>Menyematkan format teks ke foto...</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Feedback saat foto disalin ke clipboard */}
-                {waPhotoCopied && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+                {/* Feedback saat foto & teks disalin ke clipboard */}
+                {waBothCopied && (
+                  <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-semibold">Foto disalin ke clipboard! Tekan <b>Ctrl+V</b> di WhatsApp untuk tempel foto.</span>
+                    <span className="font-semibold">Foto & format teks berhasil disalin! Tekan <b>Ctrl+V</b> di WhatsApp untuk menempelkan foto.</span>
                   </div>
                 )}
 
@@ -2481,26 +2753,18 @@ export default function HostDashboard({
                   <span>{isSendingWa ? 'Menyiapkan Foto & WhatsApp...' : 'Kirim Foto + Format ke WhatsApp Group'}</span>
                 </button>
 
-                {/* Secondary Actions: Salin Foto, Salin Teks, Unduh Foto */}
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const file = await getPhotoFileFromData(waModalData);
-                      if (file) {
-                        const ok = await copyPhotoToClipboard(file);
-                        if (ok) {
-                          setWaPhotoCopied(true);
-                          setTimeout(() => setWaPhotoCopied(false), 4000);
-                        }
-                      }
-                    }}
-                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    {waPhotoCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Camera className="w-3.5 h-3.5 text-slate-500" />}
-                    <span className="truncate">{waPhotoCopied ? 'Tersalin!' : 'Salin Foto'}</span>
-                  </button>
+                {/* Tombol Salin Foto & Teks Sekaligus */}
+                <button
+                  type="button"
+                  onClick={handleCopyPhotoAndText}
+                  className="w-full py-3 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                >
+                  {waBothCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-emerald-600" />}
+                  <span>{waBothCopied ? 'Foto & Teks Berhasil Disalin!' : 'Salin Foto & Teks Sekaligus'}</span>
+                </button>
 
+                {/* Secondary Actions: Salin Teks Saja, Unduh Foto Bertulisan */}
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -2510,16 +2774,16 @@ export default function HostDashboard({
                         setTimeout(() => setWaCopied(false), 3000);
                       });
                     }}
-                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     {waCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                    <span className="truncate">{waCopied ? 'Tersalin!' : 'Salin Teks'}</span>
+                    <span className="truncate">{waCopied ? 'Teks Tersalin!' : 'Salin Teks Saja'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleDownloadPhoto}
-                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-slate-500" />
                     <span className="truncate">Unduh Foto</span>
@@ -2527,7 +2791,7 @@ export default function HostDashboard({
                 </div>
 
                 <p className="text-[11px] text-slate-400 text-center font-medium leading-relaxed">
-                  Di HP/Smartphone, WhatsApp akan langsung terbuka dengan foto terlampir & teks caption. Di Laptop/PC, foto otomatis disalin ke clipboard agar bisa langsung di-paste (Ctrl+V) ke chat.
+                  Foto otomatis disematkan identitas format absen Anda. Di HP, WhatsApp akan otomatis membuka foto & format teks. Di Laptop/PC, gunakan "Salin Foto & Teks" lalu tekan <b>Ctrl+V</b> di WhatsApp.
                 </p>
 
                 <button
