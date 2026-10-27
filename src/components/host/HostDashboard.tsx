@@ -456,29 +456,12 @@ export default function HostDashboard({
 
   const generateWaMessage = (data: any) => {
     if (!data) return '';
-    const dateFormatted = data.date
-      ? new Date(data.date).toLocaleDateString('id-ID', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
-      : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const hostName = data.hostName || activeHostObj?.name || '-';
+    const brand = data.brandHandled || data.brand || '-';
+    const shift = data.shiftHours || data.shift || '-';
+    const platform = data.platform || '-';
 
-    const statusLabel = data.status === 'Present' ? 'Tepat Waktu' : 'Terlambat';
-    const jamLabel = data.checkInTime || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-    return `*ABSENSI HOST LIVE STREAMING - LIVA MEDIA KREATIF*
-----------------------------------------
-👤 *Nama Host:* ${data.hostName || activeHostObj?.name || '-'}
-🏷️ *Brand:* ${data.brandHandled || data.brand || '-'}
-📅 *Tanggal Absen:* ${dateFormatted}
-⏰ *Jam Absen:* ${jamLabel} (${statusLabel})
-⏱️ *Shift:* ${data.shiftHours || data.shift || '-'}
-🏢 *Studio:* ${data.studio || '-'}
-📱 *Platform:* ${data.platform || '-'}
-----------------------------------------
-*Status:* Berhasil tersimpan di database sistem Liva Media Kreatif`;
+    return `${hostName}-${brand}\n${shift}-${platform}`;
   };
 
   const handleSendToWhatsApp = async () => {
@@ -2356,68 +2339,19 @@ export default function HostDashboard({
                   </div>
                 )}
 
-                {/* Ringkasan Data Absen */}
-                <div className="bg-[#f8f9fc] rounded-2xl p-4 border border-slate-100 space-y-2.5">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                    Detail Laporan Absensi
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Nama Host</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.hostName || activeHostObj?.name || '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Brand</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.brandHandled || waModalData.brand || '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Tanggal Absen</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.date ? new Date(waModalData.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Shift</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.shiftHours || waModalData.shift || '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Studio</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.studio || '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Platform</span>
-                      <span className="font-extrabold text-slate-800 truncate block">
-                        {waModalData.platform || '-'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold block">Jam Absen & Status</span>
-                      <span className="font-mono font-black text-xs text-slate-800">
-                        {waModalData.checkInTime || '-'}
-                      </span>
-                    </div>
-                    <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
-                      waModalData.status === 'Present' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {waModalData.status === 'Present' ? 'Tepat Waktu' : 'Terlambat'}
+                {/* Format Pesan WhatsApp Simple */}
+                <div className="bg-[#f8f9fc] rounded-2xl p-4 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Pesan WhatsApp Group
                     </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      Format Baru
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 text-xs text-slate-800 font-bold leading-relaxed whitespace-pre-line shadow-2xs font-sans">
+                    {generateWaMessage(waModalData)}
                   </div>
                 </div>
 
