@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Plus, Calendar, Clock, Edit2, Trash2, FileSpreadsheet } from "lucide-react";
 import type { AttendanceLog, HostEmployee, ClientBrand } from "../../types";
 import { SearchableHostSelect } from "./HostManagement";
+import { normalizeDateYMD } from "../../shared/utils/appUi";
 
 interface SalarySettings {
   useCutOff: boolean;
@@ -135,16 +136,43 @@ export function AttendanceCalendarView({
     ? monthName 
     : `Cut-Off ${monthName}`;
 
-  // Get selected host logs
+  // Helper to get normalized YYYY-MM-DD date from log
+  const getLogDate = (log: AttendanceLog): string => {
+    const raw = log.date || (typeof (log as any).timestamp === "string" ? (log as any).timestamp.split(" ")[0] : "");
+    return normalizeDateYMD(raw);
+  };
+
+  // Set of dates within active calendar view (e.g. 16 Prev Month - 15 Current Month for Cut-Off)
+  const calendarDateSet = useMemo(() => {
+    return new Set(calendarDays.map((d) => d.dateStr));
+  }, [calendarDays]);
+
+  // Total attendance data across all hosts for the active period/cutoff
+  const periodAllLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const d = getLogDate(log);
+      return d ? calendarDateSet.has(d) : false;
+    });
+  }, [logs, calendarDateSet]);
+
+  // Get selected host logs (all-time)
   const selectedHostLogs = useMemo(() => {
     if (!selectedHostId) return [];
     return logs.filter((log) => log.hostId === selectedHostId || log.employeeId === selectedHostId);
   }, [logs, selectedHostId]);
 
+  // Get selected host logs specifically for the active period/cutoff
+  const selectedHostPeriodLogs = useMemo(() => {
+    if (!selectedHostId) return [];
+    return selectedHostLogs.filter((log) => {
+      const d = getLogDate(log);
+      return d ? calendarDateSet.has(d) : false;
+    });
+  }, [selectedHostId, selectedHostLogs, calendarDateSet]);
+
   const getLogsForDate = (dateStr: string) => {
     return selectedHostLogs.filter(l => {
-      const logDate = l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "");
-      return logDate === dateStr;
+      return getLogDate(l) === dateStr;
     });
   };
 
@@ -256,17 +284,17 @@ export function AttendanceCalendarView({
   }, [hosts, selectedHostId]);
 
   const hostStats = useMemo(() => {
-    if (!selectedHostId || selectedHostLogs.length === 0) {
+    if (!selectedHostId || selectedHostPeriodLogs.length === 0) {
       return { present: 0, late: 0, excused: 0, absent: 0, overtime: 0, total: 0 };
     }
-    const present = selectedHostLogs.filter(l => l.status === "Present").length;
-    const late = selectedHostLogs.filter(l => l.status === "Late").length;
-    const excused = selectedHostLogs.filter(l => l.status === "Excused").length;
-    const absent = selectedHostLogs.filter(l => l.status === "Absent").length;
-    const overtime = selectedHostLogs.reduce((acc, l) => acc + (Number(l.overtimeHours) || 0), 0);
-    const total = selectedHostLogs.length;
+    const present = selectedHostPeriodLogs.filter(l => l.status === "Present").length;
+    const late = selectedHostPeriodLogs.filter(l => l.status === "Late").length;
+    const excused = selectedHostPeriodLogs.filter(l => l.status === "Excused").length;
+    const absent = selectedHostPeriodLogs.filter(l => l.status === "Absent").length;
+    const overtime = selectedHostPeriodLogs.reduce((acc, l) => acc + (Number(l.overtimeHours) || 0), 0);
+    const total = selectedHostPeriodLogs.length;
     return { present, late, excused, absent, overtime, total };
-  }, [selectedHostId, selectedHostLogs]);
+  }, [selectedHostId, selectedHostPeriodLogs]);
 
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -353,7 +381,7 @@ export function AttendanceCalendarView({
           </div>
 
           {/* Date Navigator */}
-          <div className="inline-flex h-10 items-center justify-between bg-white px-1 rounded-xl border border-slate-200/90 shadow-3xs shrink-0">
+          <div className="inline-flex min-h-[40px] items-center justify-between bg-white px-1 py-0.5 rounded-xl border border-slate-200/90 shadow-3xs shrink-0">
             <button 
               onClick={handlePrevMonth} 
               className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer border-0 bg-transparent shrink-0"
@@ -361,9 +389,14 @@ export function AttendanceCalendarView({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap select-none text-center min-w-[140px] sm:min-w-[170px]">
-              {gridTitle}
-            </span>
+            <div className="flex flex-col items-center justify-center px-2.5 sm:px-3 min-w-[140px] sm:min-w-[175px]">
+              <span className="text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap select-none text-center leading-tight">
+                {gridTitle}
+              </span>
+              <span className="text-[10px] font-bold text-indigo-600 whitespace-nowrap -mt-0.5">
+                {periodAllLogs.length.toLocaleString("id-ID")} Data Absen
+              </span>
+            </div>
             <button 
               onClick={handleNextMonth} 
               className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer border-0 bg-transparent shrink-0"
@@ -411,44 +444,54 @@ export function AttendanceCalendarView({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                Periode Aktif: <span className="font-semibold text-slate-700">{gridTitle}</span>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>
+                  Periode Aktif: <strong className="font-semibold text-slate-700">{gridTitle}</strong>
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.2 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold">
+                  {periodAllLogs.length.toLocaleString("id-ID")} Total Data Cut-Off
+                </span>
               </p>
             </div>
           </div>
 
           {/* Quick Stats Badges */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-3xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-3xs" title="Jumlah hadir pada cut-off ini">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {hostStats.present} Hadir
             </span>
             {hostStats.late > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-3xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-3xs" title="Jumlah terlambat pada cut-off ini">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 {hostStats.late} Terlambat
               </span>
             )}
             {hostStats.excused > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-3xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-3xs" title="Jumlah izin pada cut-off ini">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                 {hostStats.excused} Izin
               </span>
             )}
             {hostStats.absent > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-3xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-3xs" title="Jumlah alpa pada cut-off ini">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                 {hostStats.absent} Alpa
               </span>
             )}
             {hostStats.overtime > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-3xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-3xs" title="Total lembur pada cut-off ini">
                 +{hostStats.overtime}j Lembur
               </span>
             )}
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-600 border border-slate-200/70 shadow-3xs">
-              Total {hostStats.total} Sesi
+            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50/80 text-indigo-700 border border-indigo-200/70 shadow-3xs" title="Total sesi absen pada cut-off ini">
+              Total {hostStats.total} Sesi Cut-Off
             </span>
+            {selectedHostLogs.length !== hostStats.total && (
+              <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-medium bg-white text-slate-400 border border-slate-200/70 shadow-3xs" title="Total seluruh sesi di semua riwayat database">
+                All-Time: {selectedHostLogs.length}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -461,9 +504,14 @@ export function AttendanceCalendarView({
           <h4 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight mb-1">
             Pilih Host untuk Melihat Kalender Absensi
           </h4>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-3 leading-relaxed">
             Pilih nama host pada menu dropdown di atas atau klik salah satu pilihan cepat di bawah untuk meninjau kalender kehadiran dan status cut-off penggajian.
           </p>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold mb-6 shadow-3xs">
+            <span className="w-2 h-2 rounded-full bg-indigo-500" />
+            <span>Tersedia {periodAllLogs.length.toLocaleString("id-ID")} Data Absen pada {gridTitle}</span>
+          </div>
 
           {hosts.length > 0 && (
             <div className="flex flex-col items-center gap-2.5 max-w-2xl">
@@ -471,17 +519,27 @@ export function AttendanceCalendarView({
                 Pilihan Cepat Host
               </span>
               <div className="flex flex-wrap items-center justify-center gap-2">
-                {hosts.slice(0, 10).map((host) => (
-                  <button
-                    key={host.id}
-                    type="button"
-                    onClick={() => setSelectedHostId(host.id)}
-                    className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:bg-indigo-50/40 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-3xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                    <span>{host.name}</span>
-                  </button>
-                ))}
+                {hosts.slice(0, 10).map((host) => {
+                  const hostCutoffCount = periodAllLogs.filter(
+                    (l) => l.hostId === host.id || l.employeeId === host.id
+                  ).length;
+                  return (
+                    <button
+                      key={host.id}
+                      type="button"
+                      onClick={() => setSelectedHostId(host.id)}
+                      className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:bg-indigo-50/40 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-3xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                      <span>{host.name}</span>
+                      {hostCutoffCount > 0 && (
+                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.2 rounded-md border border-indigo-100">
+                          {hostCutoffCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
