@@ -2,6 +2,28 @@ import type { Express, Request, Response } from "express";
 import { execute, queryMany, queryOne } from "../db";
 import { asyncHandler, genId } from "../http";
 
+function parseDateYMD(val: any): string | null {
+  if (!val) return null;
+  const str = String(val).trim().split("T")[0].split(" ")[0];
+  const parts = str.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    if (parts[0].length <= 2) {
+      // DD/MM/YYYY
+      const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      const m = String(parts[1]).padStart(2, "0");
+      const d = String(parts[0]).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    } else if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      const y = parts[0];
+      const m = String(parts[1]).padStart(2, "0");
+      const d = String(parts[2]).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return str || null;
+}
+
 function mapOvertime(row: any) {
   if (!row) return null;
   return {
@@ -111,8 +133,12 @@ export function registerOvertimeRoutes(app: Express) {
     }
 
     const id = body.id || genId("ot");
-    const hostName = body.hostName || body.host_name || "";
-    const date = body.date || new Date().toISOString().split("T")[0];
+    let hostName = body.hostName || body.host_name || "";
+    if (!hostName && hostId) {
+      const h = await queryOne<any>("SELECT name FROM hosts WHERE id = ?", [hostId]);
+      if (h?.name) hostName = h.name;
+    }
+    const date = parseDateYMD(body.date) || new Date().toISOString().split("T")[0];
     const hours = Math.max(0, Number(body.hours || 0));
     const amount = Math.max(0, Number(body.amount || 0));
     const notes = body.notes || "";
@@ -141,9 +167,13 @@ export function registerOvertimeRoutes(app: Express) {
     }
 
     const hostId = body.hostId || body.host_id || existing.host_id;
-    const hostName = body.hostName || body.host_name || existing.host_name;
+    let hostName = body.hostName || body.host_name || existing.host_name;
+    if (!hostName && hostId) {
+      const h = await queryOne<any>("SELECT name FROM hosts WHERE id = ?", [hostId]);
+      if (h?.name) hostName = h.name;
+    }
     const cutoffPeriod = body.cutoffPeriod || body.cutoff_period || existing.cutoff_period;
-    const date = body.date !== undefined ? body.date : (existing.date ? String(existing.date).split("T")[0] : null);
+    const date = body.date !== undefined ? parseDateYMD(body.date) : (existing.date ? String(existing.date).split("T")[0] : null);
     const hours = body.hours !== undefined ? Math.max(0, Number(body.hours)) : Number(existing.hours);
     const amount = body.amount !== undefined ? Math.max(0, Number(body.amount)) : Number(existing.amount);
     const notes = body.notes !== undefined ? body.notes : existing.notes;

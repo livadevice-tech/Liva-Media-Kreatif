@@ -1226,6 +1226,29 @@ async function runMigrations() {
   }
 
   try {
+    await execute(`
+      CREATE TABLE IF NOT EXISTS overtimes (
+        id VARCHAR(100) PRIMARY KEY,
+        host_id VARCHAR(100) NOT NULL,
+        host_name VARCHAR(150) NOT NULL,
+        cutoff_period VARCHAR(20) NOT NULL,
+        date DATE NULL,
+        hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+        amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        notes TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_overtime_cutoff (cutoff_period),
+        INDEX idx_overtime_host (host_id),
+        INDEX idx_overtime_cutoff_host (cutoff_period, host_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `, []);
+    console.log('✅ Migration: tabel overtimes dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration overtimes warning:', e?.message);
+  }
+
+  try {
     await execute(`ALTER TABLE brand_invoices ADD COLUMN payment_type VARCHAR(20) DEFAULT 'full'`, []);
     console.log('✅ Migration: kolom payment_type ditambahkan ke brand_invoices.');
   } catch (e: any) {

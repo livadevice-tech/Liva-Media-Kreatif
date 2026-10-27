@@ -5676,6 +5676,7 @@ export default function App() {
           brandPerformanceLogs={brandPerformanceLogs}
           onOpenFullReporting={(brandId) => setHostActiveReportingBrandId(brandId)}
           onRefreshData={async () => window.location.reload()}
+          onUpdateHost={handleUpdateHost}
           hostNotifications={hostNotifications}
           onMarkHostNotificationAsRead={markHostNotificationsAsRead}
         />

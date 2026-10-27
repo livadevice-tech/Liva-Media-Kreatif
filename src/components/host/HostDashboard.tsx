@@ -4,7 +4,8 @@ import {
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
   DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
-  Smartphone, Sparkles, ShieldCheck, Download, Radio
+  Smartphone, Sparkles, ShieldCheck, Download, Radio,
+  CreditCard, Phone, Edit3, Copy, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -126,6 +127,7 @@ interface HostDashboardProps {
   brandPerformanceLogs: any[];
   onOpenFullReporting?: (brandId: string) => void;
   onRefreshData?: () => Promise<void>;
+  onUpdateHost?: (hostId: string, fields: any, silent?: boolean) => Promise<void> | void;
   hostNotifications?: any[];
   onMarkHostNotificationAsRead?: (hostId: string) => void;
 };
@@ -164,6 +166,7 @@ export default function HostDashboard({
   brandPerformanceLogs,
   onOpenFullReporting,
   onRefreshData,
+  onUpdateHost,
   hostNotifications,
   onMarkHostNotificationAsRead,
 }: HostDashboardProps) {
@@ -273,36 +276,57 @@ export default function HostDashboard({
     bankAccount: ''
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [profileErrorMsg, setProfileErrorMsg] = useState('');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = (text: string, fieldName: string) => {
+    if (!text || text === '-') return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   useEffect(() => {
     if (activeHostObj && !isEditingProfile) {
       setProfileForm({
         name: activeHostObj.name || '',
         phone: activeHostObj.phone || '',
-        bankName: activeHostObj.bankName || '',
-        bankAccount: activeHostObj.bankAccount || ''
+        bankName: activeHostObj.bankName || activeHostObj.bank_name || '',
+        bankAccount: activeHostObj.bankAccount || activeHostObj.bank_account || ''
       });
     }
   }, [activeHostObj, isEditingProfile]);
 
   const handleSaveProfile = async () => {
     if (!activeHostObj) return;
+    setProfileErrorMsg('');
     try {
       setIsSavingProfile(true);
-      await hostsApi.update(activeHostObj.id, {
+      const payload = {
         ...activeHostObj,
-        name: profileForm.name,
-        phone: profileForm.phone,
-        bankName: profileForm.bankName,
-        bankAccount: profileForm.bankAccount
-      });
+        name: profileForm.name.trim() || activeHostObj.name,
+        phone: profileForm.phone.trim(),
+        bankName: profileForm.bankName.trim(),
+        bankAccount: profileForm.bankAccount.trim()
+      };
+
+      if (onUpdateHost) {
+        await onUpdateHost(activeHostObj.id, payload, true);
+      } else {
+        await hostsApi.update(activeHostObj.id, payload);
+      }
+
       setIsEditingProfile(false);
-      if (onRefreshData) {
+      setProfileSuccessMsg('Data kontak & rekening bank berhasil diperbarui!');
+      setTimeout(() => setProfileSuccessMsg(''), 4500);
+
+      if (onRefreshData && !onUpdateHost) {
         await onRefreshData();
       }
     } catch (err: any) {
       console.error('Failed to update profile:', err);
-      alert('Gagal menyimpan profil. Silakan coba lagi.');
+      setProfileErrorMsg(err?.message || 'Gagal menyimpan profil. Silakan coba lagi.');
     } finally {
       setIsSavingProfile(false);
     }
@@ -864,8 +888,12 @@ export default function HostDashboard({
       
       {/* Top Profile Header (Mobile App Style) */}
       <div className="flex items-center justify-between py-2 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-[52px] h-[52px] shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xl font-bold border-[3px] border-white shadow-sm overflow-hidden">
+        <div 
+          onClick={() => setActiveTab('account')}
+          className="flex items-center gap-3 cursor-pointer group hover:opacity-90 transition-opacity"
+          title="Buka Profil & Rekening Bank"
+        >
+          <div className="w-[52px] h-[52px] shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xl font-bold border-[3px] border-white shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-blue-400 transition-all">
             {/* Display profilePicture if exists, otherwise show initials */}
             {(activeHostObj as any)?.profilePicture ? (
               <img src={(activeHostObj as any).profilePicture} alt="Avatar" className="w-full h-full object-cover" />
@@ -873,7 +901,7 @@ export default function HostDashboard({
           </div>
           
           <div className="flex flex-col justify-center">
-            <h2 className="text-[17px] font-bold text-slate-800 leading-tight">
+            <h2 className="text-[17px] font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors">
               {activeHostObj?.name || 'Host'}
             </h2>
             <p className="text-sm font-medium text-slate-500 mt-0.5">
@@ -1148,6 +1176,109 @@ export default function HostDashboard({
             )}
           </div>
         )}
+
+        {/* Card Informasi Kontak & Rekening Bank Host */}
+        <div className="bg-white rounded-[24px] p-5 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6">
+          <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-800 leading-tight">Kontak & Rekening Bank</h4>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Tujuan transfer gaji & info kontak host</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('account');
+                setIsEditingProfile(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs transition-colors cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Edit</span>
+            </button>
+          </div>
+
+          {profileSuccessMsg && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold flex items-center gap-2 mb-3 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{profileSuccessMsg}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Rekening Bank */}
+            <div className="bg-[#f8f9fc] rounded-2xl p-3.5 flex items-center justify-between border border-slate-100/70">
+              <div className="min-w-0 pr-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                  Rekening Bank Transfer
+                </span>
+                {(activeHostObj?.bankName || activeHostObj?.bank_name) ? (
+                  <div className="truncate">
+                    <span className="font-extrabold text-[13px] text-slate-800 mr-1.5">{activeHostObj.bankName || activeHostObj.bank_name}</span>
+                    <span className="text-xs font-semibold text-slate-600 font-mono">
+                      {activeHostObj.bankAccount || activeHostObj.bank_account || '-'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-amber-600 mt-0.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-xs font-bold italic">Belum diset</span>
+                  </div>
+                )}
+              </div>
+              {(activeHostObj?.bankAccount || activeHostObj?.bank_account) && (
+                <button
+                  type="button"
+                  onClick={() => handleCopy(activeHostObj.bankAccount || activeHostObj.bank_account, 'bankAccount')}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer relative shrink-0"
+                  title="Salin No Rekening"
+                >
+                  {copiedField === 'bankAccount' ? (
+                    <Check className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Kontak WhatsApp */}
+            <div className="bg-[#f8f9fc] rounded-2xl p-3.5 flex items-center justify-between border border-slate-100/70">
+              <div className="min-w-0 pr-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                  Kontak / WhatsApp
+                </span>
+                {activeHostObj?.phone ? (
+                  <span className="font-bold text-[13px] text-slate-800 font-mono block truncate">
+                    {activeHostObj.phone}
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-slate-400 mt-0.5">
+                    <span className="text-xs font-semibold italic">Belum diset</span>
+                  </div>
+                )}
+              </div>
+              {activeHostObj?.phone && (
+                <button
+                  type="button"
+                  onClick={() => handleCopy(activeHostObj.phone, 'phone')}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer relative shrink-0"
+                  title="Salin No Kontak"
+                >
+                  {copiedField === 'phone' ? (
+                    <Check className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* History Kehadiran */}
         <div>
@@ -1498,86 +1629,194 @@ export default function HostDashboard({
             </div>
             
             {isEditingProfile ? (
-              <div className="w-full max-w-sm space-y-4 mb-6">
+              <div className="w-full max-w-sm space-y-4 mb-6 text-left">
+                {profileErrorMsg && (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <span>{profileErrorMsg}</span>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">Nama Lengkap</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Nama Lengkap Host</label>
                   <input
                     type="text"
                     value={profileForm.name}
-                    onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="w-full bg-[#f8f9fc] border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                     placeholder="Masukkan nama lengkap"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">No. HP (WhatsApp)</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Kontak / No. WhatsApp</label>
                   <input
-                    type="tel"
+                    type="text"
                     value={profileForm.phone}
-                    onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
-                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                    placeholder="Masukkan no HP"
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="w-full bg-[#f8f9fc] border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    placeholder="Contoh: 08123456789 atau username kontak"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">Nama Bank (Mis: BCA, Mandiri)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-600">Nama Bank</label>
+                    <span className="text-[10px] text-slate-400">Pilih cepat:</span>
+                  </div>
+
+                  {/* Quick Bank Chips */}
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {['BCA', 'BRI', 'BNI', 'Mandiri', 'SeaBank', 'BSI', 'CIMB Niaga', 'Bank Jago', 'Dana'].map((bank) => (
+                      <button
+                        key={bank}
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, bankName: bank })}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          profileForm.bankName.toLowerCase() === bank.toLowerCase()
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {bank}
+                      </button>
+                    ))}
+                  </div>
+
                   <input
                     type="text"
                     value={profileForm.bankName}
-                    onChange={(e) => setProfileForm({...profileForm, bankName: e.target.value})}
-                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                    placeholder="Masukkan nama bank"
+                    onChange={(e) => setProfileForm({ ...profileForm, bankName: e.target.value })}
+                    className="w-full bg-[#f8f9fc] border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    placeholder="Ketik nama bank (contoh: BCA, BRI, SeaBank)"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">No. Rekening</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">No. Rekening Bank</label>
                   <input
                     type="text"
                     value={profileForm.bankAccount}
-                    onChange={(e) => setProfileForm({...profileForm, bankAccount: e.target.value})}
-                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                    placeholder="Masukkan no rekening"
+                    onChange={(e) => setProfileForm({ ...profileForm, bankAccount: e.target.value })}
+                    className="w-full bg-[#f8f9fc] border border-slate-200 rounded-xl py-3 px-4 text-sm font-black text-slate-800 font-mono focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none tracking-wider"
+                    placeholder="Contoh: 577801020681501"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    *Nomor rekening ini akan digunakan oleh finance/admin untuk transfer gaji & lembur.
+                  </p>
                 </div>
-                <div className="flex gap-2 pt-2">
+
+                <div className="flex gap-2.5 pt-2">
                   <button 
-                    onClick={() => setIsEditingProfile(false)}
-                    className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-colors"
+                    type="button"
+                    onClick={() => {
+                      setIsEditingProfile(false);
+                      setProfileErrorMsg('');
+                    }}
+                    disabled={isSavingProfile}
+                    className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer text-xs"
                   >
                     Batal
                   </button>
                   <button 
+                    type="button"
                     onClick={handleSaveProfile}
                     disabled={isSavingProfile}
-                    className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer text-xs flex items-center justify-center gap-1.5"
                   >
-                    {isSavingProfile ? 'Menyimpan...' : 'Simpan'}
+                    {isSavingProfile ? (
+                      <>
+                        <Clock className="w-3.5 h-3.5 animate-spin" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Simpan Perubahan</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             ) : (
               <>
                 <h2 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
-                <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-6">
+                <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-5">
                   <User size={14} /> Host Live Streaming
                 </p>
+
+                {profileSuccessMsg && (
+                  <div className="w-full max-w-sm p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-2 mb-4 animate-fadeIn">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>{profileSuccessMsg}</span>
+                  </div>
+                )}
                 
-                <div className="w-full max-w-sm space-y-3 mb-6">
+                <div className="w-full max-w-sm space-y-3 mb-6 text-left">
                   <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-500">ID Pegawai</span>
-                    <span className="text-sm font-black text-slate-800 font-mono">{activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}</span>
+                    <span className="text-sm font-black text-slate-800 font-mono">
+                      {activeHostObj?.employeeId || activeHostObj?.employee_id || activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}
+                    </span>
                   </div>
+
+                  {/* Kontak / No HP */}
                   <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-500">No. HP</span>
-                    <span className="text-sm font-black text-slate-800">{activeHostObj?.phone || "-"}</span>
-                  </div>
-                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-500">Info Rekening</span>
-                    <div className="text-right">
-                      <span className="text-[13px] font-black text-slate-800 block">{activeHostObj?.bankName || "-"}</span>
-                      <span className="text-[11px] font-bold text-slate-500 block">{activeHostObj?.bankAccount || "-"}</span>
+                    <div className="flex items-center gap-2">
+                      <Phone size={16} className="text-slate-400" />
+                      <span className="text-sm font-bold text-slate-500">Kontak / No. HP</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-slate-800 font-mono">
+                        {activeHostObj?.phone || <span className="text-xs font-medium text-slate-400 italic">Belum diset</span>}
+                      </span>
+                      {activeHostObj?.phone && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(activeHostObj.phone, 'phone-acc')}
+                          className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                          title="Salin No HP"
+                        >
+                          {copiedField === 'phone-acc' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
                     </div>
                   </div>
+
+                  {/* Info Rekening */}
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard size={16} className="text-slate-400" />
+                      <span className="text-sm font-bold text-slate-500">Info Rekening</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-right">
+                      <div>
+                        {(activeHostObj?.bankName || activeHostObj?.bank_name) ? (
+                          <>
+                            <span className="text-[13px] font-black text-slate-800 block">
+                              {activeHostObj.bankName || activeHostObj.bank_name}
+                            </span>
+                            <span className="text-[12px] font-bold text-slate-600 font-mono block">
+                              {activeHostObj.bankAccount || activeHostObj.bank_account || "-"}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs font-bold text-amber-600 italic">Belum diset</span>
+                        )}
+                      </div>
+                      {(activeHostObj?.bankAccount || activeHostObj?.bank_account) && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(activeHostObj.bankAccount || activeHostObj.bank_account, 'bank-acc')}
+                          className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                          title="Salin No Rekening"
+                        >
+                          {copiedField === 'bank-acc' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
                     <span className="text-sm font-bold text-slate-500">Studio & Brand</span>
                     <div className="text-xs font-black text-slate-800 mb-1">{activeHostObj?.studio || "Tidak Ada Studio"}</div>
@@ -1589,6 +1828,7 @@ export default function HostDashboard({
                       )}
                     </div>
                   </div>
+
                   {activeHostObj?.platforms && activeHostObj.platforms.length > 0 && (
                     <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
                       <span className="text-sm font-bold text-slate-500">Platform Live</span>
@@ -1605,11 +1845,12 @@ export default function HostDashboard({
                 </div>
 
                 <button 
+                  type="button"
                   onClick={() => setIsEditingProfile(true)}
-                  className="w-full max-w-sm bg-blue-50 text-blue-600 font-bold py-3.5 rounded-2xl border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all flex items-center justify-center gap-2"
+                  className="w-full max-w-sm bg-blue-50 text-blue-600 font-bold py-3.5 rounded-2xl border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <FileText size={18} />
-                  Ubah Data Profil
+                  <Edit3 size={18} />
+                  Ubah Kontak & Rekening Bank
                 </button>
               </>
             )}

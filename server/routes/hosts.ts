@@ -114,10 +114,7 @@ export function registerHostRoutes(app: Express) {
     const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
     host.platforms = platforms.map((p: any) => p.platform);
     host.brands = brands.map((b: any) => b.brand);
-    host.hasPassword = Boolean(host.password_hash);
-    host.password = "";
-    delete host.password_hash;
-    host.bankName = host.bank_name;
+    mapHost(host);
 
     res.json(host);
   }));
@@ -166,9 +163,44 @@ export function registerHostRoutes(app: Express) {
   app.put("/api/hosts/:id", asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id;
     const h = req.body;
-    const studio = normalizeHostStudioLocation(h.studio) || null;
+    const session = (req as any).auth || (req as any).authSession;
 
-    const existing = await queryOne(`SELECT password_hash FROM hosts WHERE id = ?`, [id]);
+    const existing = await queryOne<any>(`SELECT * FROM hosts WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Host tidak ditemukan." });
+    }
+
+    if (session?.role === "host") {
+      if (session.subjectId !== id) {
+        return res.status(403).json({ error: "Anda hanya berhak mengedit data akun Anda sendiri." });
+      }
+
+      const name = h.name !== undefined && String(h.name).trim() ? String(h.name).trim() : existing.name;
+      const phone = h.phone !== undefined ? (String(h.phone).trim() || null) : existing.phone;
+      const bankName = (h.bankName !== undefined || h.bank_name !== undefined)
+        ? (String(h.bankName ?? h.bank_name).trim() || null)
+        : existing.bank_name;
+      const bankAccount = (h.bankAccount !== undefined || h.bank_account !== undefined)
+        ? (String(h.bankAccount ?? h.bank_account).trim() || null)
+        : existing.bank_account;
+      const avatar = h.avatar !== undefined ? (h.avatar || null) : existing.avatar;
+
+      let passwordHash = existing.password_hash;
+      if (h.password && String(h.password).trim()) {
+        passwordHash = hashPasswordForStorage(String(h.password).trim());
+      }
+
+      await execute(`
+        UPDATE hosts SET
+          name = ?, phone = ?, bank_name = ?, bank_account = ?,
+          avatar = ?, password_hash = ?
+        WHERE id = ?
+      `, [name, phone, bankName, bankAccount, avatar, passwordHash, id]);
+
+      return res.json({ success: true });
+    }
+
+    const studio = normalizeHostStudioLocation(h.studio) || null;
     const passwordHash = resolveHostPasswordHash(
       h.password,
       existing?.password_hash,

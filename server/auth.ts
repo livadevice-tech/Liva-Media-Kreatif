@@ -114,6 +114,8 @@ function getAdminRequiredTabs(path: string): readonly string[] | null {
   if (isPathUnder(path, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
   if (isPathUnder(path, "/host-activity-logs")) return MODULE_TAB_REQUIREMENTS.hosts;
   if (isPathUnder(path, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path, "/overtimes")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path, "/thr")) return MODULE_TAB_REQUIREMENTS.hosts;
   if (isPathUnder(path, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
   if (isPathUnder(path, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
   if (isPathUnder(path, "/host-notifications")) return MODULE_TAB_REQUIREMENTS.schedules;
@@ -149,7 +151,7 @@ export function isRequestAllowed(
 
   if (session.role === "host") {
     return (
-      (method === "GET" && path === `/hosts/${session.subjectId}`) ||
+      ((method === "GET" || method === "PUT") && path === `/hosts/${session.subjectId}`) ||
       (method === "GET" && path === "/client-brands") ||
       (method === "GET" && path === "/reporting/brand") ||
       (method === "GET" && path === "/reporting/brand/analyses") ||
