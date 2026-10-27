@@ -130,6 +130,7 @@ import {
   Tag,
   Bookmark,
   Wallet,
+  Camera,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -1859,6 +1860,7 @@ export default function App() {
     photoFile: null as File | null,
   }));
   const [lastSubmittedAttendanceLog, setLastSubmittedAttendanceLog] = useState<AttendanceLog | null>(null);
+  const [selectedPhotoLog, setSelectedPhotoLog] = useState<AttendanceLog | null>(null);
 
   useEffect(() => {
     if (activeHostObj) {
@@ -2022,11 +2024,15 @@ export default function App() {
 
     // Upload proof photo to server
     let proofUrl = "";
+    let proofImageBase64 = hostForm.photo || "";
     if (hostForm.photoFile) {
       try {
         const uploadRes = await logsApi.uploadProof(hostForm.photoFile);
         if (uploadRes?.proofUrl) {
           proofUrl = uploadRes.proofUrl;
+        }
+        if (uploadRes?.proofImage) {
+          proofImageBase64 = uploadRes.proofImage;
         }
       } catch (uploadErr) {
         console.warn("Gagal upload file foto via FormData, mencoba base64:", uploadErr);
@@ -2037,6 +2043,9 @@ export default function App() {
         const uploadRes = await logsApi.uploadProof(hostForm.photo);
         if (uploadRes?.proofUrl) {
           proofUrl = uploadRes.proofUrl;
+        }
+        if (uploadRes?.proofImage) {
+          proofImageBase64 = uploadRes.proofImage;
         }
       } catch (uploadErr) {
         console.warn("Gagal upload base64 foto:", uploadErr);
@@ -2064,6 +2073,8 @@ export default function App() {
       orders: randomOrders,
       proofUrl: proofUrl || hostForm.photo || undefined,
       proof_url: proofUrl || hostForm.photo || undefined,
+      proofImage: proofImageBase64 || hostForm.photo || undefined,
+      proof_image: proofImageBase64 || hostForm.photo || undefined,
     };
 
     try {
@@ -2077,6 +2088,8 @@ export default function App() {
         ...newLog,
         proofUrl: hostForm.photo || proofUrl || undefined,
         proof_url: hostForm.photo || proofUrl || undefined,
+        proofImage: hostForm.photo || proofImageBase64 || undefined,
+        proof_image: hostForm.photo || proofImageBase64 || undefined,
       });
 
       // Log activity
@@ -12087,8 +12100,21 @@ export default function App() {
                                       </td>
                                       
                                       <td className="py-3 px-4">
-                                        <div className="font-bold text-slate-900 text-xs">
-                                          {item.hostName}
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="font-bold text-slate-900 text-xs">
+                                            {item.hostName}
+                                          </div>
+                                          {(item.proofImage || item.proof_image || item.proofUrl || item.proof_url) && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setSelectedPhotoLog(item)}
+                                              className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-0 shadow-3xs"
+                                              title="Lihat foto kehadiran"
+                                            >
+                                              <Camera className="w-2.5 h-2.5" />
+                                              <span>Foto</span>
+                                            </button>
+                                          )}
                                         </div>
                                         {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
                                           <div className="text-[11px] text-slate-400 font-mono font-medium mt-0.5">
@@ -12226,14 +12252,38 @@ export default function App() {
                                             </button>
                                           </div>
                                         ) : (
-                                          <button
-                                            id={`btn_delete_log_${item.id}`}
-                                            onClick={() => setPendingDeleteLogId(item.id)}
-                                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border-0 bg-transparent"
-                                            title="Hapus log ini"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
+                                          <div className="flex items-center justify-end gap-1">
+                                            <button
+                                              id={`btn_view_photo_${item.id}`}
+                                              onClick={() => {
+                                                if (item.proofImage || item.proof_image || item.proofUrl || item.proof_url) {
+                                                  setSelectedPhotoLog(item);
+                                                } else {
+                                                  customAlert("Data absen ini belum memiliki lampiran foto kehadiran.");
+                                                }
+                                              }}
+                                              className={`p-1.5 rounded-lg transition-all cursor-pointer border-0 ${
+                                                item.proofImage || item.proof_image || item.proofUrl || item.proof_url
+                                                  ? "text-blue-600 hover:text-blue-800 bg-blue-50/70 hover:bg-blue-100 shadow-3xs"
+                                                  : "text-slate-300 hover:text-slate-400 hover:bg-slate-50"
+                                              }`}
+                                              title={
+                                                item.proofImage || item.proof_image || item.proofUrl || item.proof_url
+                                                  ? "Lihat Foto Absen"
+                                                  : "Belum ada foto absen"
+                                              }
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                              id={`btn_delete_log_${item.id}`}
+                                              onClick={() => setPendingDeleteLogId(item.id)}
+                                              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border-0 bg-transparent"
+                                              title="Hapus log ini"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          </div>
                                         )}
                                       </td>
                                     </tr>
@@ -12314,6 +12364,23 @@ export default function App() {
                                     <span className="text-xs font-semibold text-slate-700 truncate">{item.studio || "-"}</span>
                                   </div>
                                 </div>
+                                {(item.proofImage || item.proof_image || item.proofUrl || item.proof_url) && (
+                                  <div className="mt-2.5 pt-2 border-t border-dashed border-slate-200 flex items-center justify-between">
+                                    <span className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                                      <Camera className="w-3 h-3 text-blue-500" /> Bukti Kehadiran
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPhotoLog(item);
+                                      }}
+                                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs rounded-lg flex items-center gap-1.5 border-0 transition-colors cursor-pointer shadow-3xs"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" /> Lihat Foto
+                                    </button>
+                                  </div>
+                                )}
                             </div>
                           </div>
                         );
@@ -14632,6 +14699,124 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* MODAL PREVIEW FOTO BUKTI ABSENSI */}
+      {selectedPhotoLog && (
+        <div
+          className="fixed inset-0 z-[200] overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn font-sans"
+          onClick={() => setSelectedPhotoLog(null)}
+        >
+          <div
+            className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden animate-scaleUp text-slate-800 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-3xs">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 leading-tight">Foto Bukti Absensi</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {selectedPhotoLog.hostName} • {formatHumanDate(selectedPhotoLog.date)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPhotoLog(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer border-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Image Display */}
+            <div className="p-4 bg-slate-900/5 flex flex-col items-center justify-center">
+              {selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url ? (
+                <div className="relative group max-h-[380px] w-full rounded-2xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center shadow-inner">
+                  <img
+                    src={selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url}
+                    alt={`Bukti Absen ${selectedPhotoLog.hostName}`}
+                    className="max-h-[380px] w-auto max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="p-12 text-center text-slate-400 text-xs font-bold">
+                  Tidak ada foto bukti absensi pada catatan ini.
+                </div>
+              )}
+            </div>
+
+            {/* Attendance Details Grid */}
+            <div className="px-6 py-4 bg-white grid grid-cols-2 gap-3 text-xs border-t border-slate-100">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Host</span>
+                <span className="font-extrabold text-slate-800">{selectedPhotoLog.hostName}</span>
+                {selectedPhotoLog.employeeId && (
+                  <span className="text-[10px] text-slate-400 font-mono">ID: {selectedPhotoLog.employeeId}</span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status & Jam</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      selectedPhotoLog.status === "Present"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : selectedPhotoLog.status === "Late"
+                          ? "bg-amber-50 text-amber-700"
+                          : selectedPhotoLog.status === "Excused"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-rose-50 text-rose-700"
+                    }`}
+                  >
+                    {selectedPhotoLog.status === "Present"
+                      ? "Hadir"
+                      : selectedPhotoLog.status === "Late"
+                        ? "Terlambat"
+                        : selectedPhotoLog.status === "Excused"
+                          ? "Izin/Sakit"
+                          : "Alpa"}
+                  </span>
+                  <span className="text-[11px] text-slate-600 font-bold">
+                    {selectedPhotoLog.checkInTime || "-"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Brand & Platform</span>
+                <span className="font-bold text-slate-700 truncate">{selectedPhotoLog.brandHandled} • {selectedPhotoLog.platform}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Shift & Studio</span>
+                <span className="font-bold text-slate-700 truncate">{selectedPhotoLog.shiftHours || "-"} {selectedPhotoLog.studio ? `(${selectedPhotoLog.studio})` : ""}</span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              {(selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url) && (
+                <a
+                  href={selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={`absen_${selectedPhotoLog.hostName}_${selectedPhotoLog.date}.jpg`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800"
+                >
+                  <Download className="w-3.5 h-3.5" /> Unduh Foto
+                </a>
+              )}
+              <button
+                onClick={() => setSelectedPhotoLog(null)}
+                className="ml-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer border-0 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GLOBAL OVERTIME INPUT MODAL */}
       <OvertimeInputModal

@@ -52,6 +52,7 @@ interface AttendanceLogRow {
   overtime_hours?: string | number | null;
   is_backup_shift?: number | string | boolean | null;
   proof_url?: string | null;
+  proof_image?: string | null;
 }
 
 interface ShiftScheduleRow {
@@ -112,8 +113,10 @@ function mapAttendanceLog(l: AttendanceLogRow) {
     fraudReason: l.fraud_reason,
     overtimeHours: toNumber(l.overtime_hours),
     isBackupShift: !!l.is_backup_shift,
-    proofUrl: l.proof_url || undefined,
-    proof_url: l.proof_url || undefined,
+    proofUrl: l.proof_url || l.proof_image || undefined,
+    proof_url: l.proof_url || l.proof_image || undefined,
+    proofImage: l.proof_image || undefined,
+    proof_image: l.proof_image || undefined,
   };
 }
 
@@ -169,7 +172,15 @@ export function registerOperationsRoutes(app: Express) {
   app.post("/api/logs/upload-proof", uploadAttendance.single("photo"), asyncHandler(async (req: Request, res: Response) => {
     if (req.file) {
       const proofUrl = `/uploads/attendance/${req.file.filename}`;
-      return res.json({ success: true, proofUrl });
+      let proofImage: string | undefined;
+      try {
+        const ext = path.extname(req.file.filename).toLowerCase().replace('.', '') || 'jpeg';
+        const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
+        proofImage = `data:${mime};base64,` + fs.readFileSync(req.file.path).toString('base64');
+      } catch (err) {
+        console.warn('Gagal membaca file foto menjadi base64:', err);
+      }
+      return res.json({ success: true, proofUrl, proofImage });
     }
 
     if (req.body && req.body.imageBase64) {
@@ -181,7 +192,7 @@ export function registerOperationsRoutes(app: Express) {
       const filename = `att-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
       fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
       const proofUrl = `/uploads/attendance/${filename}`;
-      return res.json({ success: true, proofUrl });
+      return res.json({ success: true, proofUrl, proofImage: req.body.imageBase64 });
     }
 
     return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
@@ -194,6 +205,20 @@ export function registerOperationsRoutes(app: Express) {
     }
     const id = l.id || genId("log");
 
+    let proofImage = l.proofImage || l.proof_image || (l.proofUrl && l.proofUrl.startsWith('data:') ? l.proofUrl : null) || null;
+    if (!proofImage && (l.proofUrl || l.proof_url)) {
+      try {
+        const u = l.proofUrl || l.proof_url;
+        const cleanPath = u.startsWith('/') ? u.slice(1) : u;
+        const fullPath = path.join(process.cwd(), cleanPath);
+        if (fs.existsSync(fullPath)) {
+          const ext = path.extname(fullPath).toLowerCase().replace('.', '') || 'jpeg';
+          const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
+          proofImage = `data:${mime};base64,` + fs.readFileSync(fullPath).toString('base64');
+        }
+      } catch (e) {}
+    }
+
     await execute(`
       INSERT INTO attendance_logs (
         id, host_id, host_name, employee_id, date, shift_hours,
@@ -201,8 +226,8 @@ export function registerOperationsRoutes(app: Express) {
         check_in_time, revenue_generated, conversion_rate, engagement_rate,
         orders, avg_view_duration, studio, flagged_as_anomaly, anomaly_reason,
         is_duplicate, flagged_as_fraud, fraud_reason, overtime_hours, is_backup_shift,
-        proof_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        proof_url, proof_image
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, l.hostId, l.hostName || null, l.employeeId || null,
       l.date, l.shiftHours || null, l.platform || null, l.brandHandled || null,
@@ -214,6 +239,7 @@ export function registerOperationsRoutes(app: Express) {
       l.isDuplicate ? 1 : 0, l.flaggedAsFraud ? 1 : 0,
       l.fraudReason || null, l.overtimeHours || 0, l.isBackupShift ? 1 : 0,
       l.proofUrl || l.proof_url || null,
+      proofImage || null,
     ]);
 
     res.status(201).json({ id });
@@ -221,6 +247,21 @@ export function registerOperationsRoutes(app: Express) {
 
   app.put("/api/logs/:id", asyncHandler(async (req: Request, res: Response) => {
     const l = req.body;
+
+    let proofImage = l.proofImage || l.proof_image || (l.proofUrl && l.proofUrl.startsWith('data:') ? l.proofUrl : null) || null;
+    if (!proofImage && (l.proofUrl || l.proof_url)) {
+      try {
+        const u = l.proofUrl || l.proof_url;
+        const cleanPath = u.startsWith('/') ? u.slice(1) : u;
+        const fullPath = path.join(process.cwd(), cleanPath);
+        if (fs.existsSync(fullPath)) {
+          const ext = path.extname(fullPath).toLowerCase().replace('.', '') || 'jpeg';
+          const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
+          proofImage = `data:${mime};base64,` + fs.readFileSync(fullPath).toString('base64');
+        }
+      } catch (e) {}
+    }
+
     await execute(`
       UPDATE attendance_logs SET
         host_id = ?, host_name = ?, employee_id = ?, date = ?,
@@ -230,7 +271,8 @@ export function registerOperationsRoutes(app: Express) {
         engagement_rate = ?, orders = ?, avg_view_duration = ?,
         studio = ?, flagged_as_anomaly = ?, anomaly_reason = ?,
         is_duplicate = ?, flagged_as_fraud = ?, fraud_reason = ?,
-        overtime_hours = ?, is_backup_shift = ?, proof_url = ?
+        overtime_hours = ?, is_backup_shift = ?, proof_url = ?,
+        proof_image = COALESCE(?, proof_image)
       WHERE id = ?
     `, [
       l.hostId, l.hostName || null, l.employeeId || null, l.date,
@@ -243,6 +285,7 @@ export function registerOperationsRoutes(app: Express) {
       l.isDuplicate ? 1 : 0, l.flaggedAsFraud ? 1 : 0,
       l.fraudReason || null, l.overtimeHours || 0, l.isBackupShift ? 1 : 0,
       l.proofUrl || l.proof_url || null,
+      proofImage || null,
       req.params.id,
     ]);
     res.json({ success: true });

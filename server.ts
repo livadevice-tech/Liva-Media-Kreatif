@@ -978,6 +978,18 @@ async function runMigrations() {
   }
 
   try {
+    // Tambah kolom proof_image (base64 image storage) ke attendance_logs jika belum ada
+    await execute(`ALTER TABLE attendance_logs ADD COLUMN proof_image LONGTEXT NULL`, []);
+    console.log('✅ Migration: kolom proof_image ditambahkan ke attendance_logs.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom proof_image sudah ada di attendance_logs.');
+    } else {
+      console.warn('Migration proof_image warning:', e?.message);
+    }
+  }
+
+  try {
     await execute(`
       CREATE TABLE IF NOT EXISTS reporting_upload_batches (
         id           VARCHAR(100)  NOT NULL,

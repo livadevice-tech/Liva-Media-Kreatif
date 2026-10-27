@@ -234,6 +234,7 @@ export function AttendanceCalendarView({
       const randomOrders = formStatus === "Absent" ? 0 : Math.floor(Math.random() * 200) + 100;
       const randomRevenue = formStatus === "Absent" ? 0 : randomOrders * 60000;
 
+      const currentLog = editingLogId ? selectedHostLogs.find(l => l.id === editingLogId) : undefined;
       const logData: AttendanceLog = {
         id: editingLogId || `log_manual_cal_${Date.now()}`,
         hostId: host.id,
@@ -247,12 +248,16 @@ export function AttendanceCalendarView({
         liveDuration: formStatus === "Absent" ? 0 : 4,
         sessionCount: formStatus === "Absent" ? 0 : 1,
         status: formStatus,
-        revenueGenerated: editingLogId ? (selectedHostLogs.find(l => l.id === editingLogId)?.revenueGenerated || randomRevenue) : randomRevenue,
+        revenueGenerated: currentLog ? (currentLog.revenueGenerated || randomRevenue) : randomRevenue,
         conversionRate: formStatus === "Absent" ? 0 : 3.8,
         engagementRate: formStatus === "Absent" ? 0 : 7.2,
-        orders: editingLogId ? (selectedHostLogs.find(l => l.id === editingLogId)?.orders || randomOrders) : randomOrders,
+        orders: currentLog ? (currentLog.orders || randomOrders) : randomOrders,
         overtimeHours: formOvertime,
         isBackupShift: formIsBackup,
+        proofUrl: currentLog?.proofUrl || currentLog?.proof_url,
+        proof_url: currentLog?.proof_url || currentLog?.proofUrl,
+        proofImage: currentLog?.proofImage || currentLog?.proof_image,
+        proof_image: currentLog?.proof_image || currentLog?.proofImage,
       };
 
       await onSaveLog(logData);

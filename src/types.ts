@@ -68,6 +68,8 @@ export interface AttendanceLog {
   timestamp?: string;
   proofUrl?: string;
   proof_url?: string;
+  proofImage?: string;
+  proof_image?: string;
 }
 
 export interface StudioItem {

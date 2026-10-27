@@ -190,9 +190,9 @@ export const logsApi = {
   },
 
   /** Upload foto bukti absensi (mendukung File object atau Base64 data URL) */
-  uploadProof: async (fileOrBase64: File | Blob | string): Promise<{ success: boolean; proofUrl: string }> => {
+  uploadProof: async (fileOrBase64: File | Blob | string): Promise<{ success: boolean; proofUrl: string; proofImage?: string }> => {
     if (typeof fileOrBase64 === 'string') {
-      return request<{ success: boolean; proofUrl: string }>('POST', '/logs/upload-proof', { imageBase64: fileOrBase64 });
+      return request<{ success: boolean; proofUrl: string; proofImage?: string }>('POST', '/logs/upload-proof', { imageBase64: fileOrBase64 });
     }
     const formData = new FormData();
     formData.append('photo', fileOrBase64);
