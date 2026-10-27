@@ -66,8 +66,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve uploaded files statically
+// Serve uploaded files statically (supports both /uploads and /api/uploads for reverse proxy setups)
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ==================================================================
 // Authentication
@@ -1339,9 +1340,43 @@ async function runMigrations() {
   }
 }
 
+async function backfillProofImages() {
+  try {
+    const rows = await queryMany<any>(
+      "SELECT id, proof_url FROM attendance_logs WHERE (proof_image IS NULL OR proof_image = '') AND proof_url IS NOT NULL"
+    );
+    for (const r of rows) {
+      if (!r.proof_url) continue;
+      const clean = r.proof_url.replace(/^\//, '');
+      const basename = path.basename(clean);
+      const candidates = [
+        path.join(process.cwd(), clean),
+        path.join(process.cwd(), 'uploads', 'attendance', basename),
+        path.join(process.cwd(), 'public_html', clean),
+        path.join(process.cwd(), 'public_html', 'uploads', 'attendance', basename),
+        path.join(process.cwd(), '..', clean),
+        path.join(process.cwd(), '..', 'public_html', clean),
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          const ext = path.extname(p).toLowerCase().replace('.', '') || 'jpeg';
+          const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+          const b64 = `data:${mime};base64,` + fs.readFileSync(p).toString('base64');
+          await execute("UPDATE attendance_logs SET proof_image = ? WHERE id = ?", [b64, r.id]);
+          console.log(`✅ Backfilled proof_image for attendance log ${r.id} from ${p}`);
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Backfill proof image warning:", err);
+  }
+}
+
 async function bootstrap() {
   getSessionSecret();
   await runMigrations();
+  await backfillProofImages();
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

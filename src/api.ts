@@ -207,6 +207,25 @@ export const logsApi = {
     }
     return res.json();
   },
+
+  /** Upload atau perbarui foto bukti absensi untuk catatan log tertentu ke database */
+  uploadProofForLog: async (logId: string, fileOrBase64: File | Blob | string): Promise<{ success: boolean; proofImage: string; proofUrl: string }> => {
+    if (typeof fileOrBase64 === 'string') {
+      return request<{ success: boolean; proofImage: string; proofUrl: string }>('POST', `/logs/${logId}/photo`, { imageBase64: fileOrBase64 });
+    }
+    const formData = new FormData();
+    formData.append('photo', fileOrBase64);
+    const res = await fetch(`${API_BASE}/logs/${logId}/photo`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: 'Gagal mengupload foto bukti absensi' }));
+      throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    return res.json();
+  },
 };
 
 // ==================================================================

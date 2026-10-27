@@ -1861,6 +1861,63 @@ export default function App() {
   }));
   const [lastSubmittedAttendanceLog, setLastSubmittedAttendanceLog] = useState<AttendanceLog | null>(null);
   const [selectedPhotoLog, setSelectedPhotoLog] = useState<AttendanceLog | null>(null);
+  const [photoModalImgError, setPhotoModalImgError] = useState(false);
+  const [isUploadingPhotoForLog, setIsUploadingPhotoForLog] = useState(false);
+  const photoUploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenPhotoModal = (log: AttendanceLog) => {
+    setPhotoModalImgError(false);
+    setSelectedPhotoLog(log);
+  };
+
+  const handleUploadPhotoForSelectedLog = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedPhotoLog) return;
+    setIsUploadingPhotoForLog(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const base64 = ev.target?.result as string;
+          if (!base64) return;
+          const res = await logsApi.uploadProofForLog(selectedPhotoLog.id, base64);
+          const updatedProof = res.proofImage || base64;
+          
+          const updatedLog: AttendanceLog = {
+            ...selectedPhotoLog,
+            proofImage: updatedProof,
+            proof_image: updatedProof,
+            proofUrl: updatedProof,
+            proof_url: updatedProof,
+          };
+          setSelectedPhotoLog(updatedLog);
+          setPhotoModalImgError(false);
+
+          setLogs((prev) =>
+            prev.map((l) => (l.id === selectedPhotoLog.id ? updatedLog : l))
+          );
+
+          addNotification(
+            "Foto Absensi Berhasil Disimpan",
+            `Foto kehadiran untuk ${selectedPhotoLog.hostName} telah berhasil disimpan langsung ke database.`,
+            "success",
+            "database"
+          );
+        } catch (innerErr: any) {
+          console.error("Gagal simpan foto:", innerErr);
+          customAlert("Gagal menyimpan foto ke database: " + (innerErr.message || "Terjadi kesalahan"));
+        } finally {
+          setIsUploadingPhotoForLog(false);
+          if (e.target) e.target.value = "";
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Gagal membaca file foto:", err);
+      setIsUploadingPhotoForLog(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   useEffect(() => {
     if (activeHostObj) {
@@ -12107,7 +12164,7 @@ export default function App() {
                                           {(item.proofImage || item.proof_image || item.proofUrl || item.proof_url) && (
                                             <button
                                               type="button"
-                                              onClick={() => setSelectedPhotoLog(item)}
+                                              onClick={() => handleOpenPhotoModal(item)}
                                               className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-0 shadow-3xs"
                                               title="Lihat foto kehadiran"
                                             >
@@ -12257,7 +12314,7 @@ export default function App() {
                                               id={`btn_view_photo_${item.id}`}
                                               onClick={() => {
                                                 if (item.proofImage || item.proof_image || item.proofUrl || item.proof_url) {
-                                                  setSelectedPhotoLog(item);
+                                                  handleOpenPhotoModal(item);
                                                 } else {
                                                   customAlert("Data absen ini belum memiliki lampiran foto kehadiran.");
                                                 }
@@ -12373,7 +12430,7 @@ export default function App() {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedPhotoLog(item);
+                                        handleOpenPhotoModal(item);
                                       }}
                                       className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs rounded-lg flex items-center gap-1.5 border-0 transition-colors cursor-pointer shadow-3xs"
                                     >
@@ -14710,6 +14767,15 @@ export default function App() {
             className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden animate-scaleUp text-slate-800 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Hidden file input for uploading/replacing photo */}
+            <input
+              type="file"
+              ref={photoUploadInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleUploadPhotoForSelectedLog}
+            />
+
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
               <div className="flex items-center gap-3">
@@ -14732,20 +14798,48 @@ export default function App() {
             </div>
 
             {/* Image Display */}
-            <div className="p-4 bg-slate-900/5 flex flex-col items-center justify-center">
-              {selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url ? (
-                <div className="relative group max-h-[380px] w-full rounded-2xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center shadow-inner">
-                  <img
-                    src={selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url}
-                    alt={`Bukti Absen ${selectedPhotoLog.hostName}`}
-                    className="max-h-[380px] w-auto max-w-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="p-12 text-center text-slate-400 text-xs font-bold">
-                  Tidak ada foto bukti absensi pada catatan ini.
-                </div>
-              )}
+            <div className="p-4 bg-slate-900/5 flex flex-col items-center justify-center min-h-[220px]">
+              {(() => {
+                const photoSrc = selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url;
+                
+                if (!photoSrc || photoModalImgError) {
+                  return (
+                    <div className="py-8 px-5 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200 w-full shadow-2xs">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mb-3 shadow-3xs">
+                        <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-800">Foto Belum Tersimpan di Database</h4>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-xs text-center leading-relaxed">
+                        Data absen ini dibuat sebelum sistem penyimpanan database MySQL aktif, atau file foto di server fisik tidak dapat diakses.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => photoUploadInputRef.current?.click()}
+                        disabled={isUploadingPhotoForLog}
+                        className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border-0 shadow-3xs transition-all"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploadingPhotoForLog ? "Menyimpan ke Database..." : "Upload Foto ke Database"}</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                const resolvedSrc = photoSrc.startsWith('data:') || photoSrc.startsWith('http')
+                  ? photoSrc
+                  : `/api/logs/${selectedPhotoLog.id}/proof`;
+
+                return (
+                  <div className="relative group max-h-[380px] w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center shadow-inner">
+                    <img
+                      src={resolvedSrc}
+                      alt={`Bukti Absen ${selectedPhotoLog.hostName}`}
+                      className="max-h-[380px] w-auto max-w-full object-contain"
+                      onError={() => setPhotoModalImgError(true)}
+                    />
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Attendance Details Grid */}
@@ -14795,16 +14889,26 @@ export default function App() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              {(selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url) && (
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => photoUploadInputRef.current?.click()}
+                disabled={isUploadingPhotoForLog}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-3xs"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>{selectedPhotoLog.proofImage || selectedPhotoLog.proof_image ? "Ganti Foto" : "Upload Foto"}</span>
+              </button>
+
+              {(selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url) && !photoModalImgError && (
                 <a
-                  href={selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || selectedPhotoLog.proofUrl || selectedPhotoLog.proof_url}
+                  href={selectedPhotoLog.proofImage || selectedPhotoLog.proof_image || `/api/logs/${selectedPhotoLog.id}/proof`}
                   target="_blank"
                   rel="noreferrer"
                   download={`absen_${selectedPhotoLog.hostName}_${selectedPhotoLog.date}.jpg`}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800"
                 >
-                  <Download className="w-3.5 h-3.5" /> Unduh Foto
+                  <Download className="w-3.5 h-3.5" /> Unduh
                 </a>
               )}
               <button

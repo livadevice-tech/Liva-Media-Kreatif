@@ -92,64 +92,6 @@ function CustomSelect({ value, options, onChange, placeholder, error }: any) {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* MODAL VIEW FOTO ABSEN HOST */}
-      {hostPhotoModal && (
-        <div
-          className="fixed inset-0 z-[250] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn font-sans"
-          onClick={() => setHostPhotoModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-sm w-full overflow-hidden animate-scaleUp text-slate-800"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                  <Camera size={16} />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-slate-900 leading-tight">Foto Kehadiran</h3>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    {hostPhotoModal.brand} • {new Date(hostPhotoModal.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHostPhotoModal(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer border-0"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <div className="p-4 bg-slate-900/5 flex flex-col items-center justify-center">
-              <div className="relative group max-h-[350px] w-full rounded-2xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center shadow-inner">
-                <img
-                  src={hostPhotoModal.url}
-                  alt={`Bukti Absen ${hostPhotoModal.brand}`}
-                  className="max-h-[350px] w-auto max-w-full object-contain"
-                />
-              </div>
-            </div>
-
-            <div className="px-5 py-3 bg-white text-xs border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">
-                Shift: {hostPhotoModal.shift || "-"}
-              </span>
-              <a
-                href={hostPhotoModal.url}
-                target="_blank"
-                rel="noreferrer"
-                download={`absen_${hostPhotoModal.brand}_${hostPhotoModal.date}.jpg`}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
-              >
-                <Download size={13} /> Unduh
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -281,6 +223,7 @@ export default function HostDashboard({
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [hostPhotoModal, setHostPhotoModal] = useState<{ url: string; brand: string; date: string; shift: string } | null>(null);
+  const [hostPhotoImgError, setHostPhotoImgError] = useState(false);
   const [serverNotifications, setServerNotifications] = useState<any[]>([]);
 
   useEffect(() => {
@@ -1458,7 +1401,7 @@ export default function HostDashboard({
                      {log.proofUrl && (
                        <button
                          type="button"
-                         onClick={() => setHostPhotoModal({ url: log.proofUrl, brand: log.brand, date: log.date, shift: log.shift })}
+                         onClick={() => { setHostPhotoImgError(false); setHostPhotoModal({ url: log.proofUrl, brand: log.brand, date: log.date, shift: log.shift }); }}
                          className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md mt-1.5 transition-colors cursor-pointer border-0 shadow-3xs"
                        >
                          <Eye size={12} />
@@ -2752,6 +2695,79 @@ export default function HostDashboard({
           </div>
         )}
       </AnimatePresence>
+      {/* MODAL VIEW FOTO ABSEN HOST */}
+      {hostPhotoModal && (
+        <div
+          className="fixed inset-0 z-[250] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn font-sans"
+          onClick={() => setHostPhotoModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-sm w-full overflow-hidden animate-scaleUp text-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Camera size={16} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 leading-tight">Foto Kehadiran</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {hostPhotoModal.brand} • {new Date(hostPhotoModal.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHostPhotoModal(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-900/5 flex flex-col items-center justify-center min-h-[200px]">
+              {hostPhotoImgError ? (
+                <div className="py-6 px-4 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200 w-full shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center mb-2">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-800">Foto Belum Tersedia di Database</h4>
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-[220px] text-center">
+                    Data absen ini dibuat sebelum sistem penyimpanan database aktif.
+                  </p>
+                </div>
+              ) : (
+                <div className="relative group max-h-[350px] w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center shadow-inner">
+                  <img
+                    src={hostPhotoModal.url}
+                    alt={`Bukti Absen ${hostPhotoModal.brand}`}
+                    className="max-h-[350px] w-auto max-w-full object-contain"
+                    onError={() => setHostPhotoImgError(true)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3 bg-white text-xs border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500">
+                Shift: {hostPhotoModal.shift || "-"}
+              </span>
+              {!hostPhotoImgError && (
+                <a
+                  href={hostPhotoModal.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={`absen_${hostPhotoModal.brand}_${hostPhotoModal.date}.jpg`}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+                >
+                  <Download size={13} /> Unduh
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

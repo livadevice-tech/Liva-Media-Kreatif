@@ -198,6 +198,69 @@ export function registerOperationsRoutes(app: Express) {
     return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
   }));
 
+  // Upload or update photo directly for an attendance log
+  app.post("/api/logs/:id/photo", uploadAttendance.single("photo"), asyncHandler(async (req: Request, res: Response) => {
+    let proofImage: string | undefined;
+    let proofUrl: string | undefined;
+
+    if (req.file) {
+      proofUrl = `/uploads/attendance/${req.file.filename}`;
+      const ext = path.extname(req.file.filename).toLowerCase().replace('.', '') || 'jpeg';
+      const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
+      proofImage = `data:${mime};base64,` + fs.readFileSync(req.file.path).toString('base64');
+    } else if (req.body && req.body.imageBase64) {
+      proofImage = req.body.imageBase64;
+      proofUrl = `/uploads/attendance/att-${Date.now()}.jpg`;
+    }
+
+    if (!proofImage) {
+      return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
+    }
+
+    await execute("UPDATE attendance_logs SET proof_image = ?, proof_url = COALESCE(proof_url, ?) WHERE id = ?", [
+      proofImage,
+      proofUrl || null,
+      req.params.id,
+    ]);
+
+    res.json({ success: true, proofImage, proofUrl });
+  }));
+
+  // Stream or serve proof image for an attendance log
+  app.get("/api/logs/:id/proof", asyncHandler(async (req: Request, res: Response) => {
+    const row = await queryOne<AttendanceLogRow>("SELECT id, proof_url, proof_image FROM attendance_logs WHERE id = ?", [req.params.id]);
+    if (!row) {
+      return res.status(404).send("Data absensi tidak ditemukan.");
+    }
+
+    if (row.proof_image && row.proof_image.startsWith("data:")) {
+      const matches = row.proof_image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        res.setHeader("Content-Type", matches[1]);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.send(Buffer.from(matches[2], "base64"));
+      }
+    }
+
+    if (row.proof_url) {
+      const clean = row.proof_url.replace(/^\//, '');
+      const basename = path.basename(clean);
+      const searchDirs = [
+        path.join(process.cwd(), clean),
+        path.join(process.cwd(), 'uploads', 'attendance', basename),
+        path.join(process.cwd(), 'public_html', clean),
+        path.join(process.cwd(), '..', clean),
+      ];
+      for (const p of searchDirs) {
+        if (fs.existsSync(p)) {
+          return res.sendFile(p);
+        }
+      }
+    }
+
+    return res.status(404).send("File foto bukti absensi tidak ditemukan di server.");
+  }));
+
   app.post("/api/logs", asyncHandler(async (req: Request, res: Response) => {
     const l = req.body;
     if (req.auth?.role === "host" && l.hostId !== req.auth.subjectId) {
