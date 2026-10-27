@@ -1855,7 +1855,10 @@ export default function App() {
     platform: "",
     shift: "",
     studio: "",
+    photo: "",
+    photoFile: null as File | null,
   }));
+  const [lastSubmittedAttendanceLog, setLastSubmittedAttendanceLog] = useState<AttendanceLog | null>(null);
 
   useEffect(() => {
     if (activeHostObj) {
@@ -1896,6 +1899,13 @@ export default function App() {
     ) {
       setHostFormError(
         "Harap lengkapi semua rincian absen (Brand, Platform, Shift, dan Studio) terlebih dahulu!",
+      );
+      return;
+    }
+
+    if (!hostForm.photo && !hostForm.photoFile) {
+      setHostFormError(
+        "Harap ambil foto langsung dari kamera atau pilih gambar bukti kehadiran terlebih dahulu!",
       );
       return;
     }
@@ -2010,6 +2020,29 @@ export default function App() {
     const randomRevenue =
       randomOrders * (Math.floor(Math.random() * 50000) + 40000); // ~IDR 6M - 15M
 
+    // Upload proof photo to server
+    let proofUrl = "";
+    if (hostForm.photoFile) {
+      try {
+        const uploadRes = await logsApi.uploadProof(hostForm.photoFile);
+        if (uploadRes?.proofUrl) {
+          proofUrl = uploadRes.proofUrl;
+        }
+      } catch (uploadErr) {
+        console.warn("Gagal upload file foto via FormData, mencoba base64:", uploadErr);
+      }
+    }
+    if (!proofUrl && hostForm.photo) {
+      try {
+        const uploadRes = await logsApi.uploadProof(hostForm.photo);
+        if (uploadRes?.proofUrl) {
+          proofUrl = uploadRes.proofUrl;
+        }
+      } catch (uploadErr) {
+        console.warn("Gagal upload base64 foto:", uploadErr);
+      }
+    }
+
     const newLog: AttendanceLog = {
       id: `log_auto_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       hostId: activeHostObj.id,
@@ -2029,6 +2062,8 @@ export default function App() {
       engagementRate: randomEngagement,
       avgViewDuration: randomAvgViewDuration,
       orders: randomOrders,
+      proofUrl: proofUrl || hostForm.photo || undefined,
+      proof_url: proofUrl || hostForm.photo || undefined,
     };
 
     try {
@@ -2037,6 +2072,13 @@ export default function App() {
       }
       setLogs((prev) => [newLog, ...prev]);
       
+      // Save for WhatsApp redirection modal with instant photo preview
+      setLastSubmittedAttendanceLog({
+        ...newLog,
+        proofUrl: hostForm.photo || proofUrl || undefined,
+        proof_url: hostForm.photo || proofUrl || undefined,
+      });
+
       // Log activity
       activityLogsApi.create({
         hostId: activeHostObj.id,
@@ -2068,6 +2110,8 @@ export default function App() {
       platform: "",
       shift: "",
       studio: "",
+      photo: "",
+      photoFile: null,
     });
 
     // Auto reset success notification banner after 6 seconds
@@ -5679,6 +5723,8 @@ export default function App() {
           onUpdateHost={handleUpdateHost}
           hostNotifications={hostNotifications}
           onMarkHostNotificationAsRead={markHostNotificationsAsRead}
+          lastSubmittedAttendanceLog={lastSubmittedAttendanceLog}
+          setLastSubmittedAttendanceLog={setLastSubmittedAttendanceLog}
         />
       )}
 

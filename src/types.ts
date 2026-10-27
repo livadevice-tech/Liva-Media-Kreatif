@@ -66,6 +66,8 @@ export interface AttendanceLog {
   overtimeHours?: number;
   isBackupShift?: boolean;
   timestamp?: string;
+  proofUrl?: string;
+  proof_url?: string;
 }
 
 export interface StudioItem {

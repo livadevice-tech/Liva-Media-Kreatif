@@ -1,6 +1,29 @@
 import type { Express, Request, Response } from "express";
 import { execute, queryMany, queryOne } from "../db";
 import { asyncHandler, genId } from "../http";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Setup Multer Storage for Bukti Absensi
+const attendanceStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), 'uploads', 'attendance');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'att-' + uniqueSuffix + path.extname(file.originalname || '.jpg'));
+  }
+});
+
+const uploadAttendance = multer({
+  storage: attendanceStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 interface AttendanceLogRow {
   id: string;
@@ -28,6 +51,7 @@ interface AttendanceLogRow {
   fraud_reason?: string | null;
   overtime_hours?: string | number | null;
   is_backup_shift?: number | string | boolean | null;
+  proof_url?: string | null;
 }
 
 interface ShiftScheduleRow {
@@ -88,6 +112,8 @@ function mapAttendanceLog(l: AttendanceLogRow) {
     fraudReason: l.fraud_reason,
     overtimeHours: toNumber(l.overtime_hours),
     isBackupShift: !!l.is_backup_shift,
+    proofUrl: l.proof_url || undefined,
+    proof_url: l.proof_url || undefined,
   };
 }
 
@@ -139,6 +165,28 @@ export function registerOperationsRoutes(app: Express) {
     res.json(logs.map(mapAttendanceLog));
   }));
 
+  // Upload endpoint for attendance proof photo
+  app.post("/api/logs/upload-proof", uploadAttendance.single("photo"), asyncHandler(async (req: Request, res: Response) => {
+    if (req.file) {
+      const proofUrl = `/uploads/attendance/${req.file.filename}`;
+      return res.json({ success: true, proofUrl });
+    }
+
+    if (req.body && req.body.imageBase64) {
+      const base64Data = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const dir = path.join(process.cwd(), 'uploads', 'attendance');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const filename = `att-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
+      fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
+      const proofUrl = `/uploads/attendance/${filename}`;
+      return res.json({ success: true, proofUrl });
+    }
+
+    return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
+  }));
+
   app.post("/api/logs", asyncHandler(async (req: Request, res: Response) => {
     const l = req.body;
     if (req.auth?.role === "host" && l.hostId !== req.auth.subjectId) {
@@ -152,8 +200,9 @@ export function registerOperationsRoutes(app: Express) {
         platform, brand_handled, live_duration, session_count, status,
         check_in_time, revenue_generated, conversion_rate, engagement_rate,
         orders, avg_view_duration, studio, flagged_as_anomaly, anomaly_reason,
-        is_duplicate, flagged_as_fraud, fraud_reason, overtime_hours, is_backup_shift
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_duplicate, flagged_as_fraud, fraud_reason, overtime_hours, is_backup_shift,
+        proof_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, l.hostId, l.hostName || null, l.employeeId || null,
       l.date, l.shiftHours || null, l.platform || null, l.brandHandled || null,
@@ -164,6 +213,7 @@ export function registerOperationsRoutes(app: Express) {
       l.flaggedAsAnomaly ? 1 : 0, l.anomalyReason || null,
       l.isDuplicate ? 1 : 0, l.flaggedAsFraud ? 1 : 0,
       l.fraudReason || null, l.overtimeHours || 0, l.isBackupShift ? 1 : 0,
+      l.proofUrl || l.proof_url || null,
     ]);
 
     res.status(201).json({ id });
@@ -180,7 +230,7 @@ export function registerOperationsRoutes(app: Express) {
         engagement_rate = ?, orders = ?, avg_view_duration = ?,
         studio = ?, flagged_as_anomaly = ?, anomaly_reason = ?,
         is_duplicate = ?, flagged_as_fraud = ?, fraud_reason = ?,
-        overtime_hours = ?, is_backup_shift = ?
+        overtime_hours = ?, is_backup_shift = ?, proof_url = ?
       WHERE id = ?
     `, [
       l.hostId, l.hostName || null, l.employeeId || null, l.date,
@@ -192,6 +242,7 @@ export function registerOperationsRoutes(app: Express) {
       l.flaggedAsAnomaly ? 1 : 0, l.anomalyReason || null,
       l.isDuplicate ? 1 : 0, l.flaggedAsFraud ? 1 : 0,
       l.fraudReason || null, l.overtimeHours || 0, l.isBackupShift ? 1 : 0,
+      l.proofUrl || l.proof_url || null,
       req.params.id,
     ]);
     res.json({ success: true });

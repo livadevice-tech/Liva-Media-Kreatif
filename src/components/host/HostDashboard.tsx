@@ -5,7 +5,7 @@ import {
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
   DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
   Smartphone, Sparkles, ShieldCheck, Download, Radio,
-  CreditCard, Phone, Edit3, Copy, Building2
+  CreditCard, Phone, Edit3, Copy, Building2, Camera, Trash2, Send, Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -96,6 +96,51 @@ function CustomSelect({ value, options, onChange, placeholder, error }: any) {
   );
 }
 
+function compressImage(file: File, maxWidth = 1280, quality = 0.82): Promise<{ dataUrl: string; file: File }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve({ dataUrl: e.target?.result as string, file });
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], (file.name || 'attendance').replace(/\.[^/.]+$/, "") + ".jpg", {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve({ dataUrl, file: compressedFile });
+            } else {
+              resolve({ dataUrl, file });
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 interface HostDashboardProps {
   activeHostObj: any;
   hostForm: any;
@@ -130,6 +175,8 @@ interface HostDashboardProps {
   onUpdateHost?: (hostId: string, fields: any, silent?: boolean) => Promise<void> | void;
   hostNotifications?: any[];
   onMarkHostNotificationAsRead?: (hostId: string) => void;
+  lastSubmittedAttendanceLog?: any;
+  setLastSubmittedAttendanceLog?: (log: any) => void;
 };
 
 
@@ -169,6 +216,8 @@ export default function HostDashboard({
   onUpdateHost,
   hostNotifications,
   onMarkHostNotificationAsRead,
+  lastSubmittedAttendanceLog,
+  setLastSubmittedAttendanceLog,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -362,6 +411,114 @@ export default function HostDashboard({
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
+
+  // Photo capture & WhatsApp group share states
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [waModalData, setWaModalData] = useState<any>(null);
+  const [waCopied, setWaCopied] = useState(false);
+
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  const galleryInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Trigger WhatsApp share modal when attendance is submitted
+  useEffect(() => {
+    if (lastSubmittedAttendanceLog) {
+      setWaModalData(lastSubmittedAttendanceLog);
+      setIsWaModalOpen(true);
+      setIsAbsenModalOpen(false);
+    }
+  }, [lastSubmittedAttendanceLog]);
+
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingPhoto(true);
+    setHostFormError('');
+    try {
+      const compressed = await compressImage(file, 1280, 0.82);
+      setHostForm((prev: any) => ({
+        ...prev,
+        photo: compressed.dataUrl,
+        photoFile: compressed.file,
+      }));
+    } catch (err) {
+      console.error('Gagal memproses gambar:', err);
+      setHostFormError('Gagal memproses gambar foto. Silakan coba lagi.');
+    } finally {
+      setIsCompressingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const generateWaMessage = (data: any) => {
+    if (!data) return '';
+    const dateFormatted = data.date
+      ? new Date(data.date).toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    const statusLabel = data.status === 'Present' ? 'Tepat Waktu' : 'Terlambat';
+    const jamLabel = data.checkInTime || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    return `*ABSENSI HOST LIVE STREAMING - LIVA MEDIA KREATIF*
+----------------------------------------
+👤 *Nama Host:* ${data.hostName || activeHostObj?.name || '-'}
+🏷️ *Brand:* ${data.brandHandled || data.brand || '-'}
+📅 *Tanggal Absen:* ${dateFormatted}
+⏰ *Jam Absen:* ${jamLabel} (${statusLabel})
+⏱️ *Shift:* ${data.shiftHours || data.shift || '-'}
+🏢 *Studio:* ${data.studio || '-'}
+📱 *Platform:* ${data.platform || '-'}
+----------------------------------------
+*Status:* Berhasil tersimpan di database sistem Liva Media Kreatif`;
+  };
+
+  const handleSendToWhatsApp = async () => {
+    if (!waModalData) return;
+    const text = generateWaMessage(waModalData);
+
+    // If photoFile exists and browser supports sharing files (mobile browsers)
+    if (hostForm.photoFile && navigator.canShare && navigator.canShare({ files: [hostForm.photoFile] })) {
+      try {
+        await navigator.share({
+          title: `Absensi Host - ${waModalData.hostName || activeHostObj?.name}`,
+          text: text,
+          files: [hostForm.photoFile],
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        console.warn('Native share failed, fallback to URL:', err);
+      }
+    }
+
+    // Fallback: Copy to clipboard and open WhatsApp
+    try {
+      await navigator.clipboard.writeText(text);
+      setWaCopied(true);
+      setTimeout(() => setWaCopied(false), 3000);
+    } catch (e) {}
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const handleDownloadPhoto = () => {
+    const photoSrc = waModalData?.proofUrl || waModalData?.proof_url || hostForm.photo;
+    if (!photoSrc) return;
+    const a = document.createElement('a');
+    a.href = photoSrc;
+    a.download = `absen-${(activeHostObj?.name || 'host').replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1994,18 +2151,320 @@ export default function HostDashboard({
                         placeholder="Pilih Studio"
                       />
                     </div>
+
+                    {/* Foto Bukti Kehadiran */}
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-blue-600" />
+                          <span>Foto Bukti Kehadiran</span>
+                        </span>
+                        <span className="text-[11px] text-rose-500 font-bold">*Wajib Foto</span>
+                      </label>
+
+                      {/* Hidden file inputs */}
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                        onChange={handlePhotoFileChange}
+                      />
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoFileChange}
+                      />
+
+                      {isCompressingPhoto ? (
+                        <div className="border border-slate-200 bg-slate-50 rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
+                          <Clock className="w-6 h-6 text-blue-600 animate-spin" />
+                          <span className="text-xs font-bold text-slate-600">Memproses & mengoptimalkan foto...</span>
+                        </div>
+                      ) : hostForm.photo ? (
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-900 group">
+                          <img
+                            src={hostForm.photo}
+                            alt="Bukti Kehadiran"
+                            className="w-full h-44 object-cover object-center"
+                          />
+                          <div className="absolute bottom-2 left-2 right-2 bg-slate-950/75 backdrop-blur-md rounded-xl p-2.5 text-white text-[11px] flex items-center justify-between shadow-lg">
+                            <div className="truncate pr-2">
+                              <span className="font-bold block truncate text-xs">{activeHostObj?.name || 'Host'}</span>
+                              <span className="text-slate-300 font-mono text-[10px]">
+                                {new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} • {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Buka Kamera"
+                              >
+                                <Camera className="w-3 h-3" />
+                                <span>Kamera</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Pilih Galeri"
+                              >
+                                <Image className="w-3 h-3" />
+                                <span>Galeri</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setHostForm((prev: any) => ({ ...prev, photo: '', photoFile: null }))}
+                                className="p-1.5 bg-rose-500/80 hover:bg-rose-600 rounded-lg text-white transition-colors cursor-pointer"
+                                title="Hapus Foto"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/70 rounded-2xl p-4 text-center transition-all">
+                          <div className="flex flex-col items-center justify-center gap-1.5 mb-3.5">
+                            <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
+                              <Camera className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-700">Foto Selfie / Kehadiran di Studio</p>
+                            <p className="text-[11px] text-slate-400 font-medium">Bisa langsung kamera HP atau pilih file galeri</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => cameraInputRef.current?.click()}
+                              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 cursor-pointer"
+                            >
+                              <Camera className="w-4 h-4" />
+                              <span>Buka Kamera</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => galleryInputRef.current?.click()}
+                              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all font-bold text-xs cursor-pointer"
+                            >
+                              <Image className="w-4 h-4 text-slate-500" />
+                              <span>Pilih Galeri</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <button 
                     type="submit"
-                    className="w-full bg-blue-600 text-white font-bold rounded-2xl py-4 mt-8 shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.98] transition-all"
+                    disabled={isCompressingPhoto}
+                    className="w-full bg-blue-600 text-white font-bold rounded-2xl py-4 mt-6 shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Absen Sekarang
+                    <Fingerprint className="w-5 h-5" />
+                    <span>Absen Sekarang</span>
                   </button>
                 </form>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Sukses Absen & Pengarah Kirim WhatsApp Group */}
+      <AnimatePresence>
+        {isWaModalOpen && waModalData && (
+          <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsWaModalOpen(false);
+                setWaModalData(null);
+                if (setLastSubmittedAttendanceLog) setLastSubmittedAttendanceLog(null);
+              }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Sheet Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] z-10 border border-slate-100"
+            >
+              {/* Green WA Header */}
+              <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                    <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base leading-tight">Absen Masuk Database! 🎉</h3>
+                    <p className="text-xs text-emerald-100 font-medium">Lanjutkan kirim ke WhatsApp Group Liva</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWaModalOpen(false);
+                    setWaModalData(null);
+                    if (setLastSubmittedAttendanceLog) setLastSubmittedAttendanceLog(null);
+                  }}
+                  className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-4">
+                {/* Photo Preview if available */}
+                {(waModalData.proofUrl || waModalData.proof_url || hostForm.photo) && (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-900">
+                    <img
+                      src={waModalData.proofUrl || waModalData.proof_url || hostForm.photo}
+                      alt="Foto Absen"
+                      className="w-full h-44 object-cover object-center"
+                    />
+                    <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Foto Berhasil Disimpan</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ringkasan Data Absen */}
+                <div className="bg-[#f8f9fc] rounded-2xl p-4 border border-slate-100 space-y-2.5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Detail Laporan Absensi
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Nama Host</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.hostName || activeHostObj?.name || '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Brand</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.brandHandled || waModalData.brand || '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Tanggal Absen</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.date ? new Date(waModalData.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Shift</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.shiftHours || waModalData.shift || '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Studio</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.studio || '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Platform</span>
+                      <span className="font-extrabold text-slate-800 truncate block">
+                        {waModalData.platform || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold block">Jam Absen & Status</span>
+                      <span className="font-mono font-black text-xs text-slate-800">
+                        {waModalData.checkInTime || '-'}
+                      </span>
+                    </div>
+                    <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
+                      waModalData.status === 'Present' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {waModalData.status === 'Present' ? 'Tepat Waktu' : 'Terlambat'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Action Button: WhatsApp */}
+                <button
+                  type="button"
+                  onClick={handleSendToWhatsApp}
+                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-[#25D366]/30 active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                  </svg>
+                  <span>Kirim ke WhatsApp Group Liva</span>
+                </button>
+
+                {/* Secondary Actions */}
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = generateWaMessage(waModalData);
+                      navigator.clipboard.writeText(text).then(() => {
+                        setWaCopied(true);
+                        setTimeout(() => setWaCopied(false), 3000);
+                      });
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {waCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
+                    <span>{waCopied ? 'Tersalin!' : 'Salin Format Teks'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadPhoto}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-slate-500" />
+                    <span>Unduh Foto</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-400 text-center font-medium leading-relaxed">
+                  Data absensi Anda telah sukses tersimpan di sistem Liva. Tekan tombol hijau di atas untuk membagikan bukti absensi ke WhatsApp Group Liva.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWaModalOpen(false);
+                    setWaModalData(null);
+                    if (setLastSubmittedAttendanceLog) setLastSubmittedAttendanceLog(null);
+                  }}
+                  className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                >
+                  Selesai & Tutup
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

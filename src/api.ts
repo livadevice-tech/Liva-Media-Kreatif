@@ -188,6 +188,25 @@ export const logsApi = {
   updateMany: async (logs: AttendanceLog[]) => {
     return Promise.all(logs.map(log => logsApi.update(log.id, log)));
   },
+
+  /** Upload foto bukti absensi (mendukung File object atau Base64 data URL) */
+  uploadProof: async (fileOrBase64: File | Blob | string): Promise<{ success: boolean; proofUrl: string }> => {
+    if (typeof fileOrBase64 === 'string') {
+      return request<{ success: boolean; proofUrl: string }>('POST', '/logs/upload-proof', { imageBase64: fileOrBase64 });
+    }
+    const formData = new FormData();
+    formData.append('photo', fileOrBase64);
+    const res = await fetch(`${API_BASE}/logs/upload-proof`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: 'Gagal mengupload foto bukti absensi' }));
+      throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    return res.json();
+  },
 };
 
 // ==================================================================

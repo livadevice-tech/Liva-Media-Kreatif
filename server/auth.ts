@@ -158,6 +158,7 @@ export function isRequestAllowed(
       (method === "GET" && path === "/violations") ||
       (method === "GET" && path === "/logs") ||
       (method === "POST" && path === "/logs") ||
+      (method === "POST" && path === "/logs/upload-proof") ||
       (method === "POST" && path === "/host-activity-logs") ||
       (method === "GET" && path === "/schedules") ||
       ((method === "GET" || method === "PUT") && isPathUnder(path, "/host-notifications")) ||
