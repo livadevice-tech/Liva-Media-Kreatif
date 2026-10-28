@@ -277,8 +277,20 @@ function createCaptionedImage(
       }
     };
 
-    img.onload = processCanvas;
+    let objectUrlToRevoke: string | null = null;
+    const cleanup = () => {
+      if (objectUrlToRevoke) {
+        try { URL.revokeObjectURL(objectUrlToRevoke); } catch (_) {}
+        objectUrlToRevoke = null;
+      }
+    };
+
+    img.onload = () => {
+      cleanup();
+      processCanvas();
+    };
     img.onerror = () => {
+      cleanup();
       if (source instanceof File) {
         resolve({ file: source, dataUrl: '' });
       } else {
@@ -286,13 +298,9 @@ function createCaptionedImage(
       }
     };
 
-    if (source instanceof File) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(source);
+    if (source instanceof File || source instanceof Blob) {
+      objectUrlToRevoke = URL.createObjectURL(source);
+      img.src = objectUrlToRevoke;
     } else {
       img.src = source;
     }
