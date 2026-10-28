@@ -5780,6 +5780,8 @@ export default function App() {
           computedSchedules={computedSchedules}
           violations={violations.filter(v => v.host_id === activeHostObj?.id)}
           brandPerformanceLogs={brandPerformanceLogs}
+          salarySettings={salarySettings}
+          overtimes={overtimes}
           onOpenFullReporting={(brandId) => setHostActiveReportingBrandId(brandId)}
           onRefreshData={async () => window.location.reload()}
           onUpdateHost={handleUpdateHost}

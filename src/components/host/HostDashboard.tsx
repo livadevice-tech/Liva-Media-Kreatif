@@ -22,6 +22,10 @@ import {
 import AnalysisPerformanceTab from '../reporting/AnalysisPerformanceTab';
 import { MobileLiveDailyTable } from '../reporting/MobileLiveDailyTable';
 import { MobileLiveMetricsPanel } from '../reporting/MobileLiveMetricsPanel';
+import { buildHostReportList, HostReportRow, HostSalarySettings } from '../../shared/utils/salaryReporting';
+import type { OvertimeRecord } from '../../types';
+import { formatIDR } from '../../shared/utils/currency';
+import HostSlipGajiModal from './HostSlipGajiModal';
 
 const formatShortCutoff = (period: string) => {
   if (period === 'Semua') return 'Semua Waktu';
@@ -305,6 +309,8 @@ interface HostDashboardProps {
   computedSchedules: any[];
   violations: any[];
   brandPerformanceLogs: any[];
+  salarySettings?: HostSalarySettings;
+  overtimes?: OvertimeRecord[];
   onOpenFullReporting?: (brandId: string) => void;
   onRefreshData?: () => Promise<void>;
   onUpdateHost?: (hostId: string, fields: any, silent?: boolean) => Promise<void> | void;
@@ -346,6 +352,8 @@ export default function HostDashboard({
   computedSchedules,
   violations,
   brandPerformanceLogs,
+  salarySettings,
+  overtimes,
   onOpenFullReporting,
   onRefreshData,
   onUpdateHost,
@@ -357,6 +365,7 @@ export default function HostDashboard({
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [isSlipGajiOpen, setIsSlipGajiOpen] = useState(false);
   const [hostPhotoModal, setHostPhotoModal] = useState<{ url: string; brand: string; date: string; shift: string } | null>(null);
   const [hostPhotoImgError, setHostPhotoImgError] = useState(false);
   const [serverNotifications, setServerNotifications] = useState<any[]>([]);
@@ -1213,6 +1222,38 @@ export default function HostDashboard({
     return { hadir, telat, tidakHadir };
   }, [hostLogs, hostCutoffPeriod]);
 
+  const hostSalaryReport = useMemo(() => {
+    if (!activeHostObj) return null;
+    const defaultSettings: HostSalarySettings = {
+      overtimePayPerHour: 15000,
+      tanggamusBackupPay: 40000,
+      bandarLampungBackupPay: 50000,
+      workingDays: 25,
+      tanggamusRegulerBase: 1000000,
+      bandarLampungRegulerBase: 1300000,
+      tanggamusRegulerBonus: 250000,
+      bandarLampungRegulerBonus: 300000,
+      useCutOff: true,
+      cutOffStartDay: 16,
+      cutOffEndDay: 15,
+    };
+    const effectiveSettings = salarySettings || defaultSettings;
+    const reports = buildHostReportList(
+      [activeHostObj],
+      hostLogs || [],
+      effectiveSettings,
+      (rawDate: string) => {
+        if (!hostCutoffPeriod || hostCutoffPeriod === 'Semua') return true;
+        return getCutoffMonthForDate(rawDate) === hostCutoffPeriod;
+      },
+      (l: any) => l.date || '',
+      violations,
+      overtimes,
+      hostCutoffPeriod
+    );
+    return reports[0] || null;
+  }, [activeHostObj, hostLogs, salarySettings, hostCutoffPeriod, violations, overtimes]);
+
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
     const firstDayRaw = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
@@ -1718,6 +1759,54 @@ export default function HostDashboard({
             ) : (
               <p className="text-xs text-slate-400 font-medium">Kamu tidak memiliki jadwal pada tanggal ini.</p>
             )}
+          </div>
+        )}
+
+        {/* Widget Ringkasan Gaji & Slip di Beranda */}
+        {hostSalaryReport && (
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-3xl p-5 text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-blue-300">
+                    <DollarSign size={16} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Estimasi Gaji Periode Ini</span>
+                    <span className="text-xs text-slate-300 font-medium">{formatShortCutoff(hostCutoffPeriod)}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSlipGajiOpen(true)}
+                  className="bg-white/10 hover:bg-white/20 active:scale-95 text-blue-100 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FileText size={13} />
+                  <span>Slip Gaji</span>
+                </button>
+              </div>
+
+              <div className="flex items-baseline justify-between mt-2 pt-3 border-t border-white/10">
+                <div>
+                  <span className="text-2xl font-black text-emerald-400 tracking-tight block">
+                    {formatIDR(hostSalaryReport.netSalary)}
+                  </span>
+                  <span className="text-[11px] text-slate-300 font-medium">
+                    {hostSalaryReport.totalHadir} dari {hostSalaryReport.requiredWorkingDays} Hari Target Terpenuhi
+                  </span>
+                </div>
+                {hostSalaryReport.isEligibleForBonus ? (
+                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                    <Sparkles size={11} /> +Bonus Disiplin
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-slate-300 border border-white/10">
+                    {hostSalaryReport.countTerlambat}x Telat
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -2290,6 +2379,123 @@ export default function HostDashboard({
                             {p}
                           </span>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Informasi Gaji & Slip Gaji Berdasarkan Perhitungan Absen */}
+                  {hostSalaryReport && (
+                    <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+                      <div className="absolute -right-10 -bottom-10 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+                      
+                      <div className="relative z-10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-blue-300">
+                              <DollarSign size={16} />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-blue-200 block">Total Gaji & Slip Gaji</span>
+                              <span className="text-[10px] text-slate-300">{formatShortCutoff(hostCutoffPeriod)}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Cutoff Selector */}
+                          <div className="relative">
+                            <div className="flex items-center gap-1 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg px-2 py-1 text-[10px] font-bold text-blue-100 pointer-events-none">
+                              <span>Pilih Periode</span>
+                              <ChevronDown size={12} />
+                            </div>
+                            <select
+                              value={hostCutoffPeriod}
+                              onChange={(e) => setHostCutoffPeriod(e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            >
+                              {availableCutoffMonths.map((p) => (
+                                <option key={p} value={p} className="text-slate-800 bg-white">
+                                  {formatShortCutoff(p)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Total Estimasi Gaji */}
+                        <div className="bg-white/10 rounded-xl p-3 border border-white/10 backdrop-blur-xs">
+                          <span className="text-[10px] font-semibold text-slate-300 block uppercase tracking-wider">
+                            Total Gaji Estimasi (Take-Home Pay)
+                          </span>
+                          <div className="flex items-baseline justify-between mt-0.5">
+                            <span className="text-2xl font-black text-emerald-400 tracking-tight">
+                              {formatIDR(hostSalaryReport.netSalary)}
+                            </span>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                              {hostSalaryReport.totalHadir} / {hostSalaryReport.requiredWorkingDays} Hadir
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Rekap Absensi Singkat */}
+                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <span className="text-[9px] text-slate-400 block">Tepat</span>
+                            <span className="text-xs font-black text-emerald-400">{hostSalaryReport.countTepatWaktu}</span>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <span className="text-[9px] text-slate-400 block">Terlambat</span>
+                            <span className="text-xs font-black text-amber-400">{hostSalaryReport.countTerlambat}</span>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <span className="text-[9px] text-slate-400 block">Izin/Sakit</span>
+                            <span className="text-xs font-black text-blue-300">{hostSalaryReport.countIzin}</span>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <span className="text-[9px] text-slate-400 block">Alpa</span>
+                            <span className="text-xs font-black text-rose-400">{hostSalaryReport.countAlpa}</span>
+                          </div>
+                        </div>
+
+                        {/* Rincian Komponen Singkat */}
+                        <div className="space-y-1 pt-1 text-[11px] border-t border-white/10">
+                          <div className="flex justify-between text-slate-300">
+                            <span>Gaji Pokok Kehadiran</span>
+                            <span className="font-bold text-white font-mono">
+                              {formatIDR(
+                                (activeHostObj?.hostType || 'Reguler') === 'Reguler'
+                                  ? Math.round(((hostSalaryReport.basePayRate || 0) / (hostSalaryReport.requiredWorkingDays || 25)) * (hostSalaryReport.totalHadir || 0))
+                                  : (hostSalaryReport.basePayRate || 0) * (hostSalaryReport.totalHadir || 0)
+                              )}
+                            </span>
+                          </div>
+                          {hostSalaryReport.calculatedBackupPay > 0 && (
+                            <div className="flex justify-between text-slate-300">
+                              <span>Shift Tambahan / Backup</span>
+                              <span className="font-bold text-emerald-300 font-mono">+{formatIDR(hostSalaryReport.calculatedBackupPay)}</span>
+                            </div>
+                          )}
+                          {hostSalaryReport.calculatedOvertimePay > 0 && (
+                            <div className="flex justify-between text-slate-300">
+                              <span>Uang Lembur ({hostSalaryReport.totalOvertimeHours} Jam)</span>
+                              <span className="font-bold text-emerald-300 font-mono">+{formatIDR(hostSalaryReport.calculatedOvertimePay)}</span>
+                            </div>
+                          )}
+                          {hostSalaryReport.calculatedBonus > 0 && (
+                            <div className="flex justify-between text-emerald-300">
+                              <span>Bonus Disiplin Kehadiran</span>
+                              <span className="font-bold text-emerald-300 font-mono">+{formatIDR(hostSalaryReport.calculatedBonus)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Button Buka Slip Gaji */}
+                        <button
+                          type="button"
+                          onClick={() => setIsSlipGajiOpen(true)}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
+                        >
+                          <FileText size={15} />
+                          <span>Lihat & Cetak Slip Gaji Resmi</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -3127,6 +3333,17 @@ export default function HostDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Slip Gaji Resmi Host */}
+      {isSlipGajiOpen && hostSalaryReport && activeHostObj && (
+        <HostSlipGajiModal
+          isOpen={isSlipGajiOpen}
+          onClose={() => setIsSlipGajiOpen(false)}
+          host={activeHostObj}
+          salaryReport={hostSalaryReport}
+          cutoffLabel={formatShortCutoff(hostCutoffPeriod)}
+        />
       )}
     </div>
   );
