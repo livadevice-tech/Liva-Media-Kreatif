@@ -22,8 +22,11 @@ export function getPool(): mysql.Pool {
       password: password || "",
       database,
       waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
+      connectionLimit: 4,
+      maxIdle: 2,
+      idleTimeout: 30000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       charset: "utf8mb4",
       timezone: "+07:00",
       dateStrings: true,
@@ -38,21 +41,50 @@ export function getPool(): mysql.Pool {
   return pool;
 }
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 600): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const isTransient =
+        err?.code === "ER_CON_COUNT_ERROR" ||
+        err?.code === "PROTOCOL_CONNECTION_LOST" ||
+        err?.code === "ECONNRESET" ||
+        err?.code === "ETIMEDOUT";
+      if (isTransient && i < retries) {
+        console.warn(`[DB Retry] Percobaan ${i + 1}/${retries} gagal (${err.code}). Menunggu ${delayMs * (i + 1)}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export async function queryOne<T = any>(sql: string, params: any[]): Promise<T | null> {
-  const db = getPool();
-  const [rows] = await db.execute(sql, params);
-  const arr = rows as T[];
-  return arr.length > 0 ? arr[0] : null;
+  return withRetry(async () => {
+    const db = getPool();
+    const [rows] = await db.execute(sql, params);
+    const arr = rows as T[];
+    return arr.length > 0 ? arr[0] : null;
+  });
 }
 
 export async function queryMany<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-  const db = getPool();
-  const [rows] = await db.execute(sql, params);
-  return rows as T[];
+  return withRetry(async () => {
+    const db = getPool();
+    const [rows] = await db.execute(sql, params);
+    return rows as T[];
+  });
 }
 
 export async function execute(sql: string, params: any[]): Promise<mysql.ResultSetHeader> {
-  const db = getPool();
-  const [result] = await db.execute(sql, params);
-  return result as mysql.ResultSetHeader;
+  return withRetry(async () => {
+    const db = getPool();
+    const [result] = await db.execute(sql, params);
+    return result as mysql.ResultSetHeader;
+  });
 }

@@ -645,15 +645,41 @@ export default function HostDashboard({
     return String(dateVal);
   };
 
+  const formatAbsenTime = (timeVal?: string, fallbackTimestamp?: string) => {
+    if (timeVal) {
+      const str = String(timeVal).trim();
+      const match = str.match(/(\d{1,2})[:.](\d{2})/);
+      if (match) {
+        const h = match[1].padStart(2, '0');
+        const m = match[2];
+        const hasZone = /WIB|WITA|WIT/i.test(str);
+        return hasZone ? `${h}:${m} ${str.match(/WIB|WITA|WIT/i)![0].toUpperCase()}` : `${h}:${m} WIB`;
+      }
+    }
+    if (fallbackTimestamp) {
+      const str = String(fallbackTimestamp).trim();
+      const match = str.match(/(\d{1,2})[:.](\d{2})/);
+      if (match) {
+        const h = match[1].padStart(2, '0');
+        const m = match[2];
+        return `${h}:${m} WIB`;
+      }
+    }
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(now.getHours())}:${pad(now.getMinutes())} WIB`;
+  };
+
   const generateWaMessage = (data: any) => {
     if (!data) return '';
     const dateStr = formatAbsenDate(data.date || data.attendanceDate);
+    const timeStr = formatAbsenTime(data.checkInTime || data.time, data.timestamp);
     const hostName = data.hostName || activeHostObj?.name || '-';
     const brand = data.brandHandled || data.brand || '-';
     const shift = data.shiftHours || data.shift || '-';
     const platform = data.platform || '-';
 
-    return `${dateStr}\n${hostName}-${brand}\n${shift}-${platform}`;
+    return `${dateStr} | ${timeStr}\n${hostName}-${brand}\n${shift}-${platform}`;
   };
 
   const getPhotoFileFromData = async (data: any): Promise<File | null> => {
@@ -759,12 +785,13 @@ export default function HostDashboard({
     if (!photoSrc) return null;
 
     const dateStr = formatAbsenDate(data.date || data.attendanceDate);
+    const timeStr = formatAbsenTime(data.checkInTime || data.time, data.timestamp);
     const hostName = data.hostName || activeHostObj?.name || '-';
     const brand = data.brandHandled || data.brand || '-';
     const shift = data.shiftHours || data.shift || '-';
     const platform = data.platform || '-';
 
-    const line1 = dateStr;
+    const line1 = `${dateStr} | ${timeStr}`;
     const line2 = `${hostName}-${brand}`;
     const line3 = `${shift}-${platform}`;
     const filename = `absen-${hostName.replace(/\s+/g, '_')}-${Date.now()}.jpg`;
