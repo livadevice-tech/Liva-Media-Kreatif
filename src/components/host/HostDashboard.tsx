@@ -39,6 +39,25 @@ const formatShortCutoff = (period: string) => {
   return `16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]} ${yr}`;
 };
 
+const getLocalTodayYMD = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getPreviousCutoffMonth = (period: string) => {
+  const [yr, mo] = period.split('-');
+  let y = Number(yr);
+  let m = Number(mo) - 1;
+  if (m === 0) {
+    m = 12;
+    y -= 1;
+  }
+  return `${y}-${String(m).padStart(2, '0')}`;
+};
+
 
 function CustomSelect({ value, options, onChange, placeholder, error }: any) {
   // normalize options to {value, label} format
@@ -1222,8 +1241,45 @@ export default function HostDashboard({
     return { hadir, telat, tidakHadir };
   }, [hostLogs, hostCutoffPeriod]);
 
+  // Hanya periode cut-off yang sudah selesai (tanggal 15 sudah terlewati)
+  const completedCutoffMonths = useMemo(() => {
+    const todayStr = getLocalTodayYMD();
+
+    const completed = (availableCutoffMonths || []).filter((period) => {
+      if (!period || period === 'Semua') return false;
+      const [yrStr, moStr] = period.split('-');
+      const y = Number(yrStr);
+      const m = Number(moStr);
+      if (!y || !m) return false;
+      const endDate = `${y}-${String(m).padStart(2, '0')}-15`;
+      return todayStr > endDate;
+    });
+
+    const currentOngoing = getCutoffMonthForDate(todayStr);
+    const latestFinished = getPreviousCutoffMonth(currentOngoing);
+
+    if (!completed.includes(latestFinished)) {
+      completed.unshift(latestFinished);
+    }
+
+    return Array.from(new Set(completed)).sort().reverse();
+  }, [availableCutoffMonths]);
+
+  // State terpisah untuk cut off slip gaji di menu Akun (default: periode selesai terbaru)
+  const [salaryCutoffPeriod, setSalaryCutoffPeriod] = useState<string>('');
+
+  useEffect(() => {
+    if (completedCutoffMonths.length > 0) {
+      if (!salaryCutoffPeriod || !completedCutoffMonths.includes(salaryCutoffPeriod)) {
+        setSalaryCutoffPeriod(completedCutoffMonths[0]);
+      }
+    }
+  }, [completedCutoffMonths, salaryCutoffPeriod]);
+
+  const activeSalaryCutoff = salaryCutoffPeriod || completedCutoffMonths[0] || '';
+
   const hostSalaryReport = useMemo(() => {
-    if (!activeHostObj) return null;
+    if (!activeHostObj || !activeSalaryCutoff) return null;
     const defaultSettings: HostSalarySettings = {
       overtimePayPerHour: 15000,
       tanggamusBackupPay: 40000,
@@ -1243,16 +1299,15 @@ export default function HostDashboard({
       hostLogs || [],
       effectiveSettings,
       (rawDate: string) => {
-        if (!hostCutoffPeriod || hostCutoffPeriod === 'Semua') return true;
-        return getCutoffMonthForDate(rawDate) === hostCutoffPeriod;
+        return getCutoffMonthForDate(rawDate) === activeSalaryCutoff;
       },
       (l: any) => l.date || '',
       violations,
       overtimes,
-      hostCutoffPeriod
+      activeSalaryCutoff
     );
     return reports[0] || null;
-  }, [activeHostObj, hostLogs, salarySettings, hostCutoffPeriod, violations, overtimes]);
+  }, [activeHostObj, hostLogs, salarySettings, activeSalaryCutoff, violations, overtimes]);
 
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
@@ -1759,54 +1814,6 @@ export default function HostDashboard({
             ) : (
               <p className="text-xs text-slate-400 font-medium">Kamu tidak memiliki jadwal pada tanggal ini.</p>
             )}
-          </div>
-        )}
-
-        {/* Widget Ringkasan Gaji & Slip di Beranda */}
-        {hostSalaryReport && (
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-3xl p-5 text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
-            <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-blue-300">
-                    <DollarSign size={16} />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Estimasi Gaji Periode Ini</span>
-                    <span className="text-xs text-slate-300 font-medium">{formatShortCutoff(hostCutoffPeriod)}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSlipGajiOpen(true)}
-                  className="bg-white/10 hover:bg-white/20 active:scale-95 text-blue-100 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <FileText size={13} />
-                  <span>Slip Gaji</span>
-                </button>
-              </div>
-
-              <div className="flex items-baseline justify-between mt-2 pt-3 border-t border-white/10">
-                <div>
-                  <span className="text-2xl font-black text-emerald-400 tracking-tight block">
-                    {formatIDR(hostSalaryReport.netSalary)}
-                  </span>
-                  <span className="text-[11px] text-slate-300 font-medium">
-                    {hostSalaryReport.totalHadir} dari {hostSalaryReport.requiredWorkingDays} Hari Target Terpenuhi
-                  </span>
-                </div>
-                {hostSalaryReport.isEligibleForBonus ? (
-                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-                    <Sparkles size={11} /> +Bonus Disiplin
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-slate-300 border border-white/10">
-                    {hostSalaryReport.countTerlambat}x Telat
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
@@ -2395,25 +2402,25 @@ export default function HostDashboard({
                               <DollarSign size={16} />
                             </div>
                             <div>
-                              <span className="text-xs font-bold text-blue-200 block">Total Gaji & Slip Gaji</span>
-                              <span className="text-[10px] text-slate-300">{formatShortCutoff(hostCutoffPeriod)}</span>
+                              <span className="text-xs font-bold text-blue-200 block">Slip Gaji & Total Gaji</span>
+                              <span className="text-[10px] text-slate-300">Periode Selesai: {formatShortCutoff(activeSalaryCutoff)}</span>
                             </div>
                           </div>
                           
-                          {/* Cutoff Selector */}
+                          {/* Cutoff Selector - Hanya Periode yang Sudah Selesai */}
                           <div className="relative">
                             <div className="flex items-center gap-1 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg px-2 py-1 text-[10px] font-bold text-blue-100 pointer-events-none">
                               <span>Pilih Periode</span>
                               <ChevronDown size={12} />
                             </div>
                             <select
-                              value={hostCutoffPeriod}
-                              onChange={(e) => setHostCutoffPeriod(e.target.value)}
+                              value={activeSalaryCutoff}
+                              onChange={(e) => setSalaryCutoffPeriod(e.target.value)}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             >
-                              {availableCutoffMonths.map((p) => (
+                              {completedCutoffMonths.map((p) => (
                                 <option key={p} value={p} className="text-slate-800 bg-white">
-                                  {formatShortCutoff(p)}
+                                  {formatShortCutoff(p)} (Selesai)
                                 </option>
                               ))}
                             </select>
@@ -2423,7 +2430,7 @@ export default function HostDashboard({
                         {/* Total Estimasi Gaji */}
                         <div className="bg-white/10 rounded-xl p-3 border border-white/10 backdrop-blur-xs">
                           <span className="text-[10px] font-semibold text-slate-300 block uppercase tracking-wider">
-                            Total Gaji Estimasi (Take-Home Pay)
+                            Total Gaji Diterima (Take-Home Pay)
                           </span>
                           <div className="flex items-baseline justify-between mt-0.5">
                             <span className="text-2xl font-black text-emerald-400 tracking-tight">
@@ -3342,7 +3349,7 @@ export default function HostDashboard({
           onClose={() => setIsSlipGajiOpen(false)}
           host={activeHostObj}
           salaryReport={hostSalaryReport}
-          cutoffLabel={formatShortCutoff(hostCutoffPeriod)}
+          cutoffLabel={formatShortCutoff(activeSalaryCutoff)}
         />
       )}
     </div>
