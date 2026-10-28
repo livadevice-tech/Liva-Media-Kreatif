@@ -190,6 +190,7 @@ import {
   readFirstWorksheetRowsFromFile,
 } from "./shared/utils/xlsxUploadParsers";
 import { buildReportingUploadSummary } from "./shared/utils/reportingUploadSummary";
+import { compressImage } from "./shared/utils/imageCompressor";
 import {
   detectBrandFromFilename,
   detectPlatformFromFilename,
@@ -1875,45 +1876,35 @@ export default function App() {
     if (!file || !selectedPhotoLog) return;
     setIsUploadingPhotoForLog(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        try {
-          const base64 = ev.target?.result as string;
-          if (!base64) return;
-          const res = await logsApi.uploadProofForLog(selectedPhotoLog.id, base64);
-          const updatedProof = res.proofImage || base64;
-          
-          const updatedLog: AttendanceLog = {
-            ...selectedPhotoLog,
-            proofImage: updatedProof,
-            proof_image: updatedProof,
-            proofUrl: updatedProof,
-            proof_url: updatedProof,
-          };
-          setSelectedPhotoLog(updatedLog);
-          setPhotoModalImgError(false);
-
-          setLogs((prev) =>
-            prev.map((l) => (l.id === selectedPhotoLog.id ? updatedLog : l))
-          );
-
-          addNotification(
-            "Foto Absensi Berhasil Disimpan",
-            `Foto kehadiran untuk ${selectedPhotoLog.hostName} telah berhasil disimpan langsung ke database.`,
-            "success",
-            "database"
-          );
-        } catch (innerErr: any) {
-          console.error("Gagal simpan foto:", innerErr);
-          customAlert("Gagal menyimpan foto ke database: " + (innerErr.message || "Terjadi kesalahan"));
-        } finally {
-          setIsUploadingPhotoForLog(false);
-          if (e.target) e.target.value = "";
-        }
+      // Kompresi otomatis di browser: ukuran kecil (~50KB) namun tetap sangat jelas
+      const compressed = await compressImage(file, { maxWidth: 960, maxHeight: 960, quality: 0.72 });
+      const res = await logsApi.uploadProofForLog(selectedPhotoLog.id, compressed.file || compressed.dataUrl);
+      const updatedProof = res.proofUrl || res.proofImage || compressed.dataUrl;
+      
+      const updatedLog: AttendanceLog = {
+        ...selectedPhotoLog,
+        proofImage: updatedProof,
+        proof_image: updatedProof,
+        proofUrl: updatedProof,
+        proof_url: updatedProof,
       };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      console.error("Gagal membaca file foto:", err);
+      setSelectedPhotoLog(updatedLog);
+      setPhotoModalImgError(false);
+
+      setLogs((prev) =>
+        prev.map((l) => (l.id === selectedPhotoLog.id ? updatedLog : l))
+      );
+
+      addNotification(
+        "Foto Absensi Berhasil Disimpan",
+        `Foto kehadiran untuk ${selectedPhotoLog.hostName} telah berhasil dikompresi (${Math.round(compressed.sizeBytes / 1024)} KB) dan disimpan.`,
+        "success",
+        "database"
+      );
+    } catch (innerErr: any) {
+      console.error("Gagal simpan foto:", innerErr);
+      customAlert("Gagal menyimpan foto ke database: " + (innerErr.message || "Terjadi kesalahan"));
+    } finally {
       setIsUploadingPhotoForLog(false);
       if (e.target) e.target.value = "";
     }

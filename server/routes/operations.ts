@@ -113,10 +113,10 @@ function mapAttendanceLog(l: AttendanceLogRow) {
     fraudReason: l.fraud_reason,
     overtimeHours: toNumber(l.overtime_hours),
     isBackupShift: !!l.is_backup_shift,
-    proofUrl: l.proof_url || l.proof_image || undefined,
-    proof_url: l.proof_url || l.proof_image || undefined,
-    proofImage: l.proof_image || undefined,
-    proof_image: l.proof_image || undefined,
+    proofUrl: (l.proof_url || ((l as any).has_photo || l.proof_image ? `/api/logs/${l.id}/proof` : undefined)),
+    proof_url: (l.proof_url || ((l as any).has_photo || l.proof_image ? `/api/logs/${l.id}/proof` : undefined)),
+    proofImage: l.proof_image || l.proof_url || ((l as any).has_photo ? `/api/logs/${l.id}/proof` : undefined),
+    proof_image: l.proof_image || l.proof_url || ((l as any).has_photo ? `/api/logs/${l.id}/proof` : undefined),
   };
 }
 
@@ -156,7 +156,18 @@ export function registerOperationsRoutes(app: Express) {
     const hostId = req.auth?.role === "host"
       ? req.auth.subjectId
       : String(req.query.hostId || "");
-    let sql = `SELECT * FROM attendance_logs WHERE 1=1`;
+    // Kecualikan proof_image dari query list massal (2800+ baris) untuk memangkas ukuran payload hingga 95%+
+    let sql = `
+      SELECT 
+        id, host_id, host_name, employee_id, date, shift_hours,
+        platform, brand_handled, live_duration, session_count, status,
+        check_in_time, revenue_generated, conversion_rate, engagement_rate,
+        orders, avg_view_duration, studio, flagged_as_anomaly, anomaly_reason,
+        is_duplicate, flagged_as_fraud, fraud_reason, overtime_hours, is_backup_shift,
+        proof_url,
+        (CASE WHEN (proof_url IS NOT NULL AND proof_url != '') OR (proof_image IS NOT NULL AND proof_image != '') THEN 1 ELSE 0 END) AS has_photo
+      FROM attendance_logs WHERE 1=1
+    `;
     const params: Array<string | number | null | undefined> = [];
 
     if (hostId) { sql += ` AND host_id = ?`; params.push(hostId); }
@@ -172,15 +183,7 @@ export function registerOperationsRoutes(app: Express) {
   app.post("/api/logs/upload-proof", uploadAttendance.single("photo"), asyncHandler(async (req: Request, res: Response) => {
     if (req.file) {
       const proofUrl = `/uploads/attendance/${req.file.filename}`;
-      let proofImage: string | undefined;
-      try {
-        const ext = path.extname(req.file.filename).toLowerCase().replace('.', '') || 'jpeg';
-        const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
-        proofImage = `data:${mime};base64,` + fs.readFileSync(req.file.path).toString('base64');
-      } catch (err) {
-        console.warn('Gagal membaca file foto menjadi base64:', err);
-      }
-      return res.json({ success: true, proofUrl, proofImage });
+      return res.json({ success: true, proofUrl });
     }
 
     if (req.body && req.body.imageBase64) {
@@ -192,7 +195,7 @@ export function registerOperationsRoutes(app: Express) {
       const filename = `att-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
       fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
       const proofUrl = `/uploads/attendance/${filename}`;
-      return res.json({ success: true, proofUrl, proofImage: req.body.imageBase64 });
+      return res.json({ success: true, proofUrl });
     }
 
     return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
@@ -200,30 +203,32 @@ export function registerOperationsRoutes(app: Express) {
 
   // Upload or update photo directly for an attendance log
   app.post("/api/logs/:id/photo", uploadAttendance.single("photo"), asyncHandler(async (req: Request, res: Response) => {
-    let proofImage: string | undefined;
     let proofUrl: string | undefined;
 
     if (req.file) {
       proofUrl = `/uploads/attendance/${req.file.filename}`;
-      const ext = path.extname(req.file.filename).toLowerCase().replace('.', '') || 'jpeg';
-      const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
-      proofImage = `data:${mime};base64,` + fs.readFileSync(req.file.path).toString('base64');
     } else if (req.body && req.body.imageBase64) {
-      proofImage = req.body.imageBase64;
-      proofUrl = `/uploads/attendance/att-${Date.now()}.jpg`;
+      const base64Data = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const dir = path.join(process.cwd(), 'uploads', 'attendance');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const filename = `att-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
+      fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
+      proofUrl = `/uploads/attendance/${filename}`;
     }
 
-    if (!proofImage) {
+    if (!proofUrl) {
       return res.status(400).json({ error: "Foto bukti absensi tidak ditemukan." });
     }
 
-    await execute("UPDATE attendance_logs SET proof_image = ?, proof_url = COALESCE(proof_url, ?) WHERE id = ?", [
-      proofImage,
-      proofUrl || null,
+    // Set proof_url ke file terkompresi di disk dan bersihkan proof_image di MySQL
+    await execute("UPDATE attendance_logs SET proof_url = ?, proof_image = NULL WHERE id = ?", [
+      proofUrl,
       req.params.id,
     ]);
 
-    res.json({ success: true, proofImage, proofUrl });
+    res.json({ success: true, proofUrl, proofImage: proofUrl });
   }));
 
   // Stream or serve proof image for an attendance log
@@ -268,18 +273,22 @@ export function registerOperationsRoutes(app: Express) {
     }
     const id = l.id || genId("log");
 
-    let proofImage = l.proofImage || l.proof_image || (l.proofUrl && l.proofUrl.startsWith('data:') ? l.proofUrl : null) || null;
-    if (!proofImage && (l.proofUrl || l.proof_url)) {
+    let proofUrl = l.proofUrl || l.proof_url || null;
+    let proofImage = l.proofImage || l.proof_image || null;
+
+    // Jika foto berupa Base64, simpan ke file fisik di disk agar database MySQL tetap sangat ringan
+    if (proofImage && typeof proofImage === 'string' && proofImage.startsWith('data:image/')) {
       try {
-        const u = l.proofUrl || l.proof_url;
-        const cleanPath = u.startsWith('/') ? u.slice(1) : u;
-        const fullPath = path.join(process.cwd(), cleanPath);
-        if (fs.existsSync(fullPath)) {
-          const ext = path.extname(fullPath).toLowerCase().replace('.', '') || 'jpeg';
-          const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
-          proofImage = `data:${mime};base64,` + fs.readFileSync(fullPath).toString('base64');
-        }
-      } catch (e) {}
+        const base64Data = proofImage.replace(/^data:image\/\w+;base64,/, '');
+        const dir = path.join(process.cwd(), 'uploads', 'attendance');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const fname = `att-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
+        fs.writeFileSync(path.join(dir, fname), Buffer.from(base64Data, 'base64'));
+        proofUrl = `/uploads/attendance/${fname}`;
+        proofImage = null;
+      } catch (e) {
+        console.warn('Gagal menyimpan base64 foto ke disk:', e);
+      }
     }
 
     await execute(`
@@ -301,7 +310,7 @@ export function registerOperationsRoutes(app: Express) {
       l.flaggedAsAnomaly ? 1 : 0, l.anomalyReason || null,
       l.isDuplicate ? 1 : 0, l.flaggedAsFraud ? 1 : 0,
       l.fraudReason || null, l.overtimeHours || 0, l.isBackupShift ? 1 : 0,
-      l.proofUrl || l.proof_url || null,
+      proofUrl || null,
       proofImage || null,
     ]);
 
@@ -311,18 +320,21 @@ export function registerOperationsRoutes(app: Express) {
   app.put("/api/logs/:id", asyncHandler(async (req: Request, res: Response) => {
     const l = req.body;
 
-    let proofImage = l.proofImage || l.proof_image || (l.proofUrl && l.proofUrl.startsWith('data:') ? l.proofUrl : null) || null;
-    if (!proofImage && (l.proofUrl || l.proof_url)) {
+    let proofUrl = l.proofUrl || l.proof_url || null;
+    let proofImage = l.proofImage || l.proof_image || null;
+
+    if (proofImage && typeof proofImage === 'string' && proofImage.startsWith('data:image/')) {
       try {
-        const u = l.proofUrl || l.proof_url;
-        const cleanPath = u.startsWith('/') ? u.slice(1) : u;
-        const fullPath = path.join(process.cwd(), cleanPath);
-        if (fs.existsSync(fullPath)) {
-          const ext = path.extname(fullPath).toLowerCase().replace('.', '') || 'jpeg';
-          const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/jpeg';
-          proofImage = `data:${mime};base64,` + fs.readFileSync(fullPath).toString('base64');
-        }
-      } catch (e) {}
+        const base64Data = proofImage.replace(/^data:image\/\w+;base64,/, '');
+        const dir = path.join(process.cwd(), 'uploads', 'attendance');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const fname = `att-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
+        fs.writeFileSync(path.join(dir, fname), Buffer.from(base64Data, 'base64'));
+        proofUrl = `/uploads/attendance/${fname}`;
+        proofImage = null;
+      } catch (e) {
+        console.warn('Gagal menyimpan base64 foto ke disk:', e);
+      }
     }
 
     await execute(`

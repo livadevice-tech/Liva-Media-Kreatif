@@ -96,50 +96,7 @@ function CustomSelect({ value, options, onChange, placeholder, error }: any) {
   );
 }
 
-function compressImage(file: File, maxWidth = 1280, quality = 0.82): Promise<{ dataUrl: string; file: File }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new window.Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          return resolve({ dataUrl: e.target?.result as string, file });
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], (file.name || 'attendance').replace(/\.[^/.]+$/, "") + ".jpg", {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              resolve({ dataUrl, file: compressedFile });
-            } else {
-              resolve({ dataUrl, file });
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      };
-      img.onerror = reject;
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+import { compressImage } from '../../shared/utils/imageCompressor';
 
 function createCaptionedImage(
   source: File | string,
@@ -154,8 +111,16 @@ function createCaptionedImage(
 
     const processCanvas = () => {
       try {
-        const width = img.naturalWidth || img.width;
-        const height = img.naturalHeight || img.height;
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        // Skala proporsional maksimal 960px untuk menghemat beban server & transfer data
+        const maxDim = 960;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -167,6 +132,10 @@ function createCaptionedImage(
           }
           return reject(new Error('Canvas context not available'));
         }
+
+        // Smoothing kualitas tinggi agar foto tetap jernih dan tajam
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // Draw original photo
         ctx.drawImage(img, 0, 0, width, height);
@@ -260,7 +229,7 @@ function createCaptionedImage(
 
         ctx.restore();
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -278,7 +247,7 @@ function createCaptionedImage(
             }
           },
           'image/jpeg',
-          0.88
+          0.75
         );
       } catch (err) {
         reject(err);
@@ -610,7 +579,7 @@ export default function HostDashboard({
     setIsCompressingPhoto(true);
     setHostFormError('');
     try {
-      const compressed = await compressImage(file, 1280, 0.82);
+      const compressed = await compressImage(file, { maxWidth: 960, maxHeight: 960, quality: 0.72 });
       setHostForm((prev: any) => ({
         ...prev,
         photo: compressed.dataUrl,
