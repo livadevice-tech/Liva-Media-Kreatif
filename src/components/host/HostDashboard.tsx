@@ -326,6 +326,7 @@ interface HostDashboardProps {
   shifts: string[];
   studios: any[];
   hostLogs: any[];
+  allHostLogs?: any[];
   hostCalendarMonth: number;
   hostCalendarYear: number;
   setHostCalendarMonth: React.Dispatch<React.SetStateAction<number>>;
@@ -369,6 +370,7 @@ export default function HostDashboard({
   shifts,
   studios,
   hostLogs,
+  allHostLogs,
   hostCalendarMonth,
   hostCalendarYear,
   setHostCalendarMonth,
@@ -1302,9 +1304,10 @@ export default function HostDashboard({
       cutOffEndDay: 15,
     };
     const effectiveSettings = salarySettings || defaultSettings;
+    const logsToCalculate = (allHostLogs && allHostLogs.length > 0) ? allHostLogs : (hostLogs || []);
     const reports = buildHostReportList(
       [activeHostObj],
-      hostLogs || [],
+      logsToCalculate,
       effectiveSettings,
       (rawDate: string) => {
         return getCutoffMonthForDate(rawDate) === activeSalaryCutoff;
@@ -1315,7 +1318,7 @@ export default function HostDashboard({
       activeSalaryCutoff
     );
     return reports[0] || null;
-  }, [activeHostObj, hostLogs, salarySettings, activeSalaryCutoff, violations, overtimes]);
+  }, [activeHostObj, hostLogs, allHostLogs, salarySettings, activeSalaryCutoff, violations, overtimes]);
 
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();

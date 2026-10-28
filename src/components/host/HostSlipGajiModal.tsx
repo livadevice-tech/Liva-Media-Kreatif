@@ -27,7 +27,14 @@ export default function HostSlipGajiModal({
 
   if (!isOpen) return null;
 
-  const isReguler = (host.hostType || 'Reguler') === 'Reguler';
+  const hostAny = host as any;
+  const hostType = host.hostType || hostAny.host_type || 'Reguler';
+  const employeeId = host.employeeId || hostAny.employee_id || '-';
+  const studio = host.studio || hostAny.studio || 'Bandar Lampung';
+  const bankName = host.bankName || hostAny.bank_name || '-';
+  const bankAccount = host.bankAccount || hostAny.bank_account || '-';
+
+  const isReguler = hostType === 'Reguler';
   const baseCalculated = isReguler
     ? Math.round((salaryReport.basePayRate / salaryReport.requiredWorkingDays) * salaryReport.totalHadir)
     : salaryReport.basePayRate * salaryReport.totalHadir;
@@ -53,9 +60,9 @@ Periode: ${cutoffLabel}
 
 *Data Karyawan:*
 • Nama: ${host.name}
-• ID Pegawai: ${host.employeeId || '-'}
-• Tipe Host: ${host.hostType || 'Reguler'}
-• Studio: ${host.studio || 'Bandar Lampung'}
+• ID Pegawai: ${employeeId}
+• Tipe Host: ${hostType}
+• Studio: ${studio}
 • Brand: ${host.brands?.join(', ') || '-'}
 
 *Rekapitulasi Absensi:*
@@ -70,7 +77,7 @@ Periode: ${cutoffLabel}
 • Gaji Pokok Kehadiran: ${formatIDR(baseCalculated)}
 ${salaryReport.totalBackupShiftsAsReguler > 0 ? `• Shift Tambahan / Backup: +${formatIDR(salaryReport.calculatedBackupPay)}\n` : ''}${salaryReport.totalOvertimeHours > 0 ? `• Uang Lembur (${salaryReport.totalOvertimeHours} Jam): +${formatIDR(salaryReport.calculatedOvertimePay)}\n` : ''}${salaryReport.isEligibleForBonus ? `• Bonus Disiplin Kehadiran (100%): +${formatIDR(salaryReport.calculatedBonus)}\n` : ''}------------------------------------------
 *TOTAL DITERIMA (TAKE-HOME PAY): ${formatIDR(salaryReport.netSalary)}*
-Rekening Tujuan: ${host.bankName || 'Bank'} ${host.bankAccount || '-'}
+Rekening Tujuan: ${bankName} ${bankAccount}
 
 _Diterbitkan secara digital oleh Sistem Absensi Liva Device_`;
 
@@ -128,7 +135,7 @@ _Diterbitkan secara digital oleh Sistem Absensi Liva Device_`;
 
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70">
               <span className="text-xs font-bold text-slate-500">ID Pegawai</span>
-              <span className="text-xs font-bold font-mono text-slate-800">{host.employeeId || '-'}</span>
+              <span className="text-xs font-bold font-mono text-slate-800">{employeeId}</span>
             </div>
 
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70">
@@ -137,7 +144,7 @@ _Diterbitkan secara digital oleh Sistem Absensi Liva Device_`;
                 <span className="text-xs font-bold text-slate-500">Studio & Brand</span>
               </div>
               <span className="text-xs font-bold text-slate-800 truncate max-w-[220px]">
-                {host.studio || 'Bandar Lampung'} • {host.brands?.join(', ') || '-'}
+                {studio} • {host.brands?.join(', ') || '-'}
               </span>
             </div>
 
@@ -147,8 +154,8 @@ _Diterbitkan secara digital oleh Sistem Absensi Liva Device_`;
                 <span className="text-xs font-bold text-slate-500">Rekening Tujuan</span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-black text-slate-900 block">{host.bankName || '-'}</span>
-                <span className="text-[11px] font-mono font-bold text-slate-600 block">{host.bankAccount || '-'}</span>
+                <span className="text-xs font-black text-slate-900 block">{bankName}</span>
+                <span className="text-[11px] font-mono font-bold text-slate-600 block">{bankAccount}</span>
               </div>
             </div>
           </div>

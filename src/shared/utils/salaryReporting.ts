@@ -50,11 +50,17 @@ export const buildHostReportList = (
   activeCutoff?: string,
 ): HostReportRow[] => {
   return hosts.map((host) => {
-    const records = logs.filter(
-      (l) =>
-        (l.hostId === host.id || l.hostName === host.name) &&
-        isDateMatching(getLogDateInput(l)),
-    );
+    const hostAny = host as any;
+    const records = logs.filter((l) => {
+      const lAny = l as any;
+      const matchHost =
+        (l.hostId && l.hostId === host.id) ||
+        (lAny.host_id && lAny.host_id === host.id) ||
+        (l.hostName && host.name && l.hostName.toLowerCase() === host.name.toLowerCase()) ||
+        (lAny.host_name && host.name && lAny.host_name.toLowerCase() === host.name.toLowerCase()) ||
+        (hostAny.username && (l.hostName === hostAny.username || lAny.host_name === hostAny.username));
+      return matchHost && isDateMatching(getLogDateInput(l));
+    });
 
     const regulerRecords = records.filter((r) => !r.isBackupShift);
     const backupShiftRecords = records.filter((r) => r.isBackupShift);
@@ -97,7 +103,7 @@ export const buildHostReportList = (
     );
 
     const logOvertimeHours = records.reduce(
-      (sum, r) => sum + (r.overtimeHours || 0),
+      (sum, r) => sum + (Number(r.overtimeHours) || 0),
       0,
     );
     const logOvertimePay =
@@ -108,11 +114,12 @@ export const buildHostReportList = (
     const calculatedOvertimePay = hostOvertimes.length > 0 ? recordedOvertimePay : logOvertimePay;
 
     const isTanggamus = host.studio && host.studio.includes("Tanggamus");
-    const hostType = host.hostType || "Reguler";
+    const hostType = host.hostType || hostAny.host_type || "Reguler";
 
+    const customShift = host.customShiftRate ?? hostAny.custom_shift_rate;
     const backupShiftRate =
-      typeof host.customShiftRate === "number"
-        ? host.customShiftRate
+      typeof customShift === "number" && !isNaN(customShift)
+        ? customShift
         : isTanggamus
           ? (salarySettings.tanggamusBackupPay ?? 150000)
           : (salarySettings.bandarLampungBackupPay ?? 175000);
@@ -120,7 +127,7 @@ export const buildHostReportList = (
     // Check violations in the payroll cutoff date range
     const hostViolations = (violations || []).filter(
       (v) =>
-        (v.host_id === host.id || v.host_name === host.name) &&
+        (v.host_id === host.id || v.host_name === host.name || (v.hostName && v.hostName === host.name)) &&
         isDateMatching(v.violation_date || (v.created_at ? v.created_at.split("T")[0] : ""))
     );
     const hasViolations = hostViolations.length > 0;
@@ -131,15 +138,17 @@ export const buildHostReportList = (
     let calculatedBonus = 0;
     let calculatedBackupPay = 0;
 
+    const customTarget = host.customWorkingDaysTarget ?? hostAny.custom_working_days_target;
     const requiredWorkingDays =
       hostType === "Reguler"
-        ? host.customWorkingDaysTarget || salarySettings.workingDays || 26
-        : salarySettings.workingDays || 26;
+        ? (typeof customTarget === "number" && customTarget > 0 ? customTarget : (salarySettings.workingDays || 26))
+        : (salarySettings.workingDays || 26);
 
     if (hostType === "Reguler") {
+      const customBase = host.customBaseSalary ?? hostAny.custom_base_salary;
       const regulerBase =
-        typeof host.customBaseSalary === "number"
-          ? host.customBaseSalary
+        typeof customBase === "number" && !isNaN(customBase)
+          ? customBase
           : isTanggamus
             ? (salarySettings.tanggamusRegulerBase ?? 3500000)
             : (salarySettings.bandarLampungRegulerBase ?? 4000000);
@@ -182,8 +191,8 @@ export const buildHostReportList = (
       basePayRate,
       netSalary,
       requiredWorkingDays,
-      revenueSum: records.reduce((sum, r) => sum + (r.revenueGenerated || 0), 0),
-      ordersSum: records.reduce((sum, r) => sum + (r.orders || 0), 0),
+      revenueSum: records.reduce((sum, r) => sum + (Number(r.revenueGenerated) || 0), 0),
+      ordersSum: records.reduce((sum, r) => sum + (Number(r.orders) || 0), 0),
       hasViolations,
       violationsCount: hostViolations.length,
       overtimeRecords: hostOvertimes,

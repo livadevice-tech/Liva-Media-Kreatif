@@ -5770,6 +5770,16 @@ export default function App() {
           shifts={shifts}
           studios={studios.map(s => s.name)}
           hostLogs={hostLogs}
+          allHostLogs={logs.filter((l) => {
+            const lAny = l as any;
+            return (
+              (l.hostId && l.hostId === activeHostObj?.id) ||
+              (lAny.host_id && lAny.host_id === activeHostObj?.id) ||
+              (l.hostName && activeHostObj?.name && l.hostName.toLowerCase() === activeHostObj?.name.toLowerCase()) ||
+              (lAny.host_name && activeHostObj?.name && lAny.host_name.toLowerCase() === activeHostObj?.name.toLowerCase()) ||
+              (activeHostObj?.username && (l.hostName === activeHostObj?.username || lAny.host_name === activeHostObj?.username))
+            );
+          })}
           hostCalendarMonth={hostCalendarMonth}
           hostCalendarYear={hostCalendarYear}
           setHostCalendarMonth={setHostCalendarMonth}

@@ -9,7 +9,14 @@ export function generatePayslipPrintHtml(params: {
   agencyLogoUrl?: string;
 }): string {
   const { host, salaryReport, cutoffLabel, agencyLogoUrl } = params;
-  const isReguler = (host.hostType || 'Reguler') === 'Reguler';
+  const hostAny = host as any;
+  const hostType = host.hostType || hostAny.host_type || 'Reguler';
+  const employeeId = host.employeeId || hostAny.employee_id || '-';
+  const studio = host.studio || hostAny.studio || 'Bandar Lampung';
+  const bankName = host.bankName || hostAny.bank_name || '-';
+  const bankAccount = host.bankAccount || hostAny.bank_account || '-';
+
+  const isReguler = hostType === 'Reguler';
   const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -254,15 +261,15 @@ export function generatePayslipPrintHtml(params: {
       </div>
       <div class="info-item">
         <span class="info-label">ID Pegawai / Tipe</span>
-        <span class="info-value font-mono">${host.employeeId || '-'} (${host.hostType || 'Reguler'})</span>
+        <span class="info-value font-mono">${employeeId} (${hostType})</span>
       </div>
       <div class="info-item">
         <span class="info-label">Studio & Brand</span>
-        <span class="info-value">${host.studio || 'Bandar Lampung'} • ${host.brands?.join(', ') || '-'}</span>
+        <span class="info-value">${studio} • ${host.brands?.join(', ') || '-'}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Rekening Penerima</span>
-        <span class="info-value">${host.bankName || '-'} (${host.bankAccount || '-'})</span>
+        <span class="info-value">${bankName} (${bankAccount})</span>
       </div>
     </div>
 
