@@ -218,6 +218,7 @@ export function HostCredentialRow({
     host.customWorkingDaysTarget || 26,
   );
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedName, setCopiedName] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
@@ -290,9 +291,28 @@ export function HostCredentialRow({
                 </div>
               ) : (
                 <div>
-                  <span className="font-bold text-slate-800 text-xs block">
-                    {host.name}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (host.name) {
+                        navigator.clipboard.writeText(host.name);
+                        setCopiedName(true);
+                        setTimeout(() => setCopiedName(false), 1500);
+                      }
+                    }}
+                    title={`Klik untuk salin nama: ${host.name}`}
+                    className={`font-bold text-xs inline-flex items-center gap-1 group text-left cursor-pointer transition-colors block ${
+                      copiedName ? "text-emerald-600" : "text-slate-800 hover:text-indigo-600"
+                    }`}
+                  >
+                    <span>{host.name}</span>
+                    {copiedName ? (
+                      <Check className="w-2.5 h-2.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-slate-400 transition-opacity" />
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {

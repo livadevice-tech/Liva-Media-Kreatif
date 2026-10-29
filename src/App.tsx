@@ -10338,9 +10338,30 @@ export default function App() {
                                         />
                                         <div className="min-w-0">
                                           <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-1.5">
-                                            {item.name}
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(item.name);
+                                                setCopiedSalaryHostId(item.id + "_name");
+                                                setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                              }}
+                                              title={`Klik untuk salin nama: ${item.name}`}
+                                              className={`font-bold text-xs truncate text-left inline-flex items-center gap-1 group cursor-pointer transition-colors ${
+                                                copiedSalaryHostId === item.id + "_name"
+                                                  ? "text-emerald-600"
+                                                  : "text-slate-800 hover:text-indigo-600"
+                                              }`}
+                                            >
+                                              <span>{item.name}</span>
+                                              {copiedSalaryHostId === item.id + "_name" ? (
+                                                <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                                              ) : (
+                                                <Copy className="w-2.5 h-2.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                                              )}
+                                            </button>
                                             {item.isEligibleForBonus && (
-                                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                                             )}
                                           </div>
                                           <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -10793,7 +10814,28 @@ export default function App() {
                                                 Rincian Perhitungan Gaji
                                               </div>
                                               <div className="text-xs font-bold text-slate-800 mt-1 flex items-center gap-1.5 flex-wrap">
-                                                {item.name}
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigator.clipboard.writeText(item.name);
+                                                    setCopiedSalaryHostId(item.id + "_name_acc");
+                                                    setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                                  }}
+                                                  title={`Klik untuk salin nama: ${item.name}`}
+                                                  className={`inline-flex items-center gap-1 cursor-pointer transition-colors ${
+                                                    copiedSalaryHostId === item.id + "_name_acc"
+                                                      ? "text-emerald-600 font-bold"
+                                                      : "text-slate-800 hover:text-indigo-600 font-bold"
+                                                  }`}
+                                                >
+                                                  <span>{item.name}</span>
+                                                  {copiedSalaryHostId === item.id + "_name_acc" ? (
+                                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                                  ) : (
+                                                    <Copy className="w-2.5 h-2.5 opacity-60 hover:opacity-100" />
+                                                  )}
+                                                </button>
                                                 <span className="text-[9px] font-semibold text-slate-500 border border-slate-200 bg-white px-1.5 py-0.5 rounded uppercase">
                                                   {hostType}
                                                 </span>
@@ -12231,9 +12273,28 @@ export default function App() {
                                       
                                       <td className="py-3 px-4">
                                         <div className="flex items-center gap-1.5">
-                                          <div className="font-bold text-slate-900 text-xs">
-                                            {item.hostName}
-                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard.writeText(item.hostName);
+                                              setCopiedSalaryHostId(item.id + "_log_name");
+                                              setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                            }}
+                                            title={`Klik untuk salin nama: ${item.hostName}`}
+                                            className={`font-bold text-xs inline-flex items-center gap-1 group cursor-pointer transition-colors ${
+                                              copiedSalaryHostId === item.id + "_log_name"
+                                                ? "text-emerald-600"
+                                                : "text-slate-900 hover:text-indigo-600"
+                                            }`}
+                                          >
+                                            <span>{item.hostName}</span>
+                                            {copiedSalaryHostId === item.id + "_log_name" ? (
+                                              <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                            ) : (
+                                              <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-slate-400 transition-opacity" />
+                                            )}
+                                          </button>
                                           {(item.proofImage || item.proof_image || item.proofUrl || item.proof_url) && (
                                             <button
                                               type="button"

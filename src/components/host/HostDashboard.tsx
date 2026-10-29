@@ -2330,6 +2330,16 @@ export default function HostDashboard({
               <>
                 <div className="flex items-center justify-center gap-2 mb-1 group">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
+                  {activeHostObj?.name && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(activeHostObj.name, 'hostname-acc')}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all cursor-pointer"
+                      title="Salin Nama Lengkap"
+                    >
+                      {copiedField === 'hostname-acc' ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(true)}
