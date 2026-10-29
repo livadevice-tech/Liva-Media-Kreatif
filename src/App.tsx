@@ -12,6 +12,7 @@ import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import { InvoiceDashboard } from './components/InvoiceDashboard';
 import { TaskManager } from './components/tasks/TaskManager';
 import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt';
+import * as XLSX from "xlsx";
 import React, {
   useState,
   useEffect,
@@ -4448,6 +4449,86 @@ export default function App() {
     salarySortDir,
     salaryRecapLocationTab,
   ]);
+
+  const handleExportSalaryRecapExcel = useCallback(() => {
+    if (!filteredHostReportList || filteredHostReportList.length === 0) {
+      customAlert("Tidak ada data rekap gaji host untuk diekspor.");
+      return;
+    }
+
+    const exportRows = filteredHostReportList.map((h, index) => {
+      const empId =
+        h.employeeId ||
+        (h as any).employee_id ||
+        (h.id?.startsWith("h") && !isNaN(Number(h.id.slice(1)))
+          ? "LIV" + h.id.slice(1).padStart(5, "0")
+          : h.id?.toUpperCase()) ||
+        "-";
+
+      return {
+        "No": index + 1,
+        "ID Pegawai": empId,
+        "Nama Host": h.name || "-",
+        "Wilayah / Studio": h.studio || "Studio Bandar Lampung",
+        "Tipe Host": h.hostType === "Reguler" ? "Reguler" : "Backup",
+        "Target Hari": h.requiredWorkingDays || 26,
+        "Total Hadir (Shift)": h.totalHadir || 0,
+        "Tepat Waktu": h.countTepatWaktu || 0,
+        "Terlambat": h.countTerlambat || 0,
+        "Izin / Sakit": h.countIzin || 0,
+        "Alpa": h.countAlpa || 0,
+        "Gaji Pokok / Rate Basis (Rp)": h.basePayRate || 0,
+        "Jam Lembur": h.totalOvertimeHours || 0,
+        "Uang Lembur (Rp)": h.calculatedOvertimePay || 0,
+        "Shift Backup (Rp)": h.calculatedBackupPay || 0,
+        "Bonus Disiplin (Rp)": h.calculatedBonus || 0,
+        "Gaji Bersih (Rp)": h.netSalary || 0,
+        "Nama Bank": h.bankName || (h as any).bank_name || "-",
+        "Nomor Rekening": h.bankAccount || (h as any).bank_account || "-",
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+
+    // Auto column widths for clean readability
+    worksheet["!cols"] = [
+      { wch: 6 },  // No
+      { wch: 14 }, // ID Pegawai
+      { wch: 28 }, // Nama Host
+      { wch: 22 }, // Wilayah / Studio
+      { wch: 14 }, // Tipe Host
+      { wch: 14 }, // Target Hari
+      { wch: 18 }, // Total Hadir (Shift)
+      { wch: 12 }, // Tepat Waktu
+      { wch: 12 }, // Terlambat
+      { wch: 12 }, // Izin / Sakit
+      { wch: 10 }, // Alpa
+      { wch: 26 }, // Gaji Pokok / Rate Basis (Rp)
+      { wch: 12 }, // Jam Lembur
+      { wch: 18 }, // Uang Lembur (Rp)
+      { wch: 18 }, // Shift Backup (Rp)
+      { wch: 18 }, // Bonus Disiplin (Rp)
+      { wch: 22 }, // Gaji Bersih (Rp)
+      { wch: 16 }, // Nama Bank
+      { wch: 24 }, // Nomor Rekening
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Penggajian");
+
+    const cutoffLabel =
+      currentActiveCutoff && currentActiveCutoff !== "Semua"
+        ? currentActiveCutoff
+        : "Semua_Periode";
+    const locLabel = salaryRecapLocationTab
+      ? salaryRecapLocationTab.replace(/\s+/g, "_")
+      : "Semua";
+    const dateStr = new Date().toISOString().split("T")[0];
+    const fileName = `Rekap_Gaji_Host_Liva_${cutoffLabel}_${locLabel}_${dateStr}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+    customAlert(`Berhasil mengunduh file Excel: ${fileName}`);
+  }, [filteredHostReportList, currentActiveCutoff, salaryRecapLocationTab, customAlert]);
 
   // Filtered logs list excluding status filter to provide proper counts on pills
   const dbActiveBaseLogs = useMemo(() => {
@@ -10106,9 +10187,9 @@ export default function App() {
                       );
                     })()}
 
-                    {/* LOCATION TABS FOR SALARY TABLE */}
-                    <div className="px-4 md:px-0 mb-5">
-                      <div className="inline-flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1">
+                    {/* LOCATION TABS FOR SALARY TABLE & EXPORT EXCEL */}
+                    <div className="px-4 md:px-0 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="inline-flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1 flex-wrap">
                         {[
                           { id: "Semua Host", label: "Semua Host", count: hostReportList.length, icon: Users },
                           { id: "Bandar Lampung", label: "Bandar Lampung", count: hostReportList.filter(h => !h.studio?.includes("Tanggamus")).length, icon: Building2 },
@@ -10142,6 +10223,16 @@ export default function App() {
                           );
                         })}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={handleExportSalaryRecapExcel}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer border border-emerald-700/30"
+                        title="Unduh seluruh data rekap gaji host ke file Excel (.xlsx)"
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+                        <span>Export Excel (.xlsx)</span>
+                      </button>
                     </div>
 
                     {/* SALARY RECAP TABLE CONTAINER */}
@@ -11148,7 +11239,17 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 items-center w-full md:w-auto justify-end">
+                      <div className="flex flex-wrap gap-2.5 items-center w-full md:w-auto justify-end">
+                        <button
+                          type="button"
+                          onClick={handleExportSalaryRecapExcel}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center gap-2 flex-shrink-0 border border-emerald-700 cursor-pointer"
+                          id="export_salary_excel_button"
+                          title="Ekspor ke format Excel (.xlsx) resmi dengan tabel terstruktur"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+                          Export Excel (.xlsx)
+                        </button>
                         <button
                           onClick={() => {
                             const headers = [
