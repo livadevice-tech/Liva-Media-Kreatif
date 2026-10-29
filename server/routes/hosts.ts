@@ -209,6 +209,13 @@ export function registerHostRoutes(app: Express) {
         WHERE id = ?
       `, [name, phone, bankName, bankAccount, avatar, passwordHash, id]);
 
+      if (name && name !== existing.name) {
+        await execute(`UPDATE attendance_logs SET host_name = ? WHERE host_id = ?`, [name, id]);
+        await execute(`UPDATE shift_schedules SET host_name = ? WHERE host_id = ?`, [name, id]);
+        await execute(`UPDATE overtimes SET host_name = ? WHERE host_id = ?`, [name, id]);
+        await execute(`UPDATE thr_items SET name = ? WHERE employee_id = ? OR employee_code = ?`, [name, existing.employee_id || id, id]);
+      }
+
       return res.json({ success: true });
     }
 
@@ -240,6 +247,14 @@ export function registerHostRoutes(app: Express) {
       h.customShiftRate ?? null,
       id,
     ]);
+
+    const targetName = h.name ? String(h.name).trim() : null;
+    if (targetName && targetName !== existing.name) {
+      await execute(`UPDATE attendance_logs SET host_name = ? WHERE host_id = ?`, [targetName, id]);
+      await execute(`UPDATE shift_schedules SET host_name = ? WHERE host_id = ?`, [targetName, id]);
+      await execute(`UPDATE overtimes SET host_name = ? WHERE host_id = ?`, [targetName, id]);
+      await execute(`UPDATE thr_items SET name = ? WHERE employee_id = ? OR employee_code = ?`, [targetName, existing.employee_id || id, id]);
+    }
 
     if (Array.isArray(h.platforms)) {
       await execute(`DELETE FROM host_platforms WHERE host_id = ?`, [id]);

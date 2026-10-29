@@ -1688,6 +1688,24 @@ export default function App() {
           return h;
         }),
       );
+      if (finalHost.name && hostToUpdate.name && finalHost.name !== hostToUpdate.name) {
+        _setLogs((prev) =>
+          prev.map((l) => {
+            if (l.hostId === hostId || (l as any).host_id === hostId) {
+              return { ...l, hostName: finalHost.name, host_name: finalHost.name };
+            }
+            return l;
+          }),
+        );
+        _setSchedules((prev) =>
+          prev.map((s) => {
+            if (s.hostId === hostId || (s as any).host_id === hostId) {
+              return { ...s, hostName: finalHost.name, host_name: finalHost.name };
+            }
+            return s;
+          }),
+        );
+      }
       if (!silent) {
         customAlert("Data host berhasil diperbarui di database!");
       }

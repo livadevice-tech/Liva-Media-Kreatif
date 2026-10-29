@@ -525,11 +525,17 @@ export default function HostDashboard({
   const handleSaveProfile = async () => {
     if (!activeHostObj) return;
     setProfileErrorMsg('');
+    const trimmedName = profileForm.name.trim();
+    if (!trimmedName) {
+      setProfileErrorMsg('Nama lengkap host tidak boleh kosong.');
+      return;
+    }
+
     try {
       setIsSavingProfile(true);
       const payload = {
         ...activeHostObj,
-        name: profileForm.name.trim() || activeHostObj.name,
+        name: trimmedName,
         phone: profileForm.phone.trim(),
         bankName: profileForm.bankName.trim(),
         bankAccount: profileForm.bankAccount.trim()
@@ -541,8 +547,14 @@ export default function HostDashboard({
         await hostsApi.update(activeHostObj.id, payload);
       }
 
+      activityLogsApi.create({
+        hostId: activeHostObj.id,
+        action: "PROFILE_UPDATE",
+        details: { message: `Host memperbarui profil: nama=${trimmedName}` }
+      }).catch(() => {});
+
       setIsEditingProfile(false);
-      setProfileSuccessMsg('Data kontak & rekening bank berhasil diperbarui!');
+      setProfileSuccessMsg('Nama, data kontak & rekening bank berhasil diperbarui!');
       setTimeout(() => setProfileSuccessMsg(''), 4500);
 
       if (onRefreshData && !onUpdateHost) {
@@ -2188,6 +2200,18 @@ export default function HostDashboard({
             
             {isEditingProfile ? (
               <div className="w-full max-w-sm space-y-4 mb-6 text-left">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Edit3 size={16} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800">Edit Profil Host</h3>
+                      <p className="text-[11px] text-slate-400">Host dapat mengubah nama dan info pembayaran</p>
+                    </div>
+                  </div>
+                </div>
+
                 {profileErrorMsg && (
                   <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
@@ -2196,14 +2220,20 @@ export default function HostDashboard({
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Nama Lengkap Host</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Nama Lengkap Host</label>
+                    <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">Bisa Diedit</span>
+                  </div>
                   <input
                     type="text"
                     value={profileForm.name}
                     onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                     className="w-full bg-[#f8f9fc] border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                    placeholder="Masukkan nama lengkap"
+                    placeholder="Masukkan nama lengkap host"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    *Nama ini akan tertera pada jadwal live streaming, absensi, dan slip gaji resmi.
+                  </p>
                 </div>
 
                 <div>
@@ -2298,7 +2328,17 @@ export default function HostDashboard({
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
+                <div className="flex items-center justify-center gap-2 mb-1 group">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(true)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all cursor-pointer"
+                    title="Ubah Nama & Profil Host"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                </div>
                 <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-5">
                   <User size={14} /> Host Live Streaming
                 </p>
@@ -2313,9 +2353,24 @@ export default function HostDashboard({
                 <div className="w-full max-w-sm space-y-3 mb-6 text-left">
                   <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-500">ID Pegawai</span>
-                    <span className="text-sm font-black text-slate-800 font-mono">
-                      {activeHostObj?.employeeId || activeHostObj?.employee_id || activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-slate-800 font-mono tracking-wider">
+                        {activeHostObj?.employeeId || activeHostObj?.employee_id || (activeHostObj?.id?.startsWith('h') && !isNaN(Number(activeHostObj.id.slice(1))) ? 'LIV' + activeHostObj.id.slice(1).padStart(5, '0') : activeHostObj?.id?.slice(0, 8).toUpperCase()) || "-"}
+                      </span>
+                      {Boolean(activeHostObj?.employeeId || activeHostObj?.employee_id || activeHostObj?.id) && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(
+                            activeHostObj?.employeeId || activeHostObj?.employee_id || (activeHostObj?.id?.startsWith('h') && !isNaN(Number(activeHostObj.id.slice(1))) ? 'LIV' + activeHostObj.id.slice(1).padStart(5, '0') : activeHostObj?.id?.toUpperCase()) || '',
+                            'empid-acc'
+                          )}
+                          className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                          title="Salin ID Pegawai"
+                        >
+                          {copiedField === 'empid-acc' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Kontak / No HP */}
@@ -2525,7 +2580,7 @@ export default function HostDashboard({
                   className="w-full max-w-sm bg-blue-50 text-blue-600 font-bold py-3.5 rounded-2xl border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
                   <Edit3 size={18} />
-                  Ubah Kontak & Rekening Bank
+                  Ubah Nama, Kontak & Rekening Bank
                 </button>
               </>
             )}
