@@ -19,7 +19,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h1",
     name: "Cica",
-    employeeId: "EMP-26-001",
+    employeeId: "LIV00001",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -37,7 +37,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h2",
     name: "Gesti",
-    employeeId: "EMP-26-002",
+    employeeId: "LIV00002",
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -55,7 +55,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h3",
     name: "Nabila",
-    employeeId: "EMP-26-003",
+    employeeId: "LIV00003",
     avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Tokopedia Play"],
@@ -73,7 +73,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h4",
     name: "Tiara Ramadhani",
-    employeeId: "EMP-26-004",
+    employeeId: "LIV00004",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -91,7 +91,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h5",
     name: "Veni",
-    employeeId: "EMP-26-005",
+    employeeId: "LIV00005",
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
     role: "Junior Host",
     platforms: ["Shopee Live"],
@@ -109,7 +109,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h6",
     name: "Adinda",
-    employeeId: "EMP-26-006",
+    employeeId: "LIV00006",
     avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -127,7 +127,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h7",
     name: "Riska",
-    employeeId: "EMP-26-007",
+    employeeId: "LIV00007",
     avatar: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150",
     role: "Junior Host",
     platforms: ["TikTok Live"],
@@ -145,7 +145,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h8",
     name: "Nadya",
-    employeeId: "EMP-26-008",
+    employeeId: "LIV00008",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150",
     role: "Junior Host",
     platforms: ["Shopee Live"],
@@ -163,7 +163,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h9",
     name: "Rahma",
-    employeeId: "EMP-26-009",
+    employeeId: "LIV00009",
     avatar: "https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Tokopedia Play"],
@@ -181,7 +181,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h10",
     name: "Ika",
-    employeeId: "EMP-26-010",
+    employeeId: "LIV00010",
     avatar: "https://images.unsplash.com/photo-1548142813-c348350df52b?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -199,7 +199,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h11",
     name: "Jihan",
-    employeeId: "EMP-26-011",
+    employeeId: "LIV00011",
     avatar: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=150",
     role: "Senior Host",
     platforms: ["TikTok Live", "Shopee Live", "Tokopedia Play"],
@@ -217,7 +217,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h12",
     name: "Nadin",
-    employeeId: "EMP-26-012",
+    employeeId: "LIV00012",
     avatar: "https://images.unsplash.com/photo-1541647376583-d18ddcf5c87d?w=150",
     role: "Back-Up Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -234,7 +234,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h13",
     name: "Shela",
-    employeeId: "EMP-26-013",
+    employeeId: "LIV00013",
     avatar: "https://images.unsplash.com/photo-1594744803329-e58b31de215f?w=150",
     role: "Back-Up Host",
     platforms: ["Shopee Live"],
@@ -251,7 +251,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h14",
     name: "Tiara B",
-    employeeId: "EMP-26-014",
+    employeeId: "LIV00014",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
     role: "Back-Up Host",
     platforms: ["TikTok Live"],
@@ -268,7 +268,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h15",
     name: "Intan",
-    employeeId: "EMP-26-015",
+    employeeId: "LIV00015",
     avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150",
     role: "Back-Up Host",
     platforms: ["TikTok Live", "Shopee Live"],
@@ -285,7 +285,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
   {
     id: "h16",
     name: "Anisa",
-    employeeId: "EMP-26-016",
+    employeeId: "LIV00016",
     avatar: "https://images.unsplash.com/photo-1558203728-00f45181dd14?w=150",
     role: "Back-Up Host",
     platforms: ["TikTok Live", "Tokopedia Play"],
@@ -305,24 +305,24 @@ const createLogs = (): AttendanceLog[] => {
   const generated: AttendanceLog[] = [];
 
   const targets = [
-    { hostId: "h1", name: "Cica", empId: "EMP-26-001", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
-    { hostId: "h2", name: "Gesti", empId: "EMP-26-002", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
-    { hostId: "h3", name: "Nabila", empId: "EMP-26-003", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
-    { hostId: "h4", name: "Tiara Ramadhani", empId: "EMP-26-004", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
-    { hostId: "h5", name: "Veni", empId: "EMP-26-005", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
-    { hostId: "h6", name: "Adinda", empId: "EMP-26-006", type: "Reguler", presentDays: 26, excused: 0, lateCount: 1 },
-    { hostId: "h7", name: "Riska", empId: "EMP-26-007", type: "Reguler", presentDays: 23, excused: 3, lateCount: 0 },
-    { hostId: "h8", name: "Nadya", empId: "EMP-26-008", type: "Reguler", presentDays: 22, excused: 4, lateCount: 0 },
-    { hostId: "h9", name: "Rahma", empId: "EMP-26-009", type: "Reguler", presentDays: 26, excused: 0, lateCount: 4 },
-    { hostId: "h10", name: "Ika", empId: "EMP-26-010", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
-    { hostId: "h11", name: "Jihan", empId: "EMP-26-011", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
+    { hostId: "h1", name: "Cica", empId: "LIV00001", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
+    { hostId: "h2", name: "Gesti", empId: "LIV00002", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
+    { hostId: "h3", name: "Nabila", empId: "LIV00003", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
+    { hostId: "h4", name: "Tiara Ramadhani", empId: "LIV00004", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
+    { hostId: "h5", name: "Veni", empId: "LIV00005", type: "Reguler", presentDays: 25, excused: 1, lateCount: 0 },
+    { hostId: "h6", name: "Adinda", empId: "LIV00006", type: "Reguler", presentDays: 26, excused: 0, lateCount: 1 },
+    { hostId: "h7", name: "Riska", empId: "LIV00007", type: "Reguler", presentDays: 23, excused: 3, lateCount: 0 },
+    { hostId: "h8", name: "Nadya", empId: "LIV00008", type: "Reguler", presentDays: 22, excused: 4, lateCount: 0 },
+    { hostId: "h9", name: "Rahma", empId: "LIV00009", type: "Reguler", presentDays: 26, excused: 0, lateCount: 4 },
+    { hostId: "h10", name: "Ika", empId: "LIV00010", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
+    { hostId: "h11", name: "Jihan", empId: "LIV00011", type: "Reguler", presentDays: 26, excused: 0, lateCount: 0 },
     
     // Backup (only need to define active days)
-    { hostId: "h12", name: "Nadin", empId: "EMP-26-012", type: "Backup", presentDays: 14, excused: 0, lateCount: 0 },
-    { hostId: "h13", name: "Shela", empId: "EMP-26-013", type: "Backup", presentDays: 1, excused: 0, lateCount: 0 },
-    { hostId: "h14", name: "Tiara B", empId: "EMP-26-014", type: "Backup", presentDays: 5, excused: 0, lateCount: 0 },
-    { hostId: "h15", name: "Intan", empId: "EMP-26-015", type: "Backup", presentDays: 5, excused: 0, lateCount: 0 },
-    { hostId: "h16", name: "Anisa", empId: "EMP-26-016", type: "Backup", presentDays: 13, excused: 0, lateCount: 0 },
+    { hostId: "h12", name: "Nadin", empId: "LIV00012", type: "Backup", presentDays: 14, excused: 0, lateCount: 0 },
+    { hostId: "h13", name: "Shela", empId: "LIV00013", type: "Backup", presentDays: 1, excused: 0, lateCount: 0 },
+    { hostId: "h14", name: "Tiara B", empId: "LIV00014", type: "Backup", presentDays: 5, excused: 0, lateCount: 0 },
+    { hostId: "h15", name: "Intan", empId: "LIV00015", type: "Backup", presentDays: 5, excused: 0, lateCount: 0 },
+    { hostId: "h16", name: "Anisa", empId: "LIV00016", type: "Backup", presentDays: 13, excused: 0, lateCount: 0 },
   ];
 
   targets.forEach((t) => {
@@ -441,7 +441,7 @@ export const INITIAL_SCHEDULE: ShiftSchedule[] = [
     id: "sched_1",
     hostId: "h1",
     hostName: "Cica",
-    employeeId: "EMP-26-001",
+    employeeId: "LIV00001",
     date: todayDateString(),
     timeSlot: "Evening (18:00 - 22:00)",
     platform: "TikTok Live",
@@ -452,7 +452,7 @@ export const INITIAL_SCHEDULE: ShiftSchedule[] = [
     id: "sched_2",
     hostId: "h3",
     hostName: "Nabila",
-    employeeId: "EMP-26-003",
+    employeeId: "LIV00003",
     date: todayDateString(),
     timeSlot: "Afternoon (13:00 - 17:00)",
     platform: "Shopee Live",
@@ -463,7 +463,7 @@ export const INITIAL_SCHEDULE: ShiftSchedule[] = [
     id: "sched_3",
     hostId: "h6",
     hostName: "Adinda",
-    employeeId: "EMP-26-006",
+    employeeId: "LIV00006",
     date: todayDateString(),
     timeSlot: "Evening (18:00 - 22:00)",
     platform: "TikTok Live",

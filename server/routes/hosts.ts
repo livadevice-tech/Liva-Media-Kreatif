@@ -124,6 +124,18 @@ export function registerHostRoutes(app: Express) {
     const id = h.id || genId("host");
     const studio = normalizeHostStudioLocation(h.studio) || null;
 
+    let employeeId = h.employeeId || h.employee_id;
+    if (!employeeId) {
+      const num = parseInt(String(id).replace("h", ""));
+      if (!isNaN(num) && num > 0) {
+        employeeId = `LIV${String(num).padStart(5, "0")}`;
+      } else {
+        const [maxRows]: any = await query(`SELECT MAX(CAST(SUBSTRING(employee_id, 4) AS UNSIGNED)) as maxNum FROM hosts WHERE employee_id LIKE 'LIV%'`);
+        const nextNum = (maxRows[0]?.maxNum || 0) + 1;
+        employeeId = `LIV${String(nextNum).padStart(5, "0")}`;
+      }
+    }
+
     await execute(`
       INSERT INTO hosts (
         id, name, employee_id, avatar, role,
@@ -133,7 +145,7 @@ export function registerHostRoutes(app: Express) {
         host_type, custom_working_days_target, custom_base_salary, custom_shift_rate
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      id, h.name, h.employeeId, h.avatar || null, h.role || null,
+      id, h.name, employeeId, h.avatar || null, h.role || null,
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,
@@ -217,7 +229,7 @@ export function registerHostRoutes(app: Express) {
         custom_base_salary = ?, custom_shift_rate = ?
       WHERE id = ?
     `, [
-      h.name, h.employeeId, h.avatar || null, h.role || null,
+      h.name, h.employeeId || h.employee_id || existing?.employee_id || null, h.avatar || null, h.role || null,
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,

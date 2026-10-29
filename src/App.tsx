@@ -1752,7 +1752,7 @@ export default function App() {
           ) + 1
         : 1;
     const id = `h${nextIdNum}`;
-    const employeeId = `EMP-26-${String(nextIdNum).padStart(3, "0")}`;
+    const employeeId = `LIV${String(nextIdNum).padStart(5, "0")}`;
     const joinedDate = new Date().toISOString().split("T")[0];
 
     const newHost: HostEmployee = {
