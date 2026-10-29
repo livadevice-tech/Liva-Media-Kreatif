@@ -351,41 +351,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
 
   return (
     <div className="space-y-3.5 animate-fadeIn w-full min-w-0">
-      {/* Upcoming Billings Banner (Compact & Clean) */}
-      {upcomingBillings.length > 0 && (
-        <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full min-w-0">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="bg-amber-100 text-amber-700 p-1.5 rounded-lg shrink-0">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-amber-950">
-                  Jadwal Tagihan Rutin Tiba ({upcomingBillings.length} Klien)
-                </span>
-                <span className="text-[10px] text-amber-700 font-medium hidden sm:inline">
-                  — Siklus invoice bulan ini
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 max-w-full">
-            {upcomingBillings.map((b) => (
-              <span
-                key={b.id}
-                className="bg-white/95 border border-amber-200/80 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0"
-              >
-                <span className="truncate max-w-[120px]">{b.companyName || b.name}</span>
-                <span className="bg-amber-100/90 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded shrink-0">
-                  Tgl {b.invoiceDate || '29'}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* KPI Metrics Cards (4 Columns - Clean, Compact & Interactive Filters) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         {/* Total Invoices */}
