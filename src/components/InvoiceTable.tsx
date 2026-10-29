@@ -20,9 +20,22 @@ import {
   ShieldCheck,
   Filter,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  Wallet,
+  Sparkles,
+  HelpCircle,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { formatContractDate, formatLivePeriod } from '../shared/utils/dateFormatting';
+import { InvoiceSettings } from './invoice/InvoiceSettingsPanel';
+import {
+  getInvoiceClosingPeriod,
+  determineClosingMonthForDate,
+  getAvailableClosingMonths,
+  InvoiceClosingPeriod,
+} from '../shared/utils/invoiceClosingPeriod';
 
 export type InvoiceStatusFilter = 'ALL' | 'OVERDUE' | 'OPEN' | 'DRAFT' | 'PAID' | 'CANCELLED';
 
@@ -86,11 +99,14 @@ const STATUS_FILTER_OPTIONS: {
 
 interface InvoiceTableProps {
   allInvoices: (BrandInvoice & { brandId: string; brandName: string })[];
+  rawAllInvoices?: (BrandInvoice & { brandId: string; brandName: string })[];
   upcomingBillings: ClientBrand[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   filterMonth: string;
   setFilterMonth: (m: string) => void;
+  invoiceSettings?: InvoiceSettings;
+  onSaveSettings?: (settings: InvoiceSettings) => void;
   updateInvoiceStatus: (brandId: string, invId: string, newStatus: BrandInvoice["status"]) => void;
   setInvoiceEditor: (inv: BrandInvoice & { brandId: string }) => void;
   setInvoiceToDelete: (data: { brandId: string; id: string }) => void;
@@ -103,11 +119,14 @@ interface InvoiceTableProps {
 
 export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   allInvoices,
+  rawAllInvoices,
   upcomingBillings,
   searchQuery,
   setSearchQuery,
   filterMonth,
   setFilterMonth,
+  invoiceSettings,
+  onSaveSettings,
   updateInvoiceStatus,
   setInvoiceEditor,
   setInvoiceToDelete,
@@ -121,6 +140,68 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   const [statusFilter, setStatusFilter] = useState<InvoiceStatusFilter>('ALL');
   const [downloadMenuOpenId, setDownloadMenuOpenId] = useState<string | null>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  // Quick Tutup Buku settings state
+  const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
+  const closingDay = invoiceSettings?.closingDay ?? 25;
+  const useClosingCutoff = invoiceSettings?.useClosingCutoff !== false;
+  const [tempClosingDay, setTempClosingDay] = useState(closingDay);
+  const [tempUseClosingCutoff, setTempUseClosingCutoff] = useState(useClosingCutoff);
+
+  useEffect(() => {
+    setTempClosingDay(invoiceSettings?.closingDay ?? 25);
+    setTempUseClosingCutoff(invoiceSettings?.useClosingCutoff !== false);
+  }, [invoiceSettings, isQuickSettingsOpen]);
+
+  // Active period details if a month is selected
+  const activePeriod = useMemo(() => {
+    if (!filterMonth || filterMonth === 'ALL') return null;
+    return getInvoiceClosingPeriod(filterMonth, closingDay);
+  }, [filterMonth, closingDay]);
+
+  // Available closing periods for dropdown
+  const availableClosingPeriods = useMemo(() => {
+    const dates = (rawAllInvoices || allInvoices)
+      .map((inv) => inv.issueDate || inv.dueDate || '')
+      .filter(Boolean);
+    return getAvailableClosingMonths(dates, closingDay);
+  }, [rawAllInvoices, allInvoices, closingDay]);
+
+  // Navigate month
+  const handleNavigateMonth = (direction: -1 | 1) => {
+    const currentKey =
+      filterMonth && filterMonth !== 'ALL'
+        ? filterMonth
+        : determineClosingMonthForDate(new Date(), closingDay);
+    const [yStr, mStr] = currentKey.split('-');
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    const target = new Date(y, m - 1 + direction, 1);
+    const targetKey = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+    setFilterMonth(targetKey);
+  };
+
+  const handleGoToCurrentPeriod = () => {
+    const cur = determineClosingMonthForDate(new Date(), closingDay);
+    setFilterMonth(cur);
+  };
+
+  const handleSaveQuickSettings = () => {
+    if (onSaveSettings) {
+      onSaveSettings({
+        logoUrl: invoiceSettings?.logoUrl || '',
+        signatureUrl: invoiceSettings?.signatureUrl || '',
+        signatureName: invoiceSettings?.signatureName || '',
+        accountNo: invoiceSettings?.accountNo || '',
+        accountName: invoiceSettings?.accountName || '',
+        bankName: invoiceSettings?.bankName || '',
+        ...invoiceSettings,
+        useClosingCutoff: tempUseClosingCutoff,
+        closingDay: tempClosingDay,
+      });
+    }
+    setIsQuickSettingsOpen(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -286,6 +367,149 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════
+          REVENUE TUTUP BUKU (CUT-OFF) SUMMARY BANNER
+      ════════════════════════════════════════════ */}
+      {useClosingCutoff && activePeriod && (
+        <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-500/30 shadow-md relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Left: Period Title & Cut-off Range */}
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="p-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-lg text-indigo-300">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider text-indigo-300">
+                  Laporan Pendapatan Tutup Buku
+                </span>
+                {activePeriod.isCurrent ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Siklus Berjalan
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 rounded-full">
+                    Arsip Periode
+                  </span>
+                )}
+                <span className="text-[10px] font-bold text-slate-300 bg-slate-800/90 px-2 py-0.5 rounded-md border border-slate-700">
+                  Siklus Cut-off Tgl {closingDay}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>{activePeriod.label}</span>
+              </h2>
+
+              <div className="text-xs text-slate-300 font-medium flex items-center gap-1.5 flex-wrap">
+                <span className="text-indigo-200 font-semibold">Rentang Cut-off:</span>
+                <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded-md border border-white/10">
+                  {activePeriod.startDate} s.d. {activePeriod.endDate}
+                </span>
+                <span className="text-slate-400 hidden sm:inline">•</span>
+                <span className="text-slate-400">
+                  Total tagihan & omset terbit pada siklus cut-off tanggal {closingDay}.
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Revenue Snapshot Boxes & Actions */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Snapshot Boxes */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-left min-w-[130px]">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Total Tagihan
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-white mt-0.5">
+                    Rp {new Intl.NumberFormat('id-ID').format(summary.totalAmount)}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    {allInvoices.length} nota terbit
+                  </div>
+                </div>
+
+                <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-3 py-2 text-left min-w-[130px]">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    Uang Masuk (Lunas)
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-emerald-400 mt-0.5">
+                    Rp {new Intl.NumberFormat('id-ID').format(summary.paidAmount)}
+                  </div>
+                  <div className="text-[10px] text-emerald-300/80 mt-0.5">
+                    {counts.paid} nota lunas
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex sm:flex-col justify-end gap-1.5">
+                {!activePeriod.isCurrent && (
+                  <button
+                    type="button"
+                    onClick={handleGoToCurrentPeriod}
+                    className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer text-center whitespace-nowrap shadow-xs"
+                    title="Lompat ke periode tutup buku saat ini"
+                  >
+                    Ke Siklus Berjalan
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSettingsOpen(true)}
+                  className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer text-center whitespace-nowrap border border-white/10 flex items-center justify-center gap-1.5"
+                  title="Ubah konfigurasi tanggal tutup buku"
+                >
+                  <Settings className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Ubah Tgl Tutup Buku</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fallback Banner when viewing ALL periods */}
+      {useClosingCutoff && (!filterMonth || filterMonth === 'ALL') && (
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-slate-200 text-slate-700 rounded-lg">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-black text-slate-800">
+                Menampilkan Semua Periode Tagihan
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Siklus Tutup Buku dikonfigurasi setiap <span className="font-bold text-slate-700">Tanggal {closingDay}</span> akhir bulan.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleGoToCurrentPeriod}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Lihat Pendapatan Periode Berjalan
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsQuickSettingsOpen(true)}
+              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg cursor-pointer transition-colors"
+              title="Ubah Pengaturan Tutup Buku"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* KPI Metrics Cards (4 Columns - Clean, Compact & Interactive Filters) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         {/* Total Invoices */}
@@ -413,7 +637,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden w-full min-w-0">
         {/* Table Toolbar Row 1: Filter Bulan & Pencarian */}
         <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full min-w-0">
-          {/* Month Filter Controls */}
+          {/* Month / Tutup Buku Period Filter Controls */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -425,35 +649,107 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              Semua Bulan (All)
+              Semua Periode (All)
             </button>
 
-            <div
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 border transition-all shadow-2xs ${
-                filterMonth && filterMonth !== 'ALL'
-                  ? 'bg-white border-indigo-400 ring-2 ring-indigo-50'
-                  : 'bg-white border-slate-200/80 hover:border-slate-300'
-              }`}
-            >
-              <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">Pilih Bulan:</span>
-              <input
-                type="month"
-                value={filterMonth === 'ALL' ? '' : filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value || 'ALL')}
-                className="text-xs font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-                title="Pilih bulan spesifik"
-              />
-              {filterMonth && filterMonth !== 'ALL' && (
-                <button
-                  type="button"
-                  onClick={() => setFilterMonth('ALL')}
-                  title="Kembali ke Semua Bulan (All)"
-                  className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer transition-colors"
+            {/* Previous Period Button */}
+            {useClosingCutoff && (
+              <button
+                type="button"
+                onClick={() => handleNavigateMonth(-1)}
+                title="Periode Tutup Buku Sebelumnya"
+                className="p-1.5 rounded-lg border border-slate-200/80 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer shadow-2xs transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Period Dropdown (if Tutup Buku enabled) or Month Picker (if standard calendar) */}
+            {useClosingCutoff ? (
+              <div
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 border transition-all shadow-2xs ${
+                  filterMonth && filterMonth !== 'ALL'
+                    ? 'bg-white border-indigo-400 ring-2 ring-indigo-50'
+                    : 'bg-white border-slate-200/80 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                  Tutup Buku:
+                </span>
+                <select
+                  value={filterMonth || 'ALL'}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer max-w-[200px] sm:max-w-[270px] truncate"
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+                  <option value="ALL">-- Pilih Periode Tutup Buku --</option>
+                  {availableClosingPeriods.map((p) => (
+                    <option key={p.closingMonth} value={p.closingMonth}>
+                      {p.label} ({p.dateRangeLabel}){p.isCurrent ? ' ★ Berjalan' : ''}
+                    </option>
+                  ))}
+                </select>
+                {filterMonth && filterMonth !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterMonth('ALL')}
+                    title="Kembali ke Semua Periode (All)"
+                    className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 border transition-all shadow-2xs ${
+                  filterMonth && filterMonth !== 'ALL'
+                    ? 'bg-white border-indigo-400 ring-2 ring-indigo-50'
+                    : 'bg-white border-slate-200/80 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">Pilih Bulan:</span>
+                <input
+                  type="month"
+                  value={filterMonth === 'ALL' ? '' : filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value || 'ALL')}
+                  className="text-xs font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+                  title="Pilih bulan kalender standar"
+                />
+                {filterMonth && filterMonth !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterMonth('ALL')}
+                    title="Kembali ke Semua Bulan (All)"
+                    className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Next Period Button */}
+            {useClosingCutoff && (
+              <button
+                type="button"
+                onClick={() => handleNavigateMonth(1)}
+                title="Periode Tutup Buku Berikutnya"
+                className="p-1.5 rounded-lg border border-slate-200/80 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer shadow-2xs transition-colors"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Quick Settings Button */}
+            <button
+              type="button"
+              onClick={() => setIsQuickSettingsOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+              title={`Tanggal tutup buku: Tgl ${closingDay} setiap bulan. Klik untuk ubah setting.`}
+            >
+              <Settings className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Tutup Buku Tgl {closingDay}</span>
+            </button>
 
             <span className="text-[11px] font-semibold text-slate-400 ml-1 hidden lg:inline">
               {filteredInvoices.length !== allInvoices.length
@@ -884,6 +1180,192 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           </div>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════
+          QUICK TUTUP BUKU SETTINGS MODAL
+      ════════════════════════════════════════════ */}
+      {isQuickSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-500/20 border border-indigo-400/30 rounded-xl text-indigo-300">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black">Setting Tutup Buku Pendapatan</h3>
+                  <p className="text-xs text-indigo-200/80">
+                    Konfigurasi cut-off akhir bulan untuk omset nota
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickSettingsOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+              {/* Toggle Cutoff Mode */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <div>
+                  <div className="text-xs font-black text-slate-800">
+                    Aktifkan Siklus Tutup Buku
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Kelompokkan omset bulanan berdasarkan tanggal cut-off.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTempUseClosingCutoff(!tempUseClosingCutoff)}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                    tempUseClosingCutoff ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <div className="bg-white w-4 h-4 rounded-full shadow-md" />
+                </button>
+              </div>
+
+              {/* Closing Day Stepper & Presets */}
+              {tempUseClosingCutoff && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-700">
+                      Tanggal Cut-off Setiap Bulan:
+                    </label>
+                    <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                      Tanggal {tempClosingDay}
+                    </span>
+                  </div>
+
+                  {/* Stepper */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTempClosingDay((prev) => Math.max(1, prev - 1))}
+                      className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-black text-lg flex items-center justify-center cursor-pointer transition-colors"
+                      title="Kurangi 1 hari"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={tempClosingDay}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val)) {
+                          setTempClosingDay(Math.max(1, Math.min(28, val)));
+                        }
+                      }}
+                      className="flex-1 text-center font-black text-lg text-slate-900 border border-slate-300 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTempClosingDay((prev) => Math.min(28, prev + 1))}
+                      className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-black text-lg flex items-center justify-center cursor-pointer transition-colors"
+                      title="Tambah 1 hari"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Preset Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 mr-1 uppercase">Preset:</span>
+                    <button
+                      type="button"
+                      onClick={() => setTempClosingDay(25)}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        tempClosingDay === 25
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Tgl 25 (Standar Liva)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempClosingDay(20)}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        tempClosingDay === 20
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Tgl 20
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempClosingDay(28)}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        tempClosingDay === 28
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Tgl 28 (Akhir Bulan)
+                    </button>
+                  </div>
+
+                  {/* Simulation Box */}
+                  <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-3.5 space-y-1.5 mt-2">
+                    <div className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                      <HelpCircle className="w-4 h-4 text-indigo-600" />
+                      <span>Simulasi Siklus Berjalan:</span>
+                    </div>
+                    {(() => {
+                      const simPeriod = getInvoiceClosingPeriod(
+                        determineClosingMonthForDate(new Date(), tempClosingDay),
+                        tempClosingDay
+                      );
+                      return (
+                        <div className="text-xs text-indigo-900 space-y-1">
+                          <div>
+                            • <span className="font-bold">{simPeriod.label}:</span>{' '}
+                            <span className="font-black text-indigo-700 underline decoration-indigo-300">
+                              {simPeriod.startDate} s.d. {simPeriod.endDate}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-indigo-700/90 leading-relaxed">
+                            Invoice yang diterbitkan pada rentang di atas otomatis dihitung ke omset {simPeriod.monthName}.
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsQuickSettingsOpen(false)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-white cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuickSettings}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Simpan Pengaturan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

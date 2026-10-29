@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image as ImageIcon, Settings, Trash2, UploadCloud, Building2, MapPin, Mail, Phone, Globe, UserCheck, Sliders, ShieldCheck } from 'lucide-react';
+import { Image as ImageIcon, Settings, Trash2, UploadCloud, Building2, MapPin, Mail, Phone, Globe, UserCheck, Sliders, ShieldCheck, CalendarCheck, HelpCircle, CheckCircle2 } from 'lucide-react';
 
 export type InvoiceSettings = {
   logoUrl: string;
@@ -19,6 +19,8 @@ export type InvoiceSettings = {
   accountName: string;
   bankName: string;
   termsAndConditions?: string;
+  useClosingCutoff?: boolean;
+  closingDay?: number;
 };
 
 type InvoiceSettingsPanelProps = {
@@ -375,6 +377,124 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
                 value={invoiceSettings.companyWebsite || "https://project.livaagency.com"}
                 onChange={(e) => onInvoiceSettingsChange({ ...invoiceSettings, companyWebsite: e.target.value })}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2.5: Pengaturan Tutup Buku Pendapatan */}
+        <div className="border-t border-slate-100 pt-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-emerald-600" /> Pengaturan Tutup Buku Pendapatan (Revenue Cut-off)
+              </h4>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Atur siklus penutupan buku pendapatan untuk rekapitulasi omset invoice bulanan (default setiap tanggal 25 akhir bulan).
+              </p>
+            </div>
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+              Cut-off Tgl {invoiceSettings.closingDay || 25}
+            </span>
+          </div>
+
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
+            {/* Toggle Use Closing Cutoff */}
+            <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200/60">
+              <div>
+                <label className="text-xs font-bold text-slate-800 block cursor-pointer">
+                  Aktifkan Siklus Tutup Buku Otomatis
+                </label>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Saat aktif, filter bulan di menu invoice otomatis menghitung pendapatan sesuai siklus tanggal tutup buku (misal: 26 Sept - 25 Okt untuk Tutup Buku Oktober).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  onInvoiceSettingsChange({
+                    ...invoiceSettings,
+                    useClosingCutoff: invoiceSettings.useClosingCutoff === false ? true : false,
+                  })
+                }
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  invoiceSettings.useClosingCutoff !== false ? "bg-emerald-600" : "bg-slate-300"
+                }`}
+                role="switch"
+                aria-checked={invoiceSettings.useClosingCutoff !== false}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    invoiceSettings.useClosingCutoff !== false ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Input Closing Day */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tanggal Tutup Buku Setiap Akhir Bulan
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Tanggal akhir siklus pembukuan (rekomendasi: tanggal 25).
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 sm:justify-end">
+                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = Number(invoiceSettings.closingDay) || 25;
+                      const next = Math.max(1, cur - 1);
+                      onInvoiceSettingsChange({ ...invoiceSettings, closingDay: next });
+                    }}
+                    disabled={Number(invoiceSettings.closingDay || 25) <= 1}
+                    className="w-8 h-9 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-30 cursor-pointer transition-colors border-r border-slate-200 font-bold"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={invoiceSettings.closingDay ?? 25}
+                    onChange={(e) => {
+                      const val = Math.max(1, Math.min(28, Number(e.target.value) || 25));
+                      onInvoiceSettingsChange({ ...invoiceSettings, closingDay: val });
+                    }}
+                    className="w-14 bg-transparent py-1.5 text-center font-mono font-bold text-sm text-slate-900 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = Number(invoiceSettings.closingDay) || 25;
+                      const next = Math.min(28, cur + 1);
+                      onInvoiceSettingsChange({ ...invoiceSettings, closingDay: next });
+                    }}
+                    disabled={Number(invoiceSettings.closingDay || 25) >= 28}
+                    className="w-8 h-9 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-30 cursor-pointer transition-colors border-l border-slate-200 font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="text-xs font-bold text-slate-600">Akhir Bulan</span>
+              </div>
+            </div>
+
+            {/* Explanation & Live Formula Box */}
+            <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Simulasi Siklus Pembukuan:</span>
+              </div>
+              <p className="text-[11px] text-emerald-800 leading-relaxed pl-5.5">
+                Setiap periode tutup buku berjalan mulai dari <strong>tanggal {(Number(invoiceSettings.closingDay) || 25) + 1} bulan sebelumnya</strong> sampai dengan <strong>tanggal {Number(invoiceSettings.closingDay) || 25} bulan berjalan</strong>.
+              </p>
+              <div className="pl-5.5 pt-1 text-[11px] font-mono text-emerald-950 font-semibold">
+                Contoh: Periode Tutup Buku Oktober = Tgl 26 September s.d. Tgl 25 Oktober
+              </div>
             </div>
           </div>
         </div>

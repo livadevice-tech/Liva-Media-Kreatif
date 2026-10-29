@@ -29,6 +29,11 @@ import { ClientBillingDirectory } from './invoice/ClientBillingDirectory';
 import { LivaBankManager } from './invoice/LivaBankManager';
 import { InvoicePreviewModal } from './invoice/InvoicePreviewModal';
 import { resolveContractPeriodDates } from '../shared/utils/dateFormatting';
+import {
+  isDateInInvoiceClosingPeriod,
+  determineClosingMonthForDate,
+  getAvailableClosingMonths,
+} from '../shared/utils/invoiceClosingPeriod';
 
 import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
@@ -96,6 +101,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
     bankName: "Maybank Syariah",
     termsAndConditions:
       "1. Payment shall be made via bank transfer to the account listed above.\n2. Payment is due according to the invoice Due Date.\n3. Please confirm proof of payment via WhatsApp to +62 821-7788-9900.",
+    useClosingCutoff: true,
+    closingDay: 25,
   });
 
   // Load bank accounts & settings from MySQL
@@ -108,7 +115,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
 
     settingsApi.get<InvoiceSettings | null>("mcn_invoice_settings").then((saved) => {
       if (saved && Object.keys(saved).length > 0) {
-        setInvoiceSettings((prev) => ({ ...prev, ...saved }));
+        setInvoiceSettings((prev) => ({
+          ...prev,
+          ...saved,
+          useClosingCutoff: saved.useClosingCutoff ?? prev.useClosingCutoff ?? true,
+          closingDay: saved.closingDay ?? prev.closingDay ?? 25,
+        }));
       }
     }).catch(console.error);
   }, []);
@@ -143,14 +155,16 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   const [invoiceEditor, setInvoiceEditor] = useState<(BrandInvoice & { brandId: string }) | null>(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState<{ brandId: string; id: string } | null>(null);
 
-  const currentYearMonth = new Date().toISOString().substring(0, 7);
-  const [filterMonth, setFilterMonth] = useState<string>('ALL');
+  const [filterMonth, setFilterMonth] = useState<string>(() => {
+    return determineClosingMonthForDate(new Date(), 25);
+  });
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
-  const allInvoices = useMemo(() => {
+  // Raw unfiltered invoices across all brands
+  const rawAllInvoices = useMemo(() => {
     let list: (BrandInvoice & { brandId: string; brandName: string })[] = [];
     clientBrands.forEach((brand) => {
       if (brand.invoices) {
@@ -159,16 +173,30 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         });
       }
     });
+    return list;
+  }, [clientBrands]);
+
+  // Filtered invoices according to selected month / closing period
+  const allInvoices = useMemo(() => {
+    let list = [...rawAllInvoices];
 
     if (filterMonth && filterMonth !== 'ALL') {
+      const closingDay = invoiceSettings.closingDay ?? 25;
+      const useClosing = invoiceSettings.useClosingCutoff !== false;
+
       list = list.filter((inv) => {
         const dateToUse = inv.invoiceDate || inv.issueDate;
-        return Boolean(dateToUse && dateToUse.startsWith(filterMonth));
+        if (!dateToUse) return false;
+        if (useClosing) {
+          return isDateInInvoiceClosingPeriod(dateToUse, filterMonth, closingDay);
+        } else {
+          return dateToUse.startsWith(filterMonth);
+        }
       });
     }
 
     return list.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
-  }, [clientBrands, filterMonth]);
+  }, [rawAllInvoices, filterMonth, invoiceSettings.useClosingCutoff, invoiceSettings.closingDay]);
 
   const upcomingBillings = useMemo(() => {
     const today = new Date();
@@ -613,11 +641,14 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
           {(activeTab === "overview" || activeTab === "create") && (
             <InvoiceTable
               allInvoices={allInvoices}
+              rawAllInvoices={rawAllInvoices}
               upcomingBillings={upcomingBillings}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               filterMonth={filterMonth}
               setFilterMonth={setFilterMonth}
+              invoiceSettings={invoiceSettings}
+              onSaveSettings={saveSettings}
               updateInvoiceStatus={updateInvoiceStatus}
               setInvoiceEditor={setInvoiceEditor}
               setInvoiceToDelete={setInvoiceToDelete}
