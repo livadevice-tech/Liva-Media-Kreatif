@@ -22,6 +22,8 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Check,
   Settings,
   HelpCircle,
 } from 'lucide-react';
@@ -151,6 +153,27 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
     setTempUseClosingCutoff(invoiceSettings?.useClosingCutoff !== false);
   }, [invoiceSettings, isQuickSettingsOpen]);
 
+  // Custom Tutup Buku dropdown open state
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+  const periodDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        periodDropdownRef.current &&
+        !periodDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsPeriodDropdownOpen(false);
+      }
+    };
+    if (isPeriodDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPeriodDropdownOpen]);
+
   // Available closing periods for dropdown
   const availableClosingPeriods = useMemo(() => {
     const dates = (rawAllInvoices || allInvoices)
@@ -158,6 +181,15 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       .filter(Boolean);
     return getAvailableClosingMonths(dates, closingDay);
   }, [rawAllInvoices, allInvoices, closingDay]);
+
+  // Selected closing period details
+  const selectedPeriod = useMemo(() => {
+    if (!filterMonth || filterMonth === 'ALL') return null;
+    return (
+      availableClosingPeriods.find((p) => p.closingMonth === filterMonth) ||
+      getInvoiceClosingPeriod(filterMonth, closingDay)
+    );
+  }, [filterMonth, availableClosingPeriods, closingDay]);
 
   // Navigate month
   const handleNavigateMonth = (direction: -1 | 1) => {
@@ -508,39 +540,166 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
               </button>
             )}
 
-            {/* Period Dropdown (if Tutup Buku enabled) or Month Picker (if standard calendar) */}
+            {/* Custom Pretty Period Dropdown */}
             {useClosingCutoff ? (
-              <div
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 border transition-all shadow-2xs ${
-                  filterMonth && filterMonth !== 'ALL'
-                    ? 'bg-white border-indigo-400 ring-2 ring-indigo-50'
-                    : 'bg-white border-slate-200/80 hover:border-slate-300'
-                }`}
-              >
-                <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
-                  Tutup Buku:
-                </span>
-                <select
-                  value={filterMonth || 'ALL'}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer max-w-[200px] sm:max-w-[270px] truncate"
+              <div ref={periodDropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-1.5 border transition-all shadow-2xs cursor-pointer ${
+                    filterMonth && filterMonth !== 'ALL'
+                      ? 'bg-white border-indigo-400 ring-2 ring-indigo-50/70 text-indigo-950 font-bold'
+                      : 'bg-white border-slate-200/90 hover:border-slate-300 text-slate-700 font-semibold'
+                  }`}
+                  title="Pilih periode tutup buku"
                 >
-                  <option value="ALL">-- Pilih Periode Tutup Buku --</option>
-                  {availableClosingPeriods.map((p) => (
-                    <option key={p.closingMonth} value={p.closingMonth}>
-                      {p.label} ({p.dateRangeLabel}){p.isCurrent ? ' ★ Berjalan' : ''}
-                    </option>
-                  ))}
-                </select>
-                {filterMonth && filterMonth !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setFilterMonth('ALL')}
-                    title="Kembali ke Semua Periode (All)"
-                    className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  <span className="text-[11px] font-bold text-slate-400">Tutup Buku:</span>
+
+                  <div className="flex items-center gap-1.5 text-xs">
+                    {selectedPeriod ? (
+                      <>
+                        <span className="font-bold text-slate-900">{selectedPeriod.monthName}</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.2 rounded-md hidden sm:inline">
+                          {selectedPeriod.dateRangeLabel}
+                        </span>
+                        {selectedPeriod.isCurrent && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Siklus Berjalan" />
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-slate-500 font-medium">Pilih Periode</span>
+                    )}
+                  </div>
+
+                  {filterMonth && filterMonth !== 'ALL' && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFilterMonth('ALL');
+                        setIsPeriodDropdownOpen(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation();
+                          setFilterMonth('ALL');
+                          setIsPeriodDropdownOpen(false);
+                        }
+                      }}
+                      title="Kembali ke Semua Periode (All)"
+                      className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition-colors ml-0.5 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+                      isPeriodDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Floating Custom Dropdown Popup */}
+                {isPeriodDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-2xl bg-white p-1.5 shadow-xl border border-slate-200/90 ring-1 ring-black/5 animate-fadeIn">
+                    {/* Header inside popup */}
+                    <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-slate-100 mb-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Periode Tutup Buku (Tgl {closingDay})
+                      </span>
+                      {filterMonth && filterMonth !== 'ALL' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterMonth('ALL');
+                            setIsPeriodDropdownOpen(false);
+                          }}
+                          className="text-[10px] font-bold text-slate-400 hover:text-rose-600 cursor-pointer transition-colors"
+                        >
+                          Tampilkan Semua
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Option: Semua Periode */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterMonth('ALL');
+                        setIsPeriodDropdownOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        !filterMonth || filterMonth === 'ALL'
+                          ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                          : 'text-slate-700 hover:bg-slate-50 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 opacity-70" />
+                        <span className="text-xs">Semua Periode (All)</span>
+                      </div>
+                      {(!filterMonth || filterMonth === 'ALL') && (
+                        <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                      )}
+                    </button>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    {/* Options list: Simple & Pretty Month items */}
+                    <div className="max-h-60 overflow-y-auto space-y-0.5 pr-0.5 no-scrollbar">
+                      {availableClosingPeriods.map((p) => {
+                        const isSelected = filterMonth === p.closingMonth;
+                        return (
+                          <button
+                            key={p.closingMonth}
+                            type="button"
+                            onClick={() => {
+                              setFilterMonth(p.closingMonth);
+                              setIsPeriodDropdownOpen(false);
+                            }}
+                            className={`w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                              isSelected
+                                ? 'bg-indigo-50/90 text-indigo-950 font-bold border border-indigo-200/80 shadow-2xs'
+                                : 'text-slate-700 hover:bg-slate-50 font-medium border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  p.isCurrent
+                                    ? 'bg-emerald-500 ring-2 ring-emerald-200'
+                                    : isSelected
+                                    ? 'bg-indigo-600'
+                                    : 'bg-slate-300'
+                                }`}
+                              />
+                              <div className="truncate">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-slate-900">
+                                    {p.monthName}
+                                  </span>
+                                  {p.isCurrent && (
+                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 shrink-0">
+                                      Berjalan
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  {p.dateRangeLabel}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-indigo-600 shrink-0 stroke-[2.5]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
