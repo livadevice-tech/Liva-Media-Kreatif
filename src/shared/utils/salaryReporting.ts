@@ -175,8 +175,11 @@ export const buildHostReportList = (
       netSalary += totalBackupHadir * backupShiftRate;
     }
 
+    const hostEmpId = host.employeeId || hostAny.employee_id || "";
+
     return {
       ...host,
+      employeeId: hostEmpId,
       countTepatWaktu,
       countTerlambat,
       countAlpa,

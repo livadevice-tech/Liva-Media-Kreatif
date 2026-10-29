@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Edit2, Trash2, MapPin, Landmark, Eye, EyeOff } from "lucide-react";
+import { Search, Edit2, Trash2, MapPin, Landmark, Eye, EyeOff, Copy, Check } from "lucide-react";
 import type { HostEmployee, StudioItem } from "../../types";
 import { getAvatarUrl } from "../../shared/utils/appUi";
 import {
@@ -217,6 +217,7 @@ export function HostCredentialRow({
   const [customWorkingDaysTarget, setCustomWorkingDaysTarget] = useState<number>(
     host.customWorkingDaysTarget || 26,
   );
+  const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
@@ -292,9 +293,26 @@ export function HostCredentialRow({
                   <span className="font-bold text-slate-800 text-xs block">
                     {host.name}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium font-mono block mt-0.5">
-                    ID: {host.employeeId}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (host.employeeId) {
+                        navigator.clipboard.writeText(host.employeeId);
+                        setCopiedId(true);
+                        setTimeout(() => setCopiedId(false), 1500);
+                      }
+                    }}
+                    title={`Salin ID: ${host.employeeId}`}
+                    className="text-[10px] text-slate-500 hover:text-indigo-600 font-medium font-mono inline-flex items-center gap-1 mt-0.5 cursor-pointer group transition-colors"
+                  >
+                    <span>ID: {host.employeeId}</span>
+                    {copiedId ? (
+                      <Check className="w-2.5 h-2.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
                 </div>
               )}
             </div>
@@ -521,7 +539,20 @@ export function HostCredentialRow({
           <div className="grid grid-cols-2 gap-y-3 gap-x-2">
             <div>
               <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">ID HOST</div>
-              <div className="font-semibold text-slate-700 text-[12px]">{host.employeeId}</div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (host.employeeId) {
+                    navigator.clipboard.writeText(host.employeeId);
+                    setCopiedId(true);
+                    setTimeout(() => setCopiedId(false), 1500);
+                  }
+                }}
+                className="font-semibold text-slate-700 text-[12px] font-mono inline-flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition-colors"
+              >
+                <span>{host.employeeId}</span>
+                {copiedId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-400" />}
+              </button>
             </div>
             <div>
               <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">LOKASI</div>

@@ -10301,6 +10301,7 @@ export default function App() {
                                   item.studio.includes("Tanggamus");
                                 const hostType = item.hostType || "Reguler";
                                 const isAtTop = idx < 3;
+                                const empId = item.employeeId || (item as any).employee_id || hosts.find((h) => h.id === item.id)?.employeeId || "";
 
                                 return (
                                   <React.Fragment key={item.id || idx}>
@@ -10324,12 +10325,38 @@ export default function App() {
                                               <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
                                             )}
                                           </div>
-                                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                                            
+                                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
                                             <span className="truncate">
                                               {item.studio ||
                                                 "Studio Bandar Lampung"}
                                             </span>
+                                            {empId && (
+                                              <>
+                                                <span className="text-slate-300">•</span>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigator.clipboard.writeText(empId);
+                                                    setCopiedSalaryHostId(item.id + "_empid");
+                                                    setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                                  }}
+                                                  title={`Salin ID Karyawan: ${empId}`}
+                                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer border shadow-3xs active:scale-95 ${
+                                                    copiedSalaryHostId === item.id + "_empid"
+                                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                      : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                                                  }`}
+                                                >
+                                                  <span>{empId}</span>
+                                                  {copiedSalaryHostId === item.id + "_empid" ? (
+                                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                                  ) : (
+                                                    <Copy className="w-2.5 h-2.5 opacity-60 hover:opacity-100" />
+                                                  )}
+                                                </button>
+                                              </>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
@@ -10747,11 +10774,35 @@ export default function App() {
                                               <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest leading-none">
                                                 Rincian Perhitungan Gaji
                                               </div>
-                                              <div className="text-xs font-bold text-slate-800 mt-1 flex items-center gap-1.5">
+                                              <div className="text-xs font-bold text-slate-800 mt-1 flex items-center gap-1.5 flex-wrap">
                                                 {item.name}
                                                 <span className="text-[9px] font-semibold text-slate-500 border border-slate-200 bg-white px-1.5 py-0.5 rounded uppercase">
                                                   {hostType}
                                                 </span>
+                                                {empId && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      navigator.clipboard.writeText(empId);
+                                                      setCopiedSalaryHostId(item.id + "_empid_acc");
+                                                      setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                                    }}
+                                                    title={`Salin ID Karyawan: ${empId}`}
+                                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer border shadow-3xs active:scale-95 ${
+                                                      copiedSalaryHostId === item.id + "_empid_acc"
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                                                    }`}
+                                                  >
+                                                    <span>{empId}</span>
+                                                    {copiedSalaryHostId === item.id + "_empid_acc" ? (
+                                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                                    ) : (
+                                                      <Copy className="w-2.5 h-2.5 opacity-60 hover:opacity-100" />
+                                                    )}
+                                                  </button>
+                                                )}
                                               </div>
                                             </div>
 
@@ -12177,11 +12228,31 @@ export default function App() {
                                             </button>
                                           )}
                                         </div>
-                                        {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
-                                          <div className="text-[11px] text-slate-400 font-mono font-medium mt-0.5">
-                                            ID: {item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId}
-                                          </div>
-                                        )}
+                                        {(() => {
+                                          const logEmpId = item.employeeId || (item as any).employee_id || hosts.find((h) => h.id === item.hostId)?.employeeId;
+                                          if (!logEmpId) return null;
+                                          const isCopied = copiedSalaryHostId === item.id + "_log_empid";
+                                          return (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(logEmpId);
+                                                setCopiedSalaryHostId(item.id + "_log_empid");
+                                                setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                              }}
+                                              title={`Salin ID: ${logEmpId}`}
+                                              className="text-[11px] text-slate-400 hover:text-indigo-600 font-mono font-medium mt-0.5 inline-flex items-center gap-1 cursor-pointer transition-colors group"
+                                            >
+                                              <span>ID: {logEmpId}</span>
+                                              {isCopied ? (
+                                                <Check className="w-2.5 h-2.5 text-emerald-500" />
+                                              ) : (
+                                                <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                              )}
+                                            </button>
+                                          );
+                                        })()}
                                       </td>
                                       <td className="py-3 px-4">
                                         <div className="font-semibold text-xs text-slate-800">{formatHumanDate(item.date)}</div>
