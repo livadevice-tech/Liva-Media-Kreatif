@@ -23,8 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
-  Wallet,
-  Sparkles,
   HelpCircle,
 } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
@@ -153,12 +151,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
     setTempUseClosingCutoff(invoiceSettings?.useClosingCutoff !== false);
   }, [invoiceSettings, isQuickSettingsOpen]);
 
-  // Active period details if a month is selected
-  const activePeriod = useMemo(() => {
-    if (!filterMonth || filterMonth === 'ALL') return null;
-    return getInvoiceClosingPeriod(filterMonth, closingDay);
-  }, [filterMonth, closingDay]);
-
   // Available closing periods for dropdown
   const availableClosingPeriods = useMemo(() => {
     const dates = (rawAllInvoices || allInvoices)
@@ -179,11 +171,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
     const target = new Date(y, m - 1 + direction, 1);
     const targetKey = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
     setFilterMonth(targetKey);
-  };
-
-  const handleGoToCurrentPeriod = () => {
-    const cur = determineClosingMonthForDate(new Date(), closingDay);
-    setFilterMonth(cur);
   };
 
   const handleSaveQuickSettings = () => {
@@ -363,149 +350,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </span>
               </span>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════
-          REVENUE TUTUP BUKU (CUT-OFF) SUMMARY BANNER
-      ════════════════════════════════════════════ */}
-      {useClosingCutoff && activePeriod && (
-        <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-500/30 shadow-md relative overflow-hidden">
-          {/* Subtle background glow */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Left: Period Title & Cut-off Range */}
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="p-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-lg text-indigo-300">
-                  <Wallet className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-black uppercase tracking-wider text-indigo-300">
-                  Laporan Pendapatan Tutup Buku
-                </span>
-                {activePeriod.isCurrent ? (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Siklus Berjalan
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 rounded-full">
-                    Arsip Periode
-                  </span>
-                )}
-                <span className="text-[10px] font-bold text-slate-300 bg-slate-800/90 px-2 py-0.5 rounded-md border border-slate-700">
-                  Siklus Cut-off Tgl {closingDay}
-                </span>
-              </div>
-
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>{activePeriod.label}</span>
-              </h2>
-
-              <div className="text-xs text-slate-300 font-medium flex items-center gap-1.5 flex-wrap">
-                <span className="text-indigo-200 font-semibold">Rentang Cut-off:</span>
-                <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded-md border border-white/10">
-                  {activePeriod.startDate} s.d. {activePeriod.endDate}
-                </span>
-                <span className="text-slate-400 hidden sm:inline">•</span>
-                <span className="text-slate-400">
-                  Total tagihan & omset terbit pada siklus cut-off tanggal {closingDay}.
-                </span>
-              </div>
-            </div>
-
-            {/* Right: Revenue Snapshot Boxes & Actions */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              {/* Snapshot Boxes */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-left min-w-[130px]">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Total Tagihan
-                  </div>
-                  <div className="text-sm sm:text-base font-black text-white mt-0.5">
-                    Rp {new Intl.NumberFormat('id-ID').format(summary.totalAmount)}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    {allInvoices.length} nota terbit
-                  </div>
-                </div>
-
-                <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-3 py-2 text-left min-w-[130px]">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                    Uang Masuk (Lunas)
-                  </div>
-                  <div className="text-sm sm:text-base font-black text-emerald-400 mt-0.5">
-                    Rp {new Intl.NumberFormat('id-ID').format(summary.paidAmount)}
-                  </div>
-                  <div className="text-[10px] text-emerald-300/80 mt-0.5">
-                    {counts.paid} nota lunas
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex sm:flex-col justify-end gap-1.5">
-                {!activePeriod.isCurrent && (
-                  <button
-                    type="button"
-                    onClick={handleGoToCurrentPeriod}
-                    className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer text-center whitespace-nowrap shadow-xs"
-                    title="Lompat ke periode tutup buku saat ini"
-                  >
-                    Ke Siklus Berjalan
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsQuickSettingsOpen(true)}
-                  className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer text-center whitespace-nowrap border border-white/10 flex items-center justify-center gap-1.5"
-                  title="Ubah konfigurasi tanggal tutup buku"
-                >
-                  <Settings className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>Ubah Tgl Tutup Buku</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fallback Banner when viewing ALL periods */}
-      {useClosingCutoff && (!filterMonth || filterMonth === 'ALL') && (
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-slate-200 text-slate-700 rounded-lg">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-black text-slate-800">
-                Menampilkan Semua Periode Tagihan
-              </div>
-              <div className="text-[11px] text-slate-500">
-                Siklus Tutup Buku dikonfigurasi setiap <span className="font-bold text-slate-700">Tanggal {closingDay}</span> akhir bulan.
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleGoToCurrentPeriod}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Lihat Pendapatan Periode Berjalan
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsQuickSettingsOpen(true)}
-              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg cursor-pointer transition-colors"
-              title="Ubah Pengaturan Tutup Buku"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
         </div>
       )}
