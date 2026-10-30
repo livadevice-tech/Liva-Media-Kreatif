@@ -219,6 +219,7 @@ export function HostCredentialRow({
   );
   const [copiedId, setCopiedId] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
@@ -447,7 +448,7 @@ export function HostCredentialRow({
               data-lpignore="true"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono text-xs font-medium w-28"
+              className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono text-xs font-medium w-32"
               placeholder={
                 host.hasPassword || host.password
                   ? "Kosongkan jika tetap"
@@ -455,13 +456,32 @@ export function HostCredentialRow({
               }
             />
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-slate-600 font-mono text-[11px] w-16">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-700 font-mono text-[11px] font-semibold max-w-[120px] truncate select-all" title={showPassword ? host.password : undefined}>
                 {showPassword ? (host.password || "(tersembunyi)") : (host.hasPassword || host.password ? "••••••••" : "Belum diset")}
               </span>
-              <button onClick={() => setShowPassword(!showPassword)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)} 
+                className="text-slate-400 hover:text-indigo-600 p-1 hover:bg-slate-100 rounded transition-colors"
+                title={showPassword ? "Sembunyikan password" : "Lihat password"}
+              >
                 {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
+              {showPassword && host.password && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(host.password || "");
+                    setCopiedPassword(true);
+                    setTimeout(() => setCopiedPassword(false), 2000);
+                  }}
+                  className="text-slate-400 hover:text-indigo-600 p-1 hover:bg-slate-100 rounded transition-colors"
+                  title="Salin password"
+                >
+                  {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
             </div>
           )}
         </td>
@@ -630,12 +650,31 @@ export function HostCredentialRow({
                   <input type="password" autoComplete="new-password" data-lpignore="true" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="pwd" />
                 ) : (
                   <>
-                    <span className={`font-mono text-slate-800 text-[13px] truncate`}>
+                    <span className="font-mono text-slate-800 text-[13px] font-semibold truncate select-all" title={showPassword ? host.password : undefined}>
                       {showPassword ? (host.password || "(tersembunyi)") : (host.hasPassword || host.password ? "••••••••" : "---")}
                     </span>
-                    <button onClick={() => setShowPassword(!showPassword)} className="text-slate-400 p-1 hover:bg-slate-50 rounded">
+                    <button 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)} 
+                      className="text-slate-400 p-1 hover:bg-slate-50 hover:text-indigo-600 rounded transition-colors"
+                      title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                    >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
+                    {showPassword && host.password && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(host.password || "");
+                          setCopiedPassword(true);
+                          setTimeout(() => setCopiedPassword(false), 2000);
+                        }}
+                        className="text-slate-400 p-1 hover:bg-slate-50 hover:text-indigo-600 rounded transition-colors"
+                        title="Salin password"
+                      >
+                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                   </>
                 )}
               </div>

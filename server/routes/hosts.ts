@@ -20,7 +20,7 @@ try {
   console.warn("Web Push VAPID warning:", e?.message);
 }
 
-function mapHost(host: any) {
+function mapHost(host: any, canViewPassword: boolean = false) {
   host.employeeId = host.employee_id;
   host.baseMonthlyTargetHours = host.base_monthly_target_hours;
   host.baseMonthlyTargetRevenue = host.base_monthly_target_revenue;
@@ -32,9 +32,10 @@ function mapHost(host: any) {
   host.customWorkingDaysTarget = host.custom_working_days_target;
   host.customBaseSalary = host.custom_base_salary;
   host.customShiftRate = host.custom_shift_rate;
-  host.hasPassword = Boolean(host.password_hash);
-  host.password = "";
+  host.hasPassword = Boolean(host.password_hash || host.plain_password);
+  host.password = canViewPassword ? (host.plain_password || "") : "";
   delete host.password_hash;
+  delete host.plain_password;
 }
 
 export function registerHostRoutes(app: Express) {
@@ -93,6 +94,8 @@ export function registerHostRoutes(app: Express) {
   }));
 
   app.get("/api/hosts", asyncHandler(async (req, res) => {
+    const session = (req as any).auth || (req as any).authSession;
+    const canViewPassword = session?.role === "admin" || session?.role === "master";
     const hosts = await queryMany(`SELECT * FROM hosts ORDER BY name ASC`);
 
     for (const host of hosts) {
@@ -100,13 +103,15 @@ export function registerHostRoutes(app: Express) {
       const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
       host.platforms = platforms.map((p: any) => p.platform);
       host.brands = brands.map((b: any) => b.brand);
-      mapHost(host);
+      mapHost(host, canViewPassword);
     }
 
     res.json(hosts);
   }));
 
   app.get("/api/hosts/:id", asyncHandler(async (req: Request, res: Response) => {
+    const session = (req as any).auth || (req as any).authSession;
+    const canViewPassword = session?.role === "admin" || session?.role === "master" || (session?.role === "host" && session?.subjectId === req.params.id);
     const host = await queryOne(`SELECT * FROM hosts WHERE id = ?`, [req.params.id]);
     if (!host) return res.status(404).json({ error: "Host tidak ditemukan" });
 
@@ -114,7 +119,7 @@ export function registerHostRoutes(app: Express) {
     const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
     host.platforms = platforms.map((p: any) => p.platform);
     host.brands = brands.map((b: any) => b.brand);
-    mapHost(host);
+    mapHost(host, canViewPassword);
 
     res.json(host);
   }));
@@ -136,20 +141,27 @@ export function registerHostRoutes(app: Express) {
       }
     }
 
+    let plainPassword: string | null = null;
+    let passwordHash: string | null = null;
+    if (h.password && String(h.password).trim()) {
+      plainPassword = String(h.password).trim();
+      passwordHash = hashPasswordForStorage(plainPassword);
+    }
+
     await execute(`
       INSERT INTO hosts (
         id, name, employee_id, avatar, role,
         base_monthly_target_hours, base_monthly_target_revenue,
         consistency_score, joined_date, email, phone,
-        username, password_hash, bank_account, bank_name, studio,
+        username, password_hash, plain_password, bank_account, bank_name, studio,
         host_type, custom_working_days_target, custom_base_salary, custom_shift_rate
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, h.name, employeeId, h.avatar || null, h.role || null,
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,
-      h.username || null, resolveHostPasswordHash(h.password, null, hashPasswordForStorage),
+      h.username || null, passwordHash, plainPassword,
       h.bankAccount || null, h.bankName || null, studio,
       h.hostType || "Reguler",
       h.customWorkingDaysTarget ?? null,
@@ -198,16 +210,18 @@ export function registerHostRoutes(app: Express) {
       const avatar = h.avatar !== undefined ? (h.avatar || null) : existing.avatar;
 
       let passwordHash = existing.password_hash;
+      let plainPassword = existing.plain_password;
       if (h.password && String(h.password).trim()) {
-        passwordHash = hashPasswordForStorage(String(h.password).trim());
+        plainPassword = String(h.password).trim();
+        passwordHash = hashPasswordForStorage(plainPassword);
       }
 
       await execute(`
         UPDATE hosts SET
           name = ?, phone = ?, bank_name = ?, bank_account = ?,
-          avatar = ?, password_hash = ?
+          avatar = ?, password_hash = ?, plain_password = ?
         WHERE id = ?
-      `, [name, phone, bankName, bankAccount, avatar, passwordHash, id]);
+      `, [name, phone, bankName, bankAccount, avatar, passwordHash, plainPassword, id]);
 
       if (name && name !== existing.name) {
         await execute(`UPDATE attendance_logs SET host_name = ? WHERE host_id = ?`, [name, id]);
@@ -220,18 +234,19 @@ export function registerHostRoutes(app: Express) {
     }
 
     const studio = normalizeHostStudioLocation(h.studio) || null;
-    const passwordHash = resolveHostPasswordHash(
-      h.password,
-      existing?.password_hash,
-      hashPasswordForStorage,
-    );
+    let passwordHash = existing?.password_hash;
+    let plainPassword = existing?.plain_password;
+    if (h.password && String(h.password).trim()) {
+      plainPassword = String(h.password).trim();
+      passwordHash = hashPasswordForStorage(plainPassword);
+    }
 
     await execute(`
       UPDATE hosts SET
         name = ?, employee_id = ?, avatar = ?, role = ?,
         base_monthly_target_hours = ?, base_monthly_target_revenue = ?,
         consistency_score = ?, joined_date = ?, email = ?, phone = ?,
-        username = ?, password_hash = ?, bank_account = ?, bank_name = ?, studio = ?,
+        username = ?, password_hash = ?, plain_password = ?, bank_account = ?, bank_name = ?, studio = ?,
         host_type = ?, custom_working_days_target = ?,
         custom_base_salary = ?, custom_shift_rate = ?
       WHERE id = ?
@@ -240,7 +255,7 @@ export function registerHostRoutes(app: Express) {
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,
-      h.username || null, passwordHash, h.bankAccount || null, h.bankName || null, studio,
+      h.username || null, passwordHash, plainPassword, h.bankAccount || null, h.bankName || null, studio,
       h.hostType || "Reguler",
       h.customWorkingDaysTarget ?? null,
       h.customBaseSalary ?? null,

@@ -113,10 +113,21 @@ app.post("/api/auth/login", asyncHandler(async (req, res) => {
     }
   } else if (role === "host") {
     const host = await queryOne(
-      `SELECT id, password_hash FROM hosts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
+      `SELECT id, password_hash, plain_password FROM hosts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
       [username],
     );
-    if (host && isStoredPasswordValid(password, host.password_hash || "")) {
+    if (
+      host &&
+      (
+        (host.plain_password && host.plain_password === password) ||
+        (host.password_hash && isStoredPasswordValid(password, host.password_hash))
+      )
+    ) {
+      if (!host.plain_password) {
+        try {
+          await execute(`UPDATE hosts SET plain_password = ? WHERE id = ?`, [password, host.id]);
+        } catch (e) {}
+      }
       session = { role: "host", subjectId: host.id, expiresAt: 0 };
     }
   } else if (role === "brand") {
@@ -1337,6 +1348,17 @@ async function runMigrations() {
       console.log('✅ Migration: kolom live_period_end sudah ada di brand_invoices.');
     } else {
       console.warn('Migration live_period_end warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE hosts ADD COLUMN plain_password VARCHAR(255) NULL`, []);
+    console.log('✅ Migration: kolom plain_password ditambahkan ke hosts.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom plain_password sudah ada di hosts.');
+    } else {
+      console.warn('Migration plain_password warning:', e?.message);
     }
   }
 }
