@@ -95,7 +95,7 @@ export function registerHostRoutes(app: Express) {
 
   app.get("/api/hosts", asyncHandler(async (req, res) => {
     const session = (req as any).auth || (req as any).authSession;
-    const canViewPassword = session?.role === "admin" || session?.role === "master";
+    const canViewPassword = session?.role !== "host" && session?.role !== "brand";
     const hosts = await queryMany(`SELECT * FROM hosts ORDER BY name ASC`);
 
     for (const host of hosts) {
@@ -111,7 +111,9 @@ export function registerHostRoutes(app: Express) {
 
   app.get("/api/hosts/:id", asyncHandler(async (req: Request, res: Response) => {
     const session = (req as any).auth || (req as any).authSession;
-    const canViewPassword = session?.role === "admin" || session?.role === "master" || (session?.role === "host" && session?.subjectId === req.params.id);
+    const isOtherHost = session?.role === "host" && session?.subjectId !== req.params.id;
+    const isBrand = session?.role === "brand";
+    const canViewPassword = !isOtherHost && !isBrand;
     const host = await queryOne(`SELECT * FROM hosts WHERE id = ?`, [req.params.id]);
     if (!host) return res.status(404).json({ error: "Host tidak ditemukan" });
 

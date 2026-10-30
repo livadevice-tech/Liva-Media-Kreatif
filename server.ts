@@ -1396,10 +1396,46 @@ async function backfillProofImages() {
   }
 }
 
+async function backfillHostPlainPasswords() {
+  try {
+    const hosts = await queryMany<any>(
+      "SELECT id, name, username, password_hash, plain_password FROM hosts WHERE plain_password IS NULL OR plain_password = ''"
+    );
+    for (const h of hosts) {
+      if (!h.password_hash) continue;
+      const candidates = [
+        '123',
+        (h.username || '').trim(),
+        `${(h.username || '').trim()}123`,
+        (h.name || '').toLowerCase().replace(/\s+/g, ''),
+        `${(h.name || '').toLowerCase().replace(/\s+/g, '')}123`,
+        (h.name || '').toLowerCase().split(' ')[0],
+        `${(h.name || '').toLowerCase().split(' ')[0]}123`,
+        'liva123',
+        'host123',
+        '1234',
+        '12345',
+        '123456',
+        'dita'
+      ];
+      for (const word of candidates) {
+        if (word && isStoredPasswordValid(word, h.password_hash)) {
+          await execute("UPDATE hosts SET plain_password = ? WHERE id = ?", [word, h.id]);
+          console.log(`✅ Auto-recovered plain_password for host ${h.name} (@${h.username})`);
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Backfill host plain password warning:", err);
+  }
+}
+
 async function bootstrap() {
   getSessionSecret();
   await runMigrations();
   await backfillProofImages();
+  await backfillHostPlainPasswords();
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
