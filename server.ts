@@ -32,6 +32,7 @@ import { registerClientRoutes } from "./server/routes/client";
 import { registerViolationRoutes } from "./server/routes/violations";
 import { registerThrRoutes } from "./server/routes/thr";
 import { registerOvertimeRoutes } from "./server/routes/overtimes";
+import { registerHostRequestRoutes } from "./server/routes/hostRequests";
 import { validateProductionConfig } from "./server/productionConfig";
 
 dns.setDefaultResultOrder('ipv4first');
@@ -203,6 +204,7 @@ registerClientRoutes(app);
 registerViolationRoutes(app);
 registerThrRoutes(app);
 registerOvertimeRoutes(app);
+registerHostRequestRoutes(app);
 
 // ==================================================================
 // Lazy-initialized Gemini Client
@@ -951,6 +953,43 @@ async function runMigrations() {
     console.log('✅ Migration: Tabel host_push_subscriptions dipastikan ada.');
   } catch (e: any) {
     console.warn('Migration host_push_subscriptions warning:', e?.message);
+  }
+
+  try {
+    // Create host_schedule_requests table (Pengajuan Izin & Tukar Jadwal Host)
+    await execute(`
+      CREATE TABLE IF NOT EXISTS host_schedule_requests (
+        id VARCHAR(100) PRIMARY KEY,
+        host_id VARCHAR(100) NOT NULL,
+        host_name VARCHAR(255) NOT NULL,
+        employee_id VARCHAR(100) NULL,
+        type VARCHAR(50) NOT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+        date VARCHAR(50) NOT NULL,
+        end_date VARCHAR(50) NULL,
+        reason_category VARCHAR(100) NULL,
+        current_shift VARCHAR(100) NULL,
+        target_date VARCHAR(50) NULL,
+        target_shift VARCHAR(100) NULL,
+        replacement_host_id VARCHAR(100) NULL,
+        replacement_host_name VARCHAR(255) NULL,
+        notes TEXT NULL,
+        proof_url TEXT NULL,
+        admin_notes TEXT NULL,
+        reviewed_by VARCHAR(100) NULL,
+        reviewed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_req_host_id (host_id),
+        INDEX idx_req_status (status),
+        INDEX idx_req_date (date),
+        INDEX idx_req_type (type),
+        INDEX idx_req_created_at (created_at)
+      )
+    `, []);
+    console.log('✅ Migration: Tabel host_schedule_requests dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration host_schedule_requests warning:', e?.message);
   }
 
   try {

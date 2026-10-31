@@ -283,6 +283,7 @@ import {
   violationsApi,
   overtimesApi,
   hostNotificationsApi,
+  hostRequestsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { QuickGridInput } from "./components/QuickGridInput";
@@ -295,6 +296,7 @@ import { AdminWeeklyScheduleGrid } from "./components/admin/AdminWeeklyScheduleG
 import { ScheduleTemplateModal } from "./components/admin/ScheduleTemplateModal";
 import { ScheduleExportModal } from "./components/admin/ScheduleExportModal";
 import { ScheduleNotificationBroadcastModal } from "./components/admin/ScheduleNotificationBroadcastModal";
+import { HostRequestsManager } from "./components/admin/HostRequestsManager";
 
 
 import {
@@ -3963,6 +3965,28 @@ export default function App() {
     return d;
   });
 
+  // Sub-tab navigasi pada Calender Kerja Host: "jadwal" (Jadwal Aktif) atau "pengajuan" (Pengajuan Izin/Jadwal Host)
+  const [calendarHostSubTab, setCalendarHostSubTab] = useState<'jadwal' | 'pengajuan'>('jadwal');
+  const [pendingHostRequestsCount, setPendingHostRequestsCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPendingCount = async () => {
+      try {
+        const data = await hostRequestsApi.getAll({ status: 'pending' });
+        if (isMounted && Array.isArray(data)) {
+          setPendingHostRequestsCount(data.length);
+        }
+      } catch (_) {}
+    };
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Schedule Templates (Save & Reuse settingan jadwal)
   const [scheduleTemplates, setScheduleTemplates] = useState<ScheduleTemplate[]>(() => {
     try {
@@ -5898,6 +5922,7 @@ export default function App() {
           onMarkHostNotificationAsRead={markHostNotificationsAsRead}
           lastSubmittedAttendanceLog={lastSubmittedAttendanceLog}
           setLastSubmittedAttendanceLog={setLastSubmittedAttendanceLog}
+          allHosts={hosts}
         />
       )}
 
@@ -7064,10 +7089,57 @@ export default function App() {
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (MOBILE) ==================== */}
                 {operatorTab === "absensi" && (
-                  <>
-                  <MobileWeeklySchedule 
-                    schedules={schedules}
-                    clientBrands={clientBrands}
+                  <div className="space-y-4 md:hidden">
+                    {/* Mobile Subtab Switcher */}
+                    <div className="bg-white p-1.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCalendarHostSubTab('jadwal')}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          calendarHostSubTab === 'jadwal'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Jadwal Aktif</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarHostSubTab('pengajuan')}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+                          calendarHostSubTab === 'pengajuan'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Pengajuan Izin/Jadwal Host</span>
+                        {pendingHostRequestsCount > 0 && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-amber-500 text-white animate-pulse">
+                            {pendingHostRequestsCount}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+
+                    {calendarHostSubTab === 'pengajuan' ? (
+                      <HostRequestsManager
+                        hosts={hosts}
+                        loggedInAdminName={
+                          authSession?.role === "master"
+                            ? "Master Admin"
+                            : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"
+                        }
+                        onRefreshSchedules={() => {
+                          schedulesApi.getAll().then(setSchedules).catch(console.error);
+                        }}
+                      />
+                    ) : (
+                      <>
+                      <MobileWeeklySchedule 
+                        schedules={schedules}
+                        clientBrands={clientBrands}
                     hosts={hosts}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
                     onSettingsClick={() => setIsScheduleActionsOpen(true)}
@@ -7366,7 +7438,9 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                  </>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (DESKTOP) ==================== */}
@@ -7427,13 +7501,40 @@ export default function App() {
                         {/* Tabs & Filters */}
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
                           <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
-                            <button
-                              type="button"
-                              className="px-3.5 py-2 rounded-xl border border-blue-600 bg-white text-blue-600 font-bold text-xs flex items-center gap-2 whitespace-nowrap shadow-2xs"
-                            >
-                              <Calendar className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
-                              Jadwal Aktif
-                            </button>
+                            <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                              <button
+                                type="button"
+                                onClick={() => setCalendarHostSubTab('jadwal')}
+                                className={`px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                                  calendarHostSubTab === 'jadwal'
+                                    ? 'bg-white text-blue-600 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                <Calendar className="w-4 h-4" strokeWidth={2.2} />
+                                <span>Jadwal Aktif</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCalendarHostSubTab('pengajuan')}
+                                className={`px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer relative ${
+                                  calendarHostSubTab === 'pengajuan'
+                                    ? 'bg-white text-blue-600 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                <Clock className="w-4 h-4" strokeWidth={2.2} />
+                                <span>Pengajuan Izin/Jadwal Host</span>
+                                {pendingHostRequestsCount > 0 && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-amber-500 text-white animate-pulse">
+                                    {pendingHostRequestsCount}
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+
+                            {calendarHostSubTab === 'jadwal' && (
+                              <>
 
                             <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 ml-1">
                               <button
@@ -7688,60 +7789,78 @@ export default function App() {
                                 </>
                               )}
                             </div>
+                              </>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
-                            <button
-                              type="button"
-                              onClick={() => setIsScheduleNotificationModalOpen(true)}
-                              className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/90 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-xs"
-                              title="Push Notifikasi Jadwal ke PWA Host"
-                            >
-                              <Bell className="w-4 h-4 text-amber-600" /> Push Notifikasi PWA
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsScheduleExportModalOpen(true)}
-                              className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl text-xs font-semibold text-emerald-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
-                              title="Export Jadwal ke Excel (.xlsx)"
-                            >
-                              <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Excel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsScheduleTemplateModalOpen(true)}
-                              className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl text-xs font-semibold text-indigo-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
-                              title="Buka Template Jadwal"
-                            >
-                              <Bookmark className="w-4 h-4 text-indigo-600" /> Template Jadwal
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                // Open generic create modal
-                                setIsScheduleModalOpen(true);
-                                setScheduleForm({
-                                  id: "",
-                                  hostId: hosts[0]?.id || "",
-                                  timeSlot: shifts[0] || "",
-                                  brand: defaultBrandName,
-                                  platform: platforms[0] || "",
-                                  studio: studios[0]?.name || "",
-                                  isOffDay: false,
-                                  isPindahStudio: false,
-                                  backupOption: "none",
-                                  backupHostId: "",
-                                });
-                              }}
-                              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 border-0 rounded-xl text-xs font-semibold text-white flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-sm shadow-blue-200"
-                            >
-                              <Plus className="w-4 h-4 stroke-[2.5]" /> Tambah Jadwal
-                            </button>
-                          </div>
+                          {calendarHostSubTab === 'jadwal' && (
+                            <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
+                              <button
+                                type="button"
+                                onClick={() => setIsScheduleNotificationModalOpen(true)}
+                                className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/90 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-xs"
+                                title="Push Notifikasi Jadwal ke PWA Host"
+                              >
+                                <Bell className="w-4 h-4 text-amber-600" /> Push Notifikasi PWA
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsScheduleExportModalOpen(true)}
+                                className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl text-xs font-semibold text-emerald-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
+                                title="Export Jadwal ke Excel (.xlsx)"
+                              >
+                                <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Excel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsScheduleTemplateModalOpen(true)}
+                                className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl text-xs font-semibold text-indigo-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
+                                title="Buka Template Jadwal"
+                              >
+                                <Bookmark className="w-4 h-4 text-indigo-600" /> Template Jadwal
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Open generic create modal
+                                  setIsScheduleModalOpen(true);
+                                  setScheduleForm({
+                                    id: "",
+                                    hostId: hosts[0]?.id || "",
+                                    timeSlot: shifts[0] || "",
+                                    brand: defaultBrandName,
+                                    platform: platforms[0] || "",
+                                    studio: studios[0]?.name || "",
+                                    isOffDay: false,
+                                    isPindahStudio: false,
+                                    backupOption: "none",
+                                    backupHostId: "",
+                                  });
+                                }}
+                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 border-0 rounded-xl text-xs font-semibold text-white flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-sm shadow-blue-200"
+                              >
+                                <Plus className="w-4 h-4 stroke-[2.5]" /> Tambah Jadwal
+                              </button>
+                            </div>
+                          )}
                         </div>
 
-                        {/* JADWAL TERDAFTAR SEBELUMNYA PADA HARI INI */}
-                        <div
-                          id="schedules-on-selected-date"
+                        {calendarHostSubTab === 'pengajuan' ? (
+                          <HostRequestsManager
+                            hosts={hosts}
+                            loggedInAdminName={
+                              authSession?.role === "master"
+                                ? "Master Admin"
+                                : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"
+                            }
+                            onRefreshSchedules={() => {
+                              schedulesApi.getAll().then(setSchedules).catch(console.error);
+                            }}
+                          />
+                        ) : (
+                          <>
+                            {/* JADWAL TERDAFTAR SEBELUMNYA PADA HARI INI */}
+                            <div
+                              id="schedules-on-selected-date"
                           className={`space-y-3 mb-6 ${
                             adminScheduleViewMode === 'weekly'
                               ? 'bg-transparent border-0 shadow-none p-0'
@@ -8535,6 +8654,8 @@ export default function App() {
                             </div>
                           )}
                         </div>
+                      </>
+                    )}
 
                       </div>
                     </div>

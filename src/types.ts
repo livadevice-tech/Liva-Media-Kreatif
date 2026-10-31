@@ -121,6 +121,33 @@ export interface ScheduleTemplate {
   updatedAt?: string;
 }
 
+export type HostRequestType = "izin" | "tukar_jadwal";
+export type HostRequestStatus = "pending" | "in_review" | "approved" | "rejected";
+
+export interface HostScheduleRequest {
+  id: string;
+  hostId: string;
+  hostName: string;
+  employeeId?: string;
+  type: HostRequestType;
+  status: HostRequestStatus;
+  date: string; // Tanggal izin atau tanggal jadwal asal (YYYY-MM-DD)
+  endDate?: string; // Tanggal izin selesai jika lebih dari 1 hari
+  reasonCategory?: string; // Sakit, Cuti, Keperluan Keluarga, dll
+  currentShift?: string; // Shift saat ini yang ingin ditukar
+  targetDate?: string; // Tanggal baru yang diminta
+  targetShift?: string; // Shift baru yang diminta
+  replacementHostId?: string; // Host pengganti jika tukar sesama host
+  replacementHostName?: string;
+  notes?: string; // Alasan / catatan host
+  proofUrl?: string; // Lampiran surat dokter / foto bukti
+  adminNotes?: string; // Tanggapan / catatan admin
+  reviewedBy?: string; // Nama admin yang meninjau
+  reviewedAt?: string; // Waktu tinjauan
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface KPIAlert {
   id: string;
   hostId: string;

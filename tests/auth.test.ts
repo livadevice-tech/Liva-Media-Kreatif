@@ -61,6 +61,10 @@ test("host sessions can submit their logs but cannot delete records", () => {
   assert.equal(isRequestAllowed(session, "POST", "/logs"), true);
   assert.equal(isRequestAllowed(session, "DELETE", "/logs/log_1"), false);
   assert.equal(isRequestAllowed(session, "GET", "/hosts/host_2"), false);
+  assert.equal(isRequestAllowed(session, "GET", "/host-requests"), true);
+  assert.equal(isRequestAllowed(session, "POST", "/host-requests"), true);
+  assert.equal(isRequestAllowed(session, "PUT", "/host-requests/req_1"), true);
+  assert.equal(isRequestAllowed(session, "DELETE", "/host-requests/req_1"), true);
 });
 
 test("brand sessions can only open their own brand profile", () => {

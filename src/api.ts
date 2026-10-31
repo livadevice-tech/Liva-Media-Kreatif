@@ -20,6 +20,7 @@ import type {
   ThrPeriod,
   ThrItem,
   OvertimeRecord,
+  HostScheduleRequest,
 } from "./types";
 import type {
   BrandPerformanceLogEntry,
@@ -250,6 +251,33 @@ export const schedulesApi = {
 
   /** Hapus jadwal */
   delete: (id: string) => request<void>('DELETE', `/schedules/${id}`),
+};
+
+// ==================================================================
+// HOST SCHEDULE REQUESTS (PENGAJUAN IZIN & TUKAR JADWAL HOST)
+// ==================================================================
+export const hostRequestsApi = {
+  /** Ambil semua pengajuan (Host hanya miliknya, Admin bisa filter) */
+  getAll: (params?: { hostId?: string; status?: string; type?: string; startDate?: string; endDate?: string; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.hostId) query.set('hostId', params.hostId);
+    if (params?.status) query.set('status', params.status);
+    if (params?.type) query.set('type', params.type);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<HostScheduleRequest[]>('GET', `/host-requests${qs}`);
+  },
+
+  /** Buat pengajuan baru */
+  create: (req: Partial<HostScheduleRequest>) => request<{ id: string; success: boolean }>('POST', '/host-requests', req),
+
+  /** Update pengajuan (Admin review / Host update) */
+  update: (id: string, req: Partial<HostScheduleRequest>) => request<{ success: boolean; status?: string }>('PUT', `/host-requests/${id}`, req),
+
+  /** Hapus pengajuan */
+  delete: (id: string) => request<{ success: boolean }>('DELETE', `/host-requests/${id}`),
 };
 
 // ==================================================================

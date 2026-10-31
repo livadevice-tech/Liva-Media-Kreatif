@@ -27,6 +27,7 @@ import { buildHostReportList, HostReportRow, HostSalarySettings } from '../../sh
 import type { OvertimeRecord } from '../../types';
 import { formatIDR } from '../../shared/utils/currency';
 import HostSlipGajiModal from './HostSlipGajiModal';
+import HostRequestModal from './HostRequestModal';
 
 const formatShortCutoff = (period: string) => {
   if (period === 'Semua') return 'Semua Waktu';
@@ -347,6 +348,8 @@ interface HostDashboardProps {
   onMarkHostNotificationAsRead?: (hostId: string) => void;
   lastSubmittedAttendanceLog?: any;
   setLastSubmittedAttendanceLog?: (log: any) => void;
+  allHosts?: any[];
+  key?: any;
 };
 
 
@@ -391,11 +394,13 @@ export default function HostDashboard({
   onMarkHostNotificationAsRead,
   lastSubmittedAttendanceLog,
   setLastSubmittedAttendanceLog,
+  allHosts = [],
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [isSlipGajiOpen, setIsSlipGajiOpen] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [hostPhotoModal, setHostPhotoModal] = useState<{ url: string; brand: string; date: string; shift: string } | null>(null);
   const [hostPhotoImgError, setHostPhotoImgError] = useState(false);
   const [serverNotifications, setServerNotifications] = useState<any[]>([]);
@@ -1914,6 +1919,33 @@ export default function HostDashboard({
           </div>
         )}
 
+        {/* Quick action: Ajukan Izin / Tukar Jadwal */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setIsRequestModalOpen(true)}
+            className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/90 shadow-2xs flex items-center justify-between text-left transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                <CalendarIcon className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-slate-800 leading-tight">
+                  Ajukan Izin & Tukar Jadwal
+                </span>
+                <span className="block text-[10px] text-slate-400 font-medium">
+                  Ada keperluan mendesak atau ingin tukar shift siaran?
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
+              <span>Ajukan</span>
+              <ChevronRight size={14} />
+            </div>
+          </button>
+        </div>
+
         {/* History Kehadiran */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -2022,6 +2054,32 @@ export default function HostDashboard({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Quick Action: Ajukan Izin / Tukar Jadwal */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setIsRequestModalOpen(true)}
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 active:scale-[0.99] text-white shadow-md shadow-indigo-500/20 flex items-center justify-between transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                  <CalendarIcon className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black tracking-tight leading-tight">
+                    Ajukan Izin & Tukar Jadwal
+                  </span>
+                  <span className="block text-[10px] text-indigo-100 font-medium">
+                    Kirim permohonan izin atau tukar shift ke admin
+                  </span>
+                </div>
+              </div>
+              <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
+                <ChevronRight size={14} className="text-white" />
+              </div>
+            </button>
           </div>
           
           {/* Summary Cards */}
@@ -3682,6 +3740,21 @@ export default function HostDashboard({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal Ajukan Izin & Tukar Jadwal */}
+      {activeHostObj && (
+        <HostRequestModal
+          isOpen={isRequestModalOpen}
+          onClose={() => setIsRequestModalOpen(false)}
+          host={activeHostObj}
+          hostSchedules={hostSchedules}
+          allHosts={allHosts}
+          availableShifts={shifts}
+          onRequestSubmitted={() => {
+            if (onRefreshData) onRefreshData();
+          }}
+        />
       )}
     </div>
   );
