@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Calendar as CalendarIcon, Clock, ArrowLeftRight, CheckCircle2,
-  AlertCircle, Upload, Trash2, Send, FileText, ChevronRight,
-  Sparkles, RefreshCw, Eye
+  AlertCircle, Upload, Trash2, Send, FileText, Sparkles, RefreshCw, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { hostRequestsApi, logsApi } from '../../api';
@@ -19,13 +18,32 @@ interface HostRequestModalProps {
   onRequestSubmitted?: () => void;
 }
 
-const REASON_CATEGORIES = [
-  { id: 'Sakit', label: 'Sakit / Kesehatan', emoji: '🤒', desc: 'Sakit demam, flu, atau butuh istirahat' },
-  { id: 'Cuti / Istirahat', label: 'Cuti / Libur', emoji: '🏖️', desc: 'Permohonan jatah libur / cuti tahunan' },
-  { id: 'Keperluan Keluarga', label: 'Keperluan Keluarga', emoji: '👨‍👩‍👧', desc: 'Acara keluarga, hajatan, atau mendampingi keluarga' },
-  { id: 'Pendidikan / Ujian', label: 'Pendidikan / Ujian', emoji: '🎓', desc: 'Jadwal kuliah, skripsi, atau ujian sekolah' },
-  { id: 'Keadaan Darurat', label: 'Mendesak / Darurat', emoji: '🚨', desc: 'Musibah, kecelakaan, atau kendala tak terduga' },
-  { id: 'Lainnya', label: 'Lainnya', emoji: '📝', desc: 'Keperluan lain yang belum tercantum' },
+export type HostRequestCategoryType = 'tukar_libur' | 'tukar_shift' | 'izin';
+
+export const REQUEST_CATEGORIES: {
+  id: HostRequestCategoryType;
+  label: string;
+  emoji: string;
+  desc: string;
+}[] = [
+  {
+    id: 'tukar_libur',
+    label: 'Req/Tukar Hari Libur',
+    emoji: '🏖️',
+    desc: 'Permohonan jatah hari libur atau tukar off day',
+  },
+  {
+    id: 'tukar_shift',
+    label: 'Req/Tukar Shift',
+    emoji: '🔄',
+    desc: 'Permohonan ganti jam shift atau tukar dengan rekan host',
+  },
+  {
+    id: 'izin',
+    label: 'Izin Tidak Masuk',
+    emoji: '📋',
+    desc: 'Izin berhalangan hadir, sakit, atau ada keperluan mendesak',
+  },
 ];
 
 export default function HostRequestModal({
@@ -42,37 +60,49 @@ export default function HostRequestModal({
   ],
   onRequestSubmitted,
 }: HostRequestModalProps) {
-  const [activeTab, setActiveTab] = useState<'izin' | 'tukar' | 'riwayat'>('izin');
+  const [activeTab, setActiveTab] = useState<'form' | 'riwayat'>('form');
+  const [requestCategory, setRequestCategory] = useState<HostRequestCategoryType>('tukar_libur');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Form State: Izin
-  const [izinDate, setIzinDate] = useState(() => {
+  // Form State: Req/Tukar Hari Libur
+  const [liburDate, setLiburDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
-  const [isRange, setIsRange] = useState(false);
-  const [izinEndDate, setIzinEndDate] = useState('');
-  const [reasonCategory, setReasonCategory] = useState(REASON_CATEGORIES[0].id);
-  const [izinNotes, setIzinNotes] = useState('');
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [isLiburRange, setIsLiburRange] = useState(false);
+  const [liburEndDate, setLiburEndDate] = useState('');
+  const [isLiburSwap, setIsLiburSwap] = useState(false);
+  const [liburSwapDate, setLiburSwapDate] = useState('');
 
-  // Form State: Tukar Jadwal
+  // Form State: Req/Tukar Shift
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>('');
-  const [currentDate, setCurrentDate] = useState(() => {
+  const [shiftCurrentDate, setShiftCurrentDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
-  const [currentShift, setCurrentShift] = useState(availableShifts[0] || '');
-  const [targetDate, setTargetDate] = useState(() => {
+  const [shiftCurrentSlot, setShiftCurrentSlot] = useState(availableShifts[0] || '');
+  const [shiftTargetDate, setShiftTargetDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   });
-  const [targetShift, setTargetShift] = useState(availableShifts[1] || availableShifts[0] || '');
+  const [shiftTargetSlot, setShiftTargetSlot] = useState(availableShifts[1] || availableShifts[0] || '');
   const [replacementHostId, setReplacementHostId] = useState('');
-  const [tukarNotes, setTukarNotes] = useState('');
+
+  // Form State: Izin Tidak Masuk
+  const [izinDate, setIzinDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [isIzinRange, setIsIzinRange] = useState(false);
+  const [izinEndDate, setIzinEndDate] = useState('');
+
+  // Shared Notes & Proof Attachment
+  const [notes, setNotes] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [previewModalImg, setPreviewModalImg] = useState<string | null>(null);
 
   // Riwayat Pengajuan State
   const [requestsList, setRequestsList] = useState<HostScheduleRequest[]>([]);
@@ -97,17 +127,17 @@ export default function HostRequestModal({
     }
   };
 
-  // When host selects an existing schedule to swap
+  // When host selects an existing registered schedule to swap
   const handleSelectSchedule = (schedId: string) => {
     setSelectedScheduleId(schedId);
     const found = hostSchedules.find((s) => s.id === schedId);
     if (found) {
-      setCurrentDate(found.date);
-      setCurrentShift(found.timeSlot || '');
+      setShiftCurrentDate(found.date);
+      setShiftCurrentSlot(found.timeSlot || '');
     }
   };
 
-  // Proof file upload handler
+  // Proof file upload handler with automatic compression
   const handleProofChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -123,8 +153,8 @@ export default function HostRequestModal({
     }
   };
 
-  // Submit Ajukan Izin
-  const handleSubmitIzin = async (e: React.FormEvent) => {
+  // Submit Handler for all 3 categories
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
     setLoading(true);
@@ -140,73 +170,79 @@ export default function HostRequestModal({
         }
       }
 
+      const categoryObj = REQUEST_CATEGORIES.find((c) => c.id === requestCategory);
+      const categoryLabel = categoryObj?.label || 'Izin Tidak Masuk';
+
+      let dateVal = izinDate;
+      let endDateVal: string | undefined = undefined;
+      let currentShiftVal: string | undefined = undefined;
+      let targetDateVal: string | undefined = undefined;
+      let targetShiftVal: string | undefined = undefined;
+      let repHostId: string | undefined = undefined;
+      let repHostName: string | undefined = undefined;
+      let compiledNotes = notes.trim();
+
+      if (requestCategory === 'tukar_libur') {
+        dateVal = liburDate;
+        endDateVal = isLiburRange ? liburEndDate : undefined;
+        targetDateVal = isLiburSwap ? liburSwapDate : undefined;
+        if (isLiburSwap && liburSwapDate) {
+          compiledNotes = `[Tukar Hari Libur] Libur: ${liburDate}${isLiburRange ? ` s.d. ${liburEndDate}` : ''} ditukar masuk kerja pada ${liburSwapDate}. ${compiledNotes}`;
+        }
+      } else if (requestCategory === 'tukar_shift') {
+        dateVal = shiftCurrentDate;
+        currentShiftVal = shiftCurrentSlot;
+        targetDateVal = shiftTargetDate;
+        targetShiftVal = shiftTargetSlot;
+        if (replacementHostId) {
+          const rep = allHosts.find((h) => h.id === replacementHostId);
+          repHostId = rep?.id;
+          repHostName = rep?.name;
+        }
+      } else {
+        // Izin Tidak Masuk
+        dateVal = izinDate;
+        endDateVal = isIzinRange ? izinEndDate : undefined;
+      }
+
       await hostRequestsApi.create({
         hostId: host.id,
         hostName: host.name,
         employeeId: host.employeeId,
-        type: 'izin',
+        type: requestCategory,
         status: 'pending',
-        date: izinDate,
-        endDate: isRange ? izinEndDate : undefined,
-        reasonCategory,
-        notes: izinNotes,
+        date: dateVal,
+        endDate: endDateVal,
+        reasonCategory: categoryLabel,
+        currentShift: currentShiftVal,
+        targetDate: targetDateVal,
+        targetShift: targetShiftVal,
+        replacementHostId: repHostId,
+        replacementHostName: repHostName,
+        notes: compiledNotes,
         proofUrl: uploadedProofUrl,
       });
 
-      setFeedback({ type: 'success', message: 'Pengajuan izin berhasil dikirimkan ke admin untuk ditinjau!' });
-      setIzinNotes('');
+      setFeedback({
+        type: 'success',
+        message: `Pengajuan "${categoryLabel}" berhasil dikirimkan ke admin untuk ditinjau!`,
+      });
+      setNotes('');
       setProofFile(null);
       setProofPreview(null);
       loadHistory();
       if (onRequestSubmitted) onRequestSubmitted();
 
-      // Switch to history tab after 1.5 seconds
+      // Switch to history tab after 1.2 seconds
       setTimeout(() => {
         setActiveTab('riwayat');
         setFeedback(null);
       }, 1200);
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err?.message || 'Gagal mengirim pengajuan izin. Silakan coba lagi.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit Tukar Jadwal
-  const handleSubmitTukar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedback(null);
-    setLoading(true);
-
-    try {
-      const repHost = allHosts.find((h) => h.id === replacementHostId);
-
-      await hostRequestsApi.create({
-        hostId: host.id,
-        hostName: host.name,
-        employeeId: host.employeeId,
-        type: 'tukar_jadwal',
-        status: 'pending',
-        date: currentDate,
-        currentShift,
-        targetDate,
-        targetShift,
-        replacementHostId: replacementHostId || undefined,
-        replacementHostName: repHost?.name || undefined,
-        notes: tukarNotes,
+      setFeedback({
+        type: 'error',
+        message: err?.message || 'Gagal mengirim pengajuan. Silakan coba lagi.',
       });
-
-      setFeedback({ type: 'success', message: 'Permohonan tukar jadwal berhasil dikirimkan ke admin untuk ditinjau!' });
-      setTukarNotes('');
-      loadHistory();
-      if (onRequestSubmitted) onRequestSubmitted();
-
-      setTimeout(() => {
-        setActiveTab('riwayat');
-        setFeedback(null);
-      }, 1200);
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err?.message || 'Gagal mengirim permohonan tukar jadwal. Silakan coba lagi.' });
     } finally {
       setLoading(false);
     }
@@ -245,7 +281,7 @@ export default function HostRequestModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 12 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden"
+          className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden font-sans"
         >
           {/* Header */}
           <div className="relative p-5 pb-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-white shrink-0">
@@ -263,7 +299,7 @@ export default function HostRequestModal({
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black tracking-tight leading-tight">
-                  Pengajuan Izin & Tukar Jadwal
+                  Pengajuan Izin & Jadwal Host
                 </h3>
                 <p className="text-xs text-indigo-100/90 font-medium mt-0.5">
                   Host: <span className="font-bold text-white">{host?.name}</span>
@@ -275,28 +311,15 @@ export default function HostRequestModal({
             <div className="flex items-center gap-1.5 p-1 mt-4 bg-black/20 rounded-2xl backdrop-blur-md border border-white/10">
               <button
                 type="button"
-                onClick={() => { setActiveTab('izin'); setFeedback(null); }}
+                onClick={() => { setActiveTab('form'); setFeedback(null); }}
                 className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'izin'
+                  activeTab === 'form'
                     ? 'bg-white text-indigo-700 shadow-md'
                     : 'text-white/80 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Ajukan Izin</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setActiveTab('tukar'); setFeedback(null); }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'tukar'
-                    ? 'bg-white text-indigo-700 shadow-md'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <ArrowLeftRight className="w-3.5 h-3.5" />
-                <span>Tukar Jadwal</span>
+                <span>Buat Pengajuan</span>
               </button>
 
               <button
@@ -309,7 +332,7 @@ export default function HostRequestModal({
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>Riwayat</span>
+                <span>Riwayat Pengajuan</span>
                 {pendingCount > 0 && (
                   <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black flex items-center justify-center">
                     {pendingCount}
@@ -339,299 +362,391 @@ export default function HostRequestModal({
 
           {/* Body Content */}
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-            {/* ================= TAB 1: AJUKAN IZIN ================= */}
-            {activeTab === 'izin' && (
-              <form onSubmit={handleSubmitIzin} className="space-y-4">
-                {/* Tanggal Izin */}
+            {/* ================= TAB 1: FORM PENGAJUAN ================= */}
+            {activeTab === 'form' && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Kategori / Jenis Pengajuan (3 Cards Requested by User) */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700">Tanggal Izin</label>
-                    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isRange}
-                        onChange={(e) => setIsRange(e.target.checked)}
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Izin lebih dari 1 hari?</span>
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <input
-                        type="date"
-                        required
-                        value={izinDate}
-                        onChange={(e) => setIzinDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      />
-                      {isRange && <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Mulai</span>}
-                    </div>
-
-                    {isRange && (
-                      <div>
-                        <input
-                          type="date"
-                          required={isRange}
-                          value={izinEndDate}
-                          min={izinDate}
-                          onChange={(e) => setIzinEndDate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                        <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Selesai</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Kategori Izin */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
                     Kategori / Alasan Izin
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {REASON_CATEGORIES.map((cat) => {
-                      const isSelected = reasonCategory === cat.id;
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {REQUEST_CATEGORIES.map((cat) => {
+                      const isSelected = requestCategory === cat.id;
                       return (
                         <button
                           key={cat.id}
                           type="button"
-                          onClick={() => setReasonCategory(cat.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          onClick={() => {
+                            setRequestCategory(cat.id);
+                            setFeedback(null);
+                          }}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between relative ${
                             isSelected
-                              ? 'bg-indigo-50/80 border-indigo-400 ring-2 ring-indigo-500/20 shadow-xs'
-                              : 'bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
+                              ? 'bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/25 shadow-xs'
+                              : 'bg-white border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'
                           }`}
                         >
-                          <span className="text-lg mb-1">{cat.emoji}</span>
-                          <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-indigo-900' : 'text-slate-800'}`}>
-                            {cat.label}
-                          </span>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-2xl">{cat.emoji}</span>
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className={`text-xs font-black leading-tight block ${isSelected ? 'text-indigo-950' : 'text-slate-800'}`}>
+                              {cat.label}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5 block">
+                              {cat.desc}
+                            </span>
+                          </div>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Keterangan / Penjelasan */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Keterangan Tambahan / Penjelasan
-                  </label>
-                  <textarea
-                    rows={3}
-                    required
-                    value={izinNotes}
-                    onChange={(e) => setIzinNotes(e.target.value)}
-                    placeholder="Tuliskan alasan izin Anda secara jelas..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
+                {/* ================= FORM MODE 1: REQ / TUKAR HARI LIBUR ================= */}
+                {requestCategory === 'tukar_libur' && (
+                  <div className="space-y-4 pt-1 animate-fadeIn">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700">Tanggal Hari Libur yang Diminta</label>
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isLiburRange}
+                            onChange={(e) => setIsLiburRange(e.target.checked)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span>Libur lebih dari 1 hari?</span>
+                        </label>
+                      </div>
 
-                {/* Upload Bukti / Surat Dokter (Opsional) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Lampiran Bukti / Surat Dokter (Opsional)
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    Sangat dianjurkan melampirkan foto surat sakit atau dokumen pendukung.
-                  </p>
-
-                  {proofPreview ? (
-                    <div className="relative rounded-2xl border border-slate-200 p-2 flex items-center justify-between bg-slate-50">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={proofPreview}
-                          alt="Bukti Lampiran"
-                          className="w-14 h-14 object-cover rounded-xl border border-slate-200 shadow-2xs"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <p className="text-xs font-bold text-slate-800">Lampiran Foto Terpasang</p>
-                          <span className="text-[10px] text-emerald-600 font-semibold">Siap diupload bersama permohonan</span>
+                          <input
+                            type="date"
+                            required
+                            value={liburDate}
+                            onChange={(e) => setLiburDate(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                          {isLiburRange && <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Mulai Libur</span>}
+                        </div>
+
+                        {isLiburRange && (
+                          <div>
+                            <input
+                              type="date"
+                              required={isLiburRange}
+                              value={liburEndDate}
+                              min={liburDate}
+                              onChange={(e) => setLiburEndDate(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            />
+                            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Selesai Libur</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tukar Hari Kerja Pengganti (Opsional) */}
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100/80">
+                      <label className="flex items-center gap-2 text-xs font-bold text-indigo-900 cursor-pointer mb-2">
+                        <input
+                          type="checkbox"
+                          checked={isLiburSwap}
+                          onChange={(e) => setIsLiburSwap(e.target.checked)}
+                          className="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>Tukar dengan Hari Kerja Lain (Tukar Off)?</span>
+                      </label>
+
+                      {isLiburSwap ? (
+                        <div>
+                          <span className="text-[11px] text-indigo-700 font-semibold mb-1 block">
+                            Tanggal Masuk Kerja Pengganti:
+                          </span>
+                          <input
+                            type="date"
+                            required={isLiburSwap}
+                            value={liburSwapDate}
+                            onChange={(e) => setLiburSwapDate(e.target.value)}
+                            className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                          />
+                          <p className="text-[10px] text-indigo-600 mt-1">
+                            Libur pada tanggal terpilih akan digantikan dengan masuk kerja pada tanggal ini.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-500">
+                          Centang jika Anda ingin menukar jatah hari libur reguler Anda ke hari lain.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ================= FORM MODE 2: REQ / TUKAR SHIFT ================= */}
+                {requestCategory === 'tukar_shift' && (
+                  <div className="space-y-4 pt-1 animate-fadeIn">
+                    {/* Jadwal Asal */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span>1. Jadwal & Shift Asal yang Mau Ditukar</span>
+                        {hostSchedules.length > 0 && (
+                          <span className="text-[11px] text-indigo-600 font-normal">Bisa pilih dari jadwal terdaftar</span>
+                        )}
+                      </label>
+
+                      {hostSchedules.length > 0 ? (
+                        <div className="mb-2">
+                          <select
+                            value={selectedScheduleId}
+                            onChange={(e) => handleSelectSchedule(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          >
+                            <option value="">-- Pilih dari Jadwal Terdaftar Saya --</option>
+                            {hostSchedules
+                              .filter((s) => s.date >= new Date().toISOString().split('T')[0])
+                              .slice(0, 15)
+                              .map((sched) => (
+                                <option key={sched.id} value={sched.id}>
+                                  {sched.date} • {sched.timeSlot || 'Shift'} • {sched.brand || 'Brand'} {sched.studio ? `(${sched.studio})` : ''}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      ) : null}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Tanggal Jadwal Asal</span>
+                          <input
+                            type="date"
+                            required
+                            value={shiftCurrentDate}
+                            onChange={(e) => setShiftCurrentDate(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Shift Asal</span>
+                          <select
+                            value={shiftCurrentSlot}
+                            onChange={(e) => setShiftCurrentSlot(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          >
+                            {availableShifts.map((sh) => (
+                              <option key={sh} value={sh}>{sh}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProofFile(null);
-                          setProofPreview(null);
-                        }}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Hapus Lampiran"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/20 transition-all cursor-pointer">
-                      <Upload className="w-5 h-5 text-indigo-500 mb-1" />
-                      <span className="text-xs font-bold text-slate-700">Pilih Foto atau Dokumen</span>
-                      <span className="text-[10px] text-slate-400">JPG, PNG atau WebP</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleProofChange}
-                      />
-                    </label>
-                  )}
-                </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span>{loading ? 'Mengirim Pengajuan...' : 'Kirim Pengajuan Izin'}</span>
-                  </button>
-                </div>
-              </form>
-            )}
+                    {/* Jadwal Target yang Diminta */}
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+                      <label className="block text-xs font-bold text-indigo-900 mb-2 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>2. Jadwal Baru / Shift yang Anda Minta</span>
+                      </label>
 
-            {/* ================= TAB 2: TUKAR JADWAL ================= */}
-            {activeTab === 'tukar' && (
-              <form onSubmit={handleSubmitTukar} className="space-y-4">
-                {/* Jadwal Saya Yang Ingin Ditukar */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    1. Pilih Jadwal Anda yang Mau Ditukar
-                  </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <span className="text-[10px] text-indigo-700 font-semibold mb-1 block">Tanggal Pengganti / Dituju</span>
+                          <input
+                            type="date"
+                            required
+                            value={shiftTargetDate}
+                            onChange={(e) => setShiftTargetDate(e.target.value)}
+                            className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-indigo-700 font-semibold mb-1 block">Pilih Shift yang Diinginkan</span>
+                          <select
+                            value={shiftTargetSlot}
+                            onChange={(e) => setShiftTargetSlot(e.target.value)}
+                            className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                          >
+                            {availableShifts.map((sh) => (
+                              <option key={sh} value={sh}>{sh}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
 
-                  {hostSchedules.length > 0 ? (
-                    <div className="mb-2">
+                    {/* Rekan Host Pengganti (Opsional) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tukar Langsung dengan Rekan Host? (Opsional)
+                      </label>
+                      <p className="text-[11px] text-slate-400 mb-1.5">
+                        Jika sudah bersepakat dengan rekan host lain untuk bertukar shift, pilih nama host tersebut.
+                      </p>
                       <select
-                        value={selectedScheduleId}
-                        onChange={(e) => handleSelectSchedule(e.target.value)}
+                        value={replacementHostId}
+                        onChange={(e) => setReplacementHostId(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       >
-                        <option value="">-- Pilih dari Jadwal Terdaftar Saya --</option>
-                        {hostSchedules
-                          .filter((s) => s.date >= new Date().toISOString().split('T')[0])
-                          .slice(0, 15)
-                          .map((sched) => (
-                            <option key={sched.id} value={sched.id}>
-                              {sched.date} • {sched.timeSlot || 'Shift'} • {sched.brand || 'Brand'} {sched.studio ? `(${sched.studio})` : ''}
+                        <option value="">-- Tidak ada (Hanya Request Ganti Shift ke Admin) --</option>
+                        {allHosts
+                          .filter((h) => h.id !== host.id)
+                          .map((h) => (
+                            <option key={h.id} value={h.id}>
+                              {h.name} {h.employeeId ? `(${h.employeeId})` : ''}
                             </option>
                           ))}
                       </select>
                     </div>
-                  ) : null}
+                  </div>
+                )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* ================= FORM MODE 3: IZIN TIDAK MASUK ================= */}
+                {requestCategory === 'izin' && (
+                  <div className="space-y-4 pt-1 animate-fadeIn">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Tanggal Jadwal Saat Ini</span>
-                      <input
-                        type="date"
-                        required
-                        value={currentDate}
-                        onChange={(e) => setCurrentDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Shift Saat Ini</span>
-                      <select
-                        value={currentShift}
-                        onChange={(e) => setCurrentShift(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      >
-                        {availableShifts.map((sh) => (
-                          <option key={sh} value={sh}>{sh}</option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700">Tanggal Izin Tidak Masuk</label>
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isIzinRange}
+                            onChange={(e) => setIsIzinRange(e.target.checked)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span>Izin lebih dari 1 hari?</span>
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <input
+                            type="date"
+                            required
+                            value={izinDate}
+                            onChange={(e) => setIzinDate(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                          {isIzinRange && <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Mulai Izin</span>}
+                        </div>
+
+                        {isIzinRange && (
+                          <div>
+                            <input
+                              type="date"
+                              required={isIzinRange}
+                              value={izinEndDate}
+                              min={izinDate}
+                              onChange={(e) => setIzinEndDate(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            />
+                            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Selesai Izin</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Target Jadwal Baru Yang Diminta */}
-                <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100">
-                  <label className="block text-xs font-bold text-indigo-900 mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>2. Jadwal Baru / Shift yang Anda Minta</span>
-                  </label>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <span className="text-[10px] text-indigo-700 font-semibold mb-1 block">Tanggal Pengganti / Dituju</span>
-                      <input
-                        type="date"
-                        required
-                        value={targetDate}
-                        onChange={(e) => setTargetDate(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-indigo-700 font-semibold mb-1 block">Pilih Shift yang Diinginkan</span>
-                      <select
-                        value={targetShift}
-                        onChange={(e) => setTargetShift(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                      >
-                        {availableShifts.map((sh) => (
-                          <option key={sh} value={sh}>{sh}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tukar Dengan Host Lain? */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Tukar Langsung dengan Rekan Host? (Opsional)
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
-                    Jika Anda sudah sepakat dengan host lain untuk bertukar shift, pilih nama host tersebut.
-                  </p>
-                  <select
-                    value={replacementHostId}
-                    onChange={(e) => setReplacementHostId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  >
-                    <option value="">-- Tidak ada (Hanya Request Ganti Shift ke Admin) --</option>
-                    {allHosts
-                      .filter((h) => h.id !== host.id)
-                      .map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name} {h.employeeId ? `(${h.employeeId})` : ''}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Alasan Tukar Jadwal */}
+                {/* Keterangan / Penjelasan (Semua Tipe) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Alasan Tukar Jadwal / Shift
+                    Keterangan Tambahan / Penjelasan Alasan
                   </label>
                   <textarea
                     rows={3}
                     required
-                    value={tukarNotes}
-                    onChange={(e) => setTukarNotes(e.target.value)}
-                    placeholder="Contoh: Ada kuliah di pagi hari, ingin tukar ke shift malam atau tukar dengan si X..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder={
+                      requestCategory === 'tukar_libur'
+                        ? 'Contoh: Ingin mengajukan libur untuk keperluan mendadak, atau tukar off day dengan hari rabu...'
+                        : requestCategory === 'tukar_shift'
+                        ? 'Contoh: Ada jadwal kuliah di pagi hari, mohon izin pindah ke shift siang/malam...'
+                        : 'Contoh: Izin tidak masuk kerja dikarenakan sakit demam / urusan keluarga mendesak...'
+                    }
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
 
+                {/* Upload Bukti / Surat Dokter (Terutama untuk Izin & Hari Libur) */}
+                {(requestCategory === 'izin' || requestCategory === 'tukar_libur') && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Lampiran Bukti / Surat Dokter (Opsional)
+                    </label>
+                    <p className="text-[11px] text-slate-400 mb-2">
+                      Sangat dianjurkan melampirkan foto surat sakit atau dokumen pendukung.
+                    </p>
+
+                    {proofPreview ? (
+                      <div className="relative rounded-2xl border border-slate-200 p-2 flex items-center justify-between bg-slate-50">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={proofPreview}
+                            alt="Bukti Lampiran"
+                            className="w-14 h-14 object-cover rounded-xl border border-slate-200 shadow-2xs"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">Lampiran Foto Terpasang</p>
+                            <p className="text-[11px] text-emerald-600 font-semibold">Siap dikirimkan bersama pengajuan</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setProofFile(null); setProofPreview(null); }}
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                          title="Hapus foto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-slate-50/50 hover:bg-indigo-50/30 transition-all">
+                        <Upload className="w-5 h-5 text-indigo-500" />
+                        <span className="text-xs font-bold text-slate-700">Pilih atau Ambil Foto Dokumen</span>
+                        <span className="text-[10px] text-slate-400">JPG, PNG (Otomatis dikompres)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProofChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+
+                {/* Submit Button */}
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span>{loading ? 'Mengirim Permohonan...' : 'Kirim Permohonan Tukar Jadwal'}</span>
+                    <span>
+                      {loading
+                        ? 'Mengirim Permohonan...'
+                        : requestCategory === 'tukar_libur'
+                        ? 'Kirim Req/Tukar Hari Libur'
+                        : requestCategory === 'tukar_shift'
+                        ? 'Kirim Req/Tukar Shift'
+                        : 'Kirim Izin Tidak Masuk'}
+                    </span>
                   </button>
                 </div>
               </form>
             )}
 
-            {/* ================= TAB 3: RIWAYAT PENGAJUAN ================= */}
+            {/* ================= TAB 2: RIWAYAT PENGAJUAN ================= */}
             {activeTab === 'riwayat' && (
               <div className="space-y-3">
                 {/* Filter status */}
@@ -667,17 +782,32 @@ export default function HostRequestModal({
                     <CalendarIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p className="text-xs font-bold text-slate-700">Belum Ada Pengajuan</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Pengajuan izin atau tukar jadwal yang Anda kirim akan muncul di sini beserta status tanggapan admin.
+                      Pengajuan izin, hari libur, atau tukar shift Anda akan muncul di sini beserta status tanggapan admin.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     {filteredHistory.map((req) => {
-                      const isIzin = req.type === 'izin';
+                      const isTukarLibur = req.type === 'tukar_libur' || req.reasonCategory?.includes('Hari Libur');
+                      const isTukarShift = req.type === 'tukar_shift' || req.type === 'tukar_jadwal' || req.reasonCategory?.includes('Shift');
                       const isPending = req.status === 'pending';
                       const isInReview = req.status === 'in_review';
                       const isApproved = req.status === 'approved';
                       const isRejected = req.status === 'rejected';
+
+                      const typeBadge = isTukarLibur ? (
+                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200">
+                          🏖️ Req/Tukar Hari Libur
+                        </span>
+                      ) : isTukarShift ? (
+                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200">
+                          🔄 Req/Tukar Shift
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
+                          📋 Izin Tidak Masuk
+                        </span>
+                      );
 
                       return (
                         <div
@@ -686,17 +816,8 @@ export default function HostRequestModal({
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                                  isIzin
-                                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                }`}
-                              >
-                                {isIzin ? 'Izin / Cuti' : 'Tukar Jadwal'}
-                              </span>
-
-                              {req.reasonCategory && (
+                              {typeBadge}
+                              {req.reasonCategory && req.reasonCategory !== 'Req/Tukar Hari Libur' && req.reasonCategory !== 'Req/Tukar Shift' && req.reasonCategory !== 'Izin Tidak Masuk' && (
                                 <span className="text-xs font-bold text-slate-700">
                                   {req.reasonCategory}
                                 </span>
@@ -730,16 +851,21 @@ export default function HostRequestModal({
 
                           {/* Detail Konten */}
                           <div className="text-xs text-slate-700 space-y-1 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-                            {isIzin ? (
+                            {isTukarLibur ? (
                               <div>
                                 <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
-                                  Tanggal Izin:
+                                  Tanggal Hari Libur:
                                 </span>
                                 <span className="font-bold text-slate-800">
                                   {req.date} {req.endDate ? ` s.d. ${req.endDate}` : ''}
                                 </span>
+                                {req.targetDate && (
+                                  <p className="text-[11px] text-teal-700 font-semibold mt-1">
+                                    🔄 Ditukar masuk kerja pada: {req.targetDate}
+                                  </p>
+                                )}
                               </div>
-                            ) : (
+                            ) : isTukarShift ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div>
                                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
@@ -750,75 +876,71 @@ export default function HostRequestModal({
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wide">
-                                    Request Shift Dituju:
+                                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
+                                    Diminta Menjadi:
                                   </span>
-                                  <span className="font-bold text-indigo-900">
+                                  <span className="font-semibold text-indigo-600">
                                     {req.targetDate || req.date} ({req.targetShift || '-'})
                                   </span>
+                                  {req.replacementHostName && (
+                                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                      Tukar dengan: <span className="font-bold text-slate-700">{req.replacementHostName}</span>
+                                    </p>
+                                  )}
                                 </div>
-                                {req.replacementHostName && (
-                                  <div className="sm:col-span-2">
-                                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
-                                      Tukar dengan Host:
-                                    </span>
-                                    <span className="font-bold text-slate-800">
-                                      {req.replacementHostName}
-                                    </span>
-                                  </div>
-                                )}
+                              </div>
+                            ) : (
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
+                                  Tanggal Izin:
+                                </span>
+                                <span className="font-bold text-slate-800">
+                                  {req.date} {req.endDate ? ` s.d. ${req.endDate}` : ''}
+                                </span>
                               </div>
                             )}
 
                             {req.notes && (
-                              <div className="pt-1 border-t border-slate-200/50 mt-1">
+                              <div className="pt-1.5 border-t border-slate-200/60 mt-1.5">
                                 <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
-                                  Alasan:
+                                  Alasan / Penjelasan:
                                 </span>
-                                <p className="text-xs text-slate-600 leading-snug">{req.notes}</p>
+                                <p className="text-slate-800 font-medium italic mt-0.5">"{req.notes}"</p>
                               </div>
                             )}
 
                             {req.proofUrl && (
-                              <div className="pt-1">
-                                <a
-                                  href={req.proofUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+                              <div className="pt-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModalImg(req.proofUrl || null)}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition-colors cursor-pointer"
                                 >
-                                  <Eye className="w-3.5 h-3.5" /> Lihat Lampiran Bukti
-                                </a>
+                                  <Eye className="w-3.5 h-3.5" /> Lihat Lampiran Foto
+                                </button>
                               </div>
                             )}
                           </div>
 
-                          {/* Admin response / Catatan Admin */}
+                          {/* Admin Feedback Notes */}
                           {req.adminNotes && (
-                            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs text-amber-900">
-                              <span className="font-bold text-[10px] uppercase tracking-wide text-amber-700 block">
-                                Tanggapan Admin:
+                            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-900">
+                              <span className="font-bold block text-[10px] uppercase text-amber-800 mb-0.5">
+                                Catatan Admin ({req.reviewedBy || 'Admin'}):
                               </span>
-                              <p className="mt-0.5 leading-snug font-medium italic">"{req.adminNotes}"</p>
-                              {req.reviewedBy && (
-                                <span className="text-[10px] text-amber-600 font-semibold block mt-1">
-                                  Ditinjau oleh: {req.reviewedBy}
-                                </span>
-                              )}
+                              <p className="font-medium italic">"{req.adminNotes}"</p>
                             </div>
                           )}
 
-                          {/* Footer Actions */}
-                          <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
-                            <span>
-                              Diajukan: {req.createdAt ? new Date(req.createdAt).toLocaleString('id-ID') : '-'}
-                            </span>
+                          {/* Action footer */}
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                            <span>Diajukan: {req.createdAt ? new Date(req.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
 
                             {isPending && (
                               <button
                                 type="button"
                                 onClick={() => handleCancelRequest(req.id)}
-                                className="text-rose-600 hover:text-rose-800 font-bold transition-colors cursor-pointer"
+                                className="text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer"
                               >
                                 Batalkan Pengajuan
                               </button>
@@ -834,6 +956,29 @@ export default function HostRequestModal({
           </div>
         </motion.div>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewModalImg && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn cursor-pointer"
+          onClick={() => setPreviewModalImg(null)}
+        >
+          <div className="relative max-w-xl max-h-[85vh] p-2 bg-white rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewModalImg(null)}
+              className="absolute top-4 right-4 p-2 bg-slate-900/60 hover:bg-slate-900 text-white rounded-full z-10 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <img
+              src={previewModalImg}
+              alt="Bukti Lampiran Full"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }

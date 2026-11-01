@@ -137,7 +137,17 @@ export function registerHostRequestRoutes(app: Express) {
       return res.status(400).json({ error: "Host ID dan nama host diperlukan." });
     }
 
-    const type = body.type === "tukar_jadwal" ? "tukar_jadwal" : "izin";
+    const validTypes = ["izin", "tukar_libur", "tukar_shift", "tukar_jadwal"];
+    let type = body.type;
+    if (!validTypes.includes(type)) {
+      if (body.reasonCategory?.includes("Hari Libur") || body.reasonCategory?.includes("Libur")) {
+        type = "tukar_libur";
+      } else if (body.reasonCategory?.includes("Shift")) {
+        type = "tukar_shift";
+      } else {
+        type = "izin";
+      }
+    }
     const status = "pending";
     const date = body.date || new Date().toISOString().split("T")[0];
     const endDate = body.endDate || null;
@@ -167,7 +177,9 @@ export function registerHostRequestRoutes(app: Express) {
     // Catat ke host activity logs
     try {
       const actId = genId("act");
-      const actionName = type === "izin" ? "Ajukan Izin" : "Ajukan Tukar Jadwal";
+      let actionName = "Pengajuan Izin Tidak Masuk";
+      if (type === "tukar_libur") actionName = "Pengajuan Req/Tukar Hari Libur";
+      else if (type === "tukar_shift" || type === "tukar_jadwal") actionName = "Pengajuan Req/Tukar Shift";
       const details = JSON.stringify({
         requestId: id,
         type,
@@ -281,7 +293,11 @@ export function registerHostRequestRoutes(app: Express) {
         let notifTitle = "Pembaruan Pengajuan";
         let notifMessage = "";
 
-        const typeLabel = existing.type === "izin" ? "Izin" : "Tukar Jadwal";
+        const typeLabel = existing.type === "tukar_libur" || existing.reason_category?.includes("Hari Libur")
+          ? "Req/Tukar Hari Libur"
+          : existing.type === "tukar_shift" || existing.type === "tukar_jadwal" || existing.reason_category?.includes("Shift")
+          ? "Req/Tukar Shift"
+          : "Izin Tidak Masuk";
 
         if (newStatus === "approved") {
           notifTitle = `✅ Pengajuan ${typeLabel} Diterima`;

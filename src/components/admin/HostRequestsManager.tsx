@@ -36,10 +36,11 @@ export function HostRequestsManager({
   // Manual Create Modal State
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [manualHostId, setManualHostId] = useState('');
-  const [manualType, setManualType] = useState<'izin' | 'tukar_jadwal'>('izin');
+  const [manualType, setManualType] = useState<'tukar_libur' | 'tukar_shift' | 'izin'>('tukar_libur');
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [manualEndDate, setManualEndDate] = useState('');
-  const [manualReasonCategory, setManualReasonCategory] = useState('Izin Resmi');
+  const [manualLiburSwapDate, setManualLiburSwapDate] = useState('');
+  const [manualReasonCategory, setManualReasonCategory] = useState('Req/Tukar Hari Libur');
   const [manualCurrentShift, setManualCurrentShift] = useState('Shift 1 (08:00 - 12:00)');
   const [manualTargetDate, setManualTargetDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [manualTargetShift, setManualTargetShift] = useState('Shift 2 (13:00 - 17:00)');
@@ -73,17 +74,28 @@ export function HostRequestsManager({
     const inReview = requests.filter((r) => r.status === 'in_review').length;
     const approved = requests.filter((r) => r.status === 'approved').length;
     const rejected = requests.filter((r) => r.status === 'rejected').length;
-    const izinCount = requests.filter((r) => r.type === 'izin').length;
-    const tukarCount = requests.filter((r) => r.type === 'tukar_jadwal').length;
+    const liburCount = requests.filter((r) => r.type === 'tukar_libur' || r.reasonCategory?.includes('Hari Libur')).length;
+    const shiftCount = requests.filter((r) => r.type === 'tukar_shift' || r.type === 'tukar_jadwal' || r.reasonCategory?.includes('Shift')).length;
+    const izinCount = requests.filter((r) => r.type === 'izin' || r.reasonCategory?.includes('Izin')).length;
 
-    return { total, pending, inReview, approved, rejected, izinCount, tukarCount };
+    return { total, pending, inReview, approved, rejected, liburCount, shiftCount, izinCount };
   }, [requests]);
 
   // Filtering
   const filteredRequests = useMemo(() => {
     return requests.filter((r) => {
       if (statusFilter !== 'Semua' && r.status !== statusFilter) return false;
-      if (typeFilter !== 'Semua' && r.type !== typeFilter) return false;
+      if (typeFilter !== 'Semua') {
+        if (typeFilter === 'tukar_libur') {
+          if (r.type !== 'tukar_libur' && !r.reasonCategory?.includes('Hari Libur')) return false;
+        } else if (typeFilter === 'tukar_shift') {
+          if (r.type !== 'tukar_shift' && r.type !== 'tukar_jadwal' && !r.reasonCategory?.includes('Shift')) return false;
+        } else if (typeFilter === 'izin') {
+          if (r.type !== 'izin' && !r.reasonCategory?.includes('Izin')) return false;
+        } else if (r.type !== typeFilter) {
+          return false;
+        }
+      }
       if (hostFilter !== 'Semua' && r.hostId !== hostFilter) return false;
       if (dateFilterStart && r.date < dateFilterStart) return false;
       if (dateFilterEnd && r.date > dateFilterEnd) return false;
@@ -155,6 +167,23 @@ export function HostRequestsManager({
     if (!hostObj) return;
 
     try {
+      let compiledNotes = manualNotes.trim();
+      let targetDateVal: string | undefined = undefined;
+      let reasonCategoryVal = 'Izin Tidak Masuk';
+
+      if (manualType === 'tukar_libur') {
+        reasonCategoryVal = 'Req/Tukar Hari Libur';
+        targetDateVal = manualLiburSwapDate || undefined;
+        if (manualLiburSwapDate) {
+          compiledNotes = `[Tukar Hari Libur] Ditukar masuk kerja pada ${manualLiburSwapDate}. ${compiledNotes}`;
+        }
+      } else if (manualType === 'tukar_shift') {
+        reasonCategoryVal = 'Req/Tukar Shift';
+        targetDateVal = manualTargetDate;
+      } else {
+        reasonCategoryVal = 'Izin Tidak Masuk';
+      }
+
       await hostRequestsApi.create({
         hostId: hostObj.id,
         hostName: hostObj.name,
@@ -162,17 +191,18 @@ export function HostRequestsManager({
         type: manualType,
         status: manualStatus,
         date: manualDate,
-        endDate: manualEndDate || undefined,
-        reasonCategory: manualType === 'izin' ? manualReasonCategory : undefined,
-        currentShift: manualType === 'tukar_jadwal' ? manualCurrentShift : undefined,
-        targetDate: manualType === 'tukar_jadwal' ? manualTargetDate : undefined,
-        targetShift: manualType === 'tukar_jadwal' ? manualTargetShift : undefined,
-        notes: manualNotes,
+        endDate: manualType === 'tukar_shift' ? undefined : (manualEndDate || undefined),
+        reasonCategory: reasonCategoryVal,
+        currentShift: manualType === 'tukar_shift' ? manualCurrentShift : undefined,
+        targetDate: targetDateVal,
+        targetShift: manualType === 'tukar_shift' ? manualTargetShift : undefined,
+        notes: compiledNotes,
         reviewedBy: loggedInAdminName,
       });
 
       setIsManualModalOpen(false);
       setManualNotes('');
+      setManualLiburSwapDate('');
       loadRequests();
     } catch (err: any) {
       alert(err?.message || 'Gagal membuat pengajuan.');
@@ -193,10 +223,15 @@ export function HostRequestsManager({
       'Status', 'Catatan Admin', 'Ditinjau Oleh', 'Waktu Tinjauan'
     ];
 
-    const rows = filteredRequests.map((r) => [
-      `"${r.id}"`,
-      `"${r.type === 'izin' ? 'Izin / Cuti' : 'Tukar Jadwal'}"`,
-      `"${r.hostName}"`,
+    const rows = filteredRequests.map((r) => {
+      const isLibur = r.type === 'tukar_libur' || r.reasonCategory?.includes('Hari Libur');
+      const isShift = r.type === 'tukar_shift' || r.type === 'tukar_jadwal' || r.reasonCategory?.includes('Shift');
+      const typeLabel = isLibur ? 'Req/Tukar Hari Libur' : isShift ? 'Req/Tukar Shift' : 'Izin Tidak Masuk';
+
+      return [
+        `"${r.id}"`,
+        `"${typeLabel}"`,
+        `"${r.hostName}"`,
       `"${r.employeeId || ''}"`,
       `"${r.createdAt || ''}"`,
       `"${r.date}"`,
@@ -208,10 +243,11 @@ export function HostRequestsManager({
       `"${r.replacementHostName || ''}"`,
       `"${(r.notes || '').replace(/"/g, '""')}"`,
       `"${r.status}"`,
-      `"${(r.adminNotes || '').replace(/"/g, '""')}"`,
-      `"${r.reviewedBy || ''}"`,
-      `"${r.reviewedAt || ''}"`,
-    ]);
+        `"${(r.adminNotes || '').replace(/"/g, '""')}"`,
+        `"${r.reviewedBy || ''}"`,
+        `"${r.reviewedAt || ''}"`,
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -411,8 +447,9 @@ export function HostRequestsManager({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700"
             >
               <option value="Semua">Semua Tipe</option>
-              <option value="izin">Izin / Cuti</option>
-              <option value="tukar_jadwal">Tukar Jadwal</option>
+              <option value="tukar_libur">🏖️ Req/Tukar Hari Libur</option>
+              <option value="tukar_shift">🔄 Req/Tukar Shift</option>
+              <option value="izin">📋 Izin Tidak Masuk</option>
             </select>
           </div>
 
@@ -498,7 +535,8 @@ export function HostRequestsManager({
         ) : (
           <div className="divide-y divide-slate-100">
             {filteredRequests.map((req) => {
-              const isIzin = req.type === 'izin';
+              const isTukarLibur = req.type === 'tukar_libur' || req.reasonCategory?.includes('Hari Libur');
+              const isTukarShift = req.type === 'tukar_shift' || req.type === 'tukar_jadwal' || req.reasonCategory?.includes('Shift');
               const isPending = req.status === 'pending';
               const isInReview = req.status === 'in_review';
               const isApproved = req.status === 'approved';
@@ -527,15 +565,19 @@ export function HostRequestsManager({
                           </span>
                         )}
 
-                        <span
-                          className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                            isIzin
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                              : 'bg-blue-100 text-blue-800 border border-blue-200'
-                          }`}
-                        >
-                          {isIzin ? 'Izin / Cuti' : 'Tukar Jadwal'}
-                        </span>
+                        {isTukarLibur ? (
+                          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-800 border border-teal-200">
+                            🏖️ Req/Tukar Hari Libur
+                          </span>
+                        ) : isTukarShift ? (
+                          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                            🔄 Req/Tukar Shift
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
+                            📋 Izin Tidak Masuk
+                          </span>
+                        )}
 
                         {/* Status Badge */}
                         {isPending && (
@@ -562,26 +604,26 @@ export function HostRequestsManager({
 
                       {/* Request Details */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                        {isIzin ? (
+                        {isTukarLibur ? (
                           <>
                             <div>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
-                                Tanggal Izin
+                                Tanggal Hari Libur
                               </span>
                               <span className="font-bold text-slate-800">
                                 {req.date} {req.endDate ? `s.d. ${req.endDate}` : ''}
                               </span>
                             </div>
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
-                                Kategori
+                              <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wide block">
+                                Penukaran Hari Kerja
                               </span>
-                              <span className="font-bold text-indigo-600">
-                                {req.reasonCategory || 'Izin Umum'}
+                              <span className="font-bold text-teal-800">
+                                {req.targetDate ? `Digantikan masuk pada: ${req.targetDate}` : 'Request Hari Libur Off'}
                               </span>
                             </div>
                           </>
-                        ) : (
+                        ) : isTukarShift ? (
                           <>
                             <div>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
@@ -609,6 +651,25 @@ export function HostRequestsManager({
                                 </span>
                               </div>
                             )}
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
+                                Tanggal Izin Tidak Masuk
+                              </span>
+                              <span className="font-bold text-slate-800">
+                                {req.date} {req.endDate ? `s.d. ${req.endDate}` : ''}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
+                                Kategori
+                              </span>
+                              <span className="font-bold text-amber-800">
+                                {req.reasonCategory || 'Izin Tidak Masuk'}
+                              </span>
+                            </div>
                           </>
                         )}
 
@@ -879,39 +940,59 @@ export function HostRequestsManager({
 
               {/* Tipe Selector */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tipe Pengajuan</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Tipe Pengajuan</label>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setManualType('izin')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                      manualType === 'izin'
-                        ? 'bg-indigo-50 border-indigo-400 text-indigo-700'
-                        : 'bg-white border-slate-200 text-slate-600'
+                    onClick={() => {
+                      setManualType('tukar_libur');
+                      setManualReasonCategory('Req/Tukar Hari Libur');
+                    }}
+                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                      manualType === 'tukar_libur'
+                        ? 'bg-teal-50 border-teal-400 text-teal-800 ring-2 ring-teal-500/20'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    Izin / Cuti
+                    🏖️ Tukar Libur
                   </button>
                   <button
                     type="button"
-                    onClick={() => setManualType('tukar_jadwal')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                      manualType === 'tukar_jadwal'
-                        ? 'bg-indigo-50 border-indigo-400 text-indigo-700'
-                        : 'bg-white border-slate-200 text-slate-600'
+                    onClick={() => {
+                      setManualType('tukar_shift');
+                      setManualReasonCategory('Req/Tukar Shift');
+                    }}
+                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                      manualType === 'tukar_shift'
+                        ? 'bg-blue-50 border-blue-400 text-blue-800 ring-2 ring-blue-500/20'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    Tukar Jadwal
+                    🔄 Tukar Shift
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualType('izin');
+                      setManualReasonCategory('Izin Tidak Masuk');
+                    }}
+                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                      manualType === 'izin'
+                        ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-500/20'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    📋 Izin Tidak Masuk
                   </button>
                 </div>
               </div>
 
               {/* Detail fields based on type */}
-              {manualType === 'izin' ? (
+              {manualType === 'tukar_libur' && (
                 <>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Mulai Izin</span>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Hari Libur</span>
                       <input
                         type="date"
                         required
@@ -932,22 +1013,19 @@ export function HostRequestsManager({
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Kategori Izin</span>
-                    <select
-                      value={manualReasonCategory}
-                      onChange={(e) => setManualReasonCategory(e.target.value)}
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Pengganti Masuk Kerja (Opsional Tukar Off)</span>
+                    <input
+                      type="date"
+                      value={manualLiburSwapDate}
+                      onChange={(e) => setManualLiburSwapDate(e.target.value)}
+                      placeholder="Tanggal masuk kerja pengganti"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
-                    >
-                      <option value="Sakit">Sakit</option>
-                      <option value="Cuti / Istirahat">Cuti / Libur</option>
-                      <option value="Keperluan Keluarga">Keperluan Keluarga</option>
-                      <option value="Pendidikan / Ujian">Pendidikan / Ujian</option>
-                      <option value="Keadaan Darurat">Keadaan Darurat</option>
-                      <option value="Lainnya">Lainnya</option>
-                    </select>
+                    />
                   </div>
                 </>
-              ) : (
+              )}
+
+              {manualType === 'tukar_shift' && (
                 <>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
@@ -993,6 +1071,30 @@ export function HostRequestsManager({
                     </div>
                   </div>
                 </>
+              )}
+
+              {manualType === 'izin' && (
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Mulai Izin</span>
+                    <input
+                      type="date"
+                      required
+                      value={manualDate}
+                      onChange={(e) => setManualDate(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Selesai (Opsional)</span>
+                    <input
+                      type="date"
+                      value={manualEndDate}
+                      onChange={(e) => setManualEndDate(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
               )}
 
               {/* Status Langsung */}

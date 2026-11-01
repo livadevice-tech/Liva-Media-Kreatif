@@ -121,7 +121,7 @@ export interface ScheduleTemplate {
   updatedAt?: string;
 }
 
-export type HostRequestType = "izin" | "tukar_jadwal";
+export type HostRequestType = "izin" | "tukar_jadwal" | "tukar_libur" | "tukar_shift";
 export type HostRequestStatus = "pending" | "in_review" | "approved" | "rejected";
 
 export interface HostScheduleRequest {
