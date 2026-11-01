@@ -65,15 +65,20 @@ export default function HostRequestModal({
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Form State: Req/Tukar Hari Libur
-  const [liburDate, setLiburDate] = useState(() => {
+  // Form State: Req/Tukar Hari Libur (Ditukar dari jadwal yang sudah ada dan mau libur di hari apa)
+  const [selectedLiburScheduleId, setSelectedLiburScheduleId] = useState<string>('');
+  const [liburScheduleDate, setLiburScheduleDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [liburScheduleShift, setLiburScheduleShift] = useState(availableShifts[0] || '');
+  const [targetLiburDate, setTargetLiburDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
   const [isLiburRange, setIsLiburRange] = useState(false);
-  const [liburEndDate, setLiburEndDate] = useState('');
-  const [isLiburSwap, setIsLiburSwap] = useState(false);
-  const [liburSwapDate, setLiburSwapDate] = useState('');
+  const [targetLiburEndDate, setTargetLiburEndDate] = useState('');
 
   // Form State: Req/Tukar Shift
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>('');
@@ -127,7 +132,33 @@ export default function HostRequestModal({
     }
   };
 
-  // When host selects an existing registered schedule to swap
+  // Helper to format date with Indonesian day name
+  const formatIndonesianDateWithDay = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // When host selects an existing schedule to swap for day off
+  const handleSelectLiburSchedule = (schedId: string) => {
+    setSelectedLiburScheduleId(schedId);
+    const found = hostSchedules.find((s) => s.id === schedId);
+    if (found) {
+      setLiburScheduleDate(found.date);
+      setLiburScheduleShift(found.timeSlot || '');
+    }
+  };
+
+  // When host selects an existing registered schedule to swap shift
   const handleSelectSchedule = (schedId: string) => {
     setSelectedScheduleId(schedId);
     const found = hostSchedules.find((s) => s.id === schedId);
@@ -183,12 +214,12 @@ export default function HostRequestModal({
       let compiledNotes = notes.trim();
 
       if (requestCategory === 'tukar_libur') {
-        dateVal = liburDate;
-        endDateVal = isLiburRange ? liburEndDate : undefined;
-        targetDateVal = isLiburSwap ? liburSwapDate : undefined;
-        if (isLiburSwap && liburSwapDate) {
-          compiledNotes = `[Tukar Hari Libur] Libur: ${liburDate}${isLiburRange ? ` s.d. ${liburEndDate}` : ''} ditukar masuk kerja pada ${liburSwapDate}. ${compiledNotes}`;
-        }
+        dateVal = liburScheduleDate;
+        currentShiftVal = liburScheduleShift || undefined;
+        targetDateVal = targetLiburDate;
+        endDateVal = isLiburRange ? targetLiburEndDate : undefined;
+        const liburText = `${formatIndonesianDateWithDay(targetLiburDate)}${isLiburRange && targetLiburEndDate ? ` s.d. ${formatIndonesianDateWithDay(targetLiburEndDate)}` : ''}`;
+        compiledNotes = `[Tukar Hari Libur] Ditukar dari jadwal ${formatIndonesianDateWithDay(liburScheduleDate)} (${liburScheduleShift || 'Shift'}) menjadi libur pada ${liburText}.${compiledNotes ? ` Catatan: ${compiledNotes}` : ''}`;
       } else if (requestCategory === 'tukar_shift') {
         dateVal = shiftCurrentDate;
         currentShiftVal = shiftCurrentSlot;
@@ -412,80 +443,132 @@ export default function HostRequestModal({
                 {/* ================= FORM MODE 1: REQ / TUKAR HARI LIBUR ================= */}
                 {requestCategory === 'tukar_libur' && (
                   <div className="space-y-4 pt-1 animate-fadeIn">
+                    {/* 1. Ditukar dari Jadwal yang Sudah Ada */}
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-bold text-slate-700">Tanggal Hari Libur yang Diminta</label>
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 cursor-pointer">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span>1. Ditukar dari Jadwal yang Sudah Ada</span>
+                        {hostSchedules.length > 0 && (
+                          <span className="text-[11px] text-indigo-600 font-semibold">Pilih dari jadwal terdaftar</span>
+                        )}
+                      </label>
+
+                      {hostSchedules.length > 0 ? (
+                        <div className="mb-2">
+                          <select
+                            value={selectedLiburScheduleId}
+                            onChange={(e) => handleSelectLiburSchedule(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          >
+                            <option value="">-- Pilih dari Jadwal Terdaftar Saya --</option>
+                            {hostSchedules
+                              .filter((s) => !s.isDeleted && !s.isOffDay && s.date >= new Date().toISOString().split('T')[0])
+                              .slice(0, 25)
+                              .map((sched) => (
+                                <option key={sched.id} value={sched.id}>
+                                  {formatIndonesianDateWithDay(sched.date)} • {sched.timeSlot || 'Shift'} • {sched.brand || 'Live'} {sched.studio ? `(${sched.studio})` : ''}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      ) : null}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Tanggal Jadwal Asal yang Ditukar</span>
+                          <input
+                            type="date"
+                            required
+                            value={liburScheduleDate}
+                            onChange={(e) => setLiburScheduleDate(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                          {liburScheduleDate && (
+                            <span className="text-[10px] text-indigo-600 font-semibold mt-1 block">
+                              📅 Hari: {formatIndonesianDateWithDay(liburScheduleDate)}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold mb-1 block">Shift Jadwal Asal</span>
+                          <select
+                            value={liburScheduleShift}
+                            onChange={(e) => setLiburScheduleShift(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          >
+                            <option value="">-- Pilih Shift (Opsional) --</option>
+                            {availableShifts.map((sh) => (
+                              <option key={sh} value={sh}>{sh}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. Mau Libur di Hari Apa */}
+                    <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-teal-950 flex items-center gap-1.5">
+                          <CalendarIcon className="w-3.5 h-3.5 text-teal-600" />
+                          <span>2. Mau Libur di Hari Apa? (Tanggal Libur yang Diminta)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-teal-700 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={isLiburRange}
                             onChange={(e) => setIsLiburRange(e.target.checked)}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="rounded border-teal-300 text-teal-600 focus:ring-teal-500"
                           />
-                          <span>Libur lebih dari 1 hari?</span>
+                          <span>Lebih dari 1 hari?</span>
                         </label>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
+                          <span className="text-[10px] text-teal-800 font-semibold mb-1 block">
+                            {isLiburRange ? 'Mulai Tanggal Libur' : 'Pilih Tanggal Mau Libur'}
+                          </span>
                           <input
                             type="date"
                             required
-                            value={liburDate}
-                            onChange={(e) => setLiburDate(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            value={targetLiburDate}
+                            onChange={(e) => setTargetLiburDate(e.target.value)}
+                            className="w-full bg-white border border-teal-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
                           />
-                          {isLiburRange && <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Mulai Libur</span>}
+                          {targetLiburDate && (
+                            <span className="text-[11px] text-teal-900 font-black mt-1.5 block">
+                              🏖️ Mau Libur di: <span className="underline decoration-teal-400">{formatIndonesianDateWithDay(targetLiburDate)}</span>
+                            </span>
+                          )}
                         </div>
 
                         {isLiburRange && (
                           <div>
+                            <span className="text-[10px] text-teal-800 font-semibold mb-1 block">Sampai Tanggal</span>
                             <input
                               type="date"
                               required={isLiburRange}
-                              value={liburEndDate}
-                              min={liburDate}
-                              onChange={(e) => setLiburEndDate(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                              value={targetLiburEndDate}
+                              min={targetLiburDate}
+                              onChange={(e) => setTargetLiburEndDate(e.target.value)}
+                              className="w-full bg-white border border-teal-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
                             />
-                            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Tanggal Selesai Libur</span>
+                            {targetLiburEndDate && (
+                              <span className="text-[11px] text-teal-900 font-black mt-1.5 block">
+                                🏖️ Sampai: {formatIndonesianDateWithDay(targetLiburEndDate)}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Tukar Hari Kerja Pengganti (Opsional) */}
-                    <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100/80">
-                      <label className="flex items-center gap-2 text-xs font-bold text-indigo-900 cursor-pointer mb-2">
-                        <input
-                          type="checkbox"
-                          checked={isLiburSwap}
-                          onChange={(e) => setIsLiburSwap(e.target.checked)}
-                          className="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span>Tukar dengan Hari Kerja Lain (Tukar Off)?</span>
-                      </label>
-
-                      {isLiburSwap ? (
-                        <div>
-                          <span className="text-[11px] text-indigo-700 font-semibold mb-1 block">
-                            Tanggal Masuk Kerja Pengganti:
-                          </span>
-                          <input
-                            type="date"
-                            required={isLiburSwap}
-                            value={liburSwapDate}
-                            onChange={(e) => setLiburSwapDate(e.target.value)}
-                            className="w-full bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                          />
-                          <p className="text-[10px] text-indigo-600 mt-1">
-                            Libur pada tanggal terpilih akan digantikan dengan masuk kerja pada tanggal ini.
-                          </p>
+                      {liburScheduleDate && targetLiburDate && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-teal-100/70 border border-teal-200 text-xs text-teal-900 flex items-start gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+                          <div className="leading-snug">
+                            Jadwal kerja <span className="font-extrabold text-teal-950">{formatIndonesianDateWithDay(liburScheduleDate)}</span> ditukar menjadi hari libur pada <span className="font-extrabold text-teal-950">{formatIndonesianDateWithDay(targetLiburDate)}</span>
+                            {isLiburRange && targetLiburEndDate ? ` s.d. ${formatIndonesianDateWithDay(targetLiburEndDate)}` : ''}.
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-[11px] text-slate-500">
-                          Centang jika Anda ingin menukar jatah hari libur reguler Anda ke hari lain.
-                        </p>
                       )}
                     </div>
                   </div>
@@ -852,18 +935,24 @@ export default function HostRequestModal({
                           {/* Detail Konten */}
                           <div className="text-xs text-slate-700 space-y-1 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
                             {isTukarLibur ? (
-                              <div>
-                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
-                                  Tanggal Hari Libur:
-                                </span>
-                                <span className="font-bold text-slate-800">
-                                  {req.date} {req.endDate ? ` s.d. ${req.endDate}` : ''}
-                                </span>
-                                {req.targetDate && (
-                                  <p className="text-[11px] text-teal-700 font-semibold mt-1">
-                                    🔄 Ditukar masuk kerja pada: {req.targetDate}
-                                  </p>
-                                )}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">
+                                    Ditukar dari Jadwal Asal:
+                                  </span>
+                                  <span className="font-semibold text-slate-800">
+                                    {formatIndonesianDateWithDay(req.date)} {req.currentShift ? `• ${req.currentShift}` : ''}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-teal-700 block uppercase tracking-wide">
+                                    Mau Libur di Hari / Tanggal:
+                                  </span>
+                                  <span className="font-bold text-teal-800">
+                                    {formatIndonesianDateWithDay(req.targetDate || req.date)}
+                                    {req.endDate ? ` s.d. ${formatIndonesianDateWithDay(req.endDate)}` : ''}
+                                  </span>
+                                </div>
                               </div>
                             ) : isTukarShift ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

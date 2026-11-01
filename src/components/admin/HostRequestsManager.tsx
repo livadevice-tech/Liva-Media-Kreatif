@@ -608,18 +608,18 @@ export function HostRequestsManager({
                           <>
                             <div>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
-                                Tanggal Hari Libur
+                                Ditukar dari Jadwal Asal
                               </span>
                               <span className="font-bold text-slate-800">
-                                {req.date} {req.endDate ? `s.d. ${req.endDate}` : ''}
+                                {req.date} {req.currentShift ? `• ${req.currentShift}` : ''}
                               </span>
                             </div>
                             <div>
                               <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wide block">
-                                Penukaran Hari Kerja
+                                Mau Libur di Hari / Tanggal
                               </span>
                               <span className="font-bold text-teal-800">
-                                {req.targetDate ? `Digantikan masuk pada: ${req.targetDate}` : 'Request Hari Libur Off'}
+                                {req.targetDate || req.date} {req.endDate ? ` s.d. ${req.endDate}` : ''}
                               </span>
                             </div>
                           </>
@@ -992,7 +992,7 @@ export function HostRequestsManager({
                 <>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Hari Libur</span>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Ditukar dari Jadwal Asal</span>
                       <input
                         type="date"
                         required
@@ -1002,23 +1002,24 @@ export function HostRequestsManager({
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Selesai (Opsional)</span>
+                      <span className="text-[10px] font-bold text-teal-700 block mb-1">Mau Libur di Tanggal</span>
                       <input
                         type="date"
-                        value={manualEndDate}
-                        onChange={(e) => setManualEndDate(e.target.value)}
+                        required
+                        value={manualLiburSwapDate || manualDate}
+                        onChange={(e) => setManualLiburSwapDate(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Tanggal Pengganti Masuk Kerja (Opsional Tukar Off)</span>
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Sampai Tanggal (Jika libur &gt; 1 hari)</span>
                     <input
                       type="date"
-                      value={manualLiburSwapDate}
-                      onChange={(e) => setManualLiburSwapDate(e.target.value)}
-                      placeholder="Tanggal masuk kerja pengganti"
+                      value={manualEndDate}
+                      onChange={(e) => setManualEndDate(e.target.value)}
+                      placeholder="Tanggal libur selesai"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
                     />
                   </div>
