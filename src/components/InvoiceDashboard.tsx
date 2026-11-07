@@ -33,6 +33,7 @@ import {
   isDateInInvoiceClosingPeriod,
   determineClosingMonthForDate,
   getAvailableClosingMonths,
+  getInvoiceBenchmarkDate,
 } from '../shared/utils/invoiceClosingPeriod';
 
 import { settingsApi, clientBrandsApi } from '../api';
@@ -185,7 +186,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
       const useClosing = invoiceSettings.useClosingCutoff !== false;
 
       list = list.filter((inv) => {
-        const dateToUse = inv.invoiceDate || inv.issueDate;
+        // Patokan cut-off tutup buku adalah hari terakhir Due Date (jatuh tempo) invoice
+        const dateToUse = getInvoiceBenchmarkDate(inv);
         if (!dateToUse) return false;
         if (useClosing) {
           return isDateInInvoiceClosingPeriod(dateToUse, filterMonth, closingDay);

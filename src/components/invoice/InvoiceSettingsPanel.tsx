@@ -490,10 +490,10 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
                 <span>Simulasi Siklus Pembukuan:</span>
               </div>
               <p className="text-[11px] text-emerald-800 leading-relaxed pl-5.5">
-                Setiap periode tutup buku berjalan mulai dari <strong>tanggal {(Number(invoiceSettings.closingDay) || 25) + 1} bulan sebelumnya</strong> sampai dengan <strong>tanggal {Number(invoiceSettings.closingDay) || 25} bulan berjalan</strong>.
+                Setiap periode tutup buku berjalan mulai dari <strong>tanggal {(Number(invoiceSettings.closingDay) || 25) + 1} bulan sebelumnya</strong> sampai dengan <strong>tanggal {Number(invoiceSettings.closingDay) || 25} bulan berjalan</strong>, berdasarkan <strong>hari terakhir jatuh tempo (Due Date)</strong> invoice.
               </p>
               <div className="pl-5.5 pt-1 text-[11px] font-mono text-emerald-950 font-semibold">
-                Contoh: Periode Tutup Buku Oktober = Tgl 26 September s.d. Tgl 25 Oktober
+                Contoh: Periode Tutup Buku Oktober = Due Date Tgl 26 September s.d. Tgl 25 Oktober
               </div>
             </div>
           </div>
