@@ -3866,7 +3866,6 @@ export default function App() {
     "cat-host": true,
     "cat-client": true,
     "cat-system": true,
-    "cat-security": true,
   });
 
   // Sorting & Column Widths states for Salary Recap Table
@@ -5337,8 +5336,7 @@ export default function App() {
       { tabId: "invoice", label: "Invoice", icon: FileText, category: "cat-client" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
-      { type: "header", label: "Keamanan Akun", key: "cat-security" },
-      { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-security" }
+      { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-system" }
     ];
 
     let allowedTabs = null;
@@ -14444,11 +14442,6 @@ export default function App() {
                                           label: "Platform & Shift",
                                           icon: Sliders,
                                         },
-                                      ],
-                                    },
-                                    {
-                                      categoryTitle: "KEAMANAN AKUN",
-                                      items: [
                                         {
                                           id: "admin_privacy",
                                           label: "Privasi Master Admin",
