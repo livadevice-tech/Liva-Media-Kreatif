@@ -10,6 +10,7 @@ import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
 import { MobileWeeklySchedule } from './components/admin/MobileWeeklySchedule';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import { InvoiceDashboard } from './components/InvoiceDashboard';
+import { FinanceDashboard } from './components/finance/FinanceDashboard';
 import { TaskManager } from './components/tasks/TaskManager';
 import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt';
 import * as XLSX from "xlsx";
@@ -44,6 +45,7 @@ import {
 import { calculateDistance } from "./shared/utils/location";
 import {
   LayoutDashboard,
+  BarChart3,
   Users,
   ClipboardList,
   CheckSquare,
@@ -2209,6 +2211,7 @@ export default function App() {
   const [credentialsSubTab, setCredentialsSubTab] = useState<"host_list" | "activity_logs" | "violations">("host_list");
   const [operatorTab, setOperatorTab] = useState<
     | "dashboard_utama"
+    | "finance_dashboard"
     | "task_management"
     | "absensi"
     | "rekap_gaji"
@@ -3865,6 +3868,7 @@ export default function App() {
     "cat-tasks": true,
     "cat-host": true,
     "cat-client": true,
+    "cat-finance": true,
     "cat-system": true,
   });
 
@@ -5326,14 +5330,16 @@ export default function App() {
       { tabId: "task_management", label: "Task Management", icon: CheckSquare, category: "cat-tasks" },
       { type: "header", label: "Manajemen Host", key: "cat-host" },
       { tabId: "absensi", label: "Calender Kerja Host", icon: Calendar, category: "cat-host" },
-      { tabId: "rekap_gaji", label: "Absen & Payroll", icon: DollarSign, category: "cat-host" },
       { tabId: "database", label: "Database Absen", badgeCount: dbActiveBaseLogs.length, icon: ClipboardList, category: "cat-host" },
       { tabId: "credentials", label: "Kredensial Host", icon: ShieldCheck, category: "cat-host" },
       { type: "header", label: "Manajemen Client", key: "cat-client" },
       { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
       { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
       { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
-      { tabId: "invoice", label: "Invoice", icon: FileText, category: "cat-client" },
+      { type: "header", label: "Finance", key: "cat-finance" },
+      { tabId: "finance_dashboard", label: "Finance Dashboard", icon: BarChart3, category: "cat-finance" },
+      { tabId: "invoice", label: "Billing & Invoice", icon: FileText, category: "cat-finance" },
+      { tabId: "rekap_gaji", label: "Payroll", icon: DollarSign, category: "cat-finance" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
       { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-system" }
@@ -6770,6 +6776,9 @@ export default function App() {
                     {operatorTab === "dashboard_utama" && (
                       <span>Executive Intelligence Dashboard</span>
                     )}
+                    {operatorTab === "finance_dashboard" && (
+                      <span>Finance Dashboard & Arus Kas</span>
+                    )}
                     {operatorTab === "absensi" && (
                       <span>Calender Kerja Host</span>
                     )}
@@ -6779,7 +6788,7 @@ export default function App() {
                           ? "Manajemen Tunjangan Hari Raya (THR)"
                           : payrollSubTab === "overtime_management"
                             ? "Manajemen Lembur Host"
-                            : "Kalkulator & Penggajian Streamer"}
+                            : "Payroll & Penggajian Host"}
                       </span>
                     )}
                     {operatorTab === "database" && (
@@ -6798,7 +6807,7 @@ export default function App() {
                       <span>Task Management & Operasional Tim</span>
                     )}
                     {operatorTab === "invoice" && (
-                      <span>Manajemen Invoice & Penagihan</span>
+                      <span>Billing & Invoice</span>
                     )}
                     {operatorTab === "leads" && (
                       <span>Leads & Calon Klien</span>
@@ -7040,7 +7049,7 @@ export default function App() {
               {/* WORKSPACE AREA CONTAINER */}
               <div
                 className={`w-full mx-auto flex-1 pb-24 relative min-w-0 ${
-                  operatorTab === "reporting_brand" || operatorTab === "invoice" || operatorTab === "task_management"
+                  operatorTab === "reporting_brand" || operatorTab === "invoice" || operatorTab === "task_management" || operatorTab === "finance_dashboard"
                     ? "p-4 md:p-6 w-full max-w-none"
                     : operatorTab === "absensi"
                     ? "p-0 md:px-4 md:py-3 w-full max-w-none md:space-y-4"
@@ -14037,6 +14046,16 @@ export default function App() {
                     clientBrands={clientBrands}
                   />
                 )}
+                {/* ==================== SUBTAB: FINANCE DASHBOARD 📊 ==================== */}
+                {operatorTab === "finance_dashboard" && (
+                  <FinanceDashboard
+                    clientBrands={clientBrands}
+                    hosts={hosts}
+                    logs={logs}
+                    filteredHostReportList={filteredHostReportList}
+                    onNavigateTab={(tab) => setOperatorTab(tab)}
+                  />
+                )}
                 {/* ==================== SUBTAB: INVOICE & PENAGIHAN 📄 ==================== */}
                 {operatorTab === "invoice" && (
                   <InvoiceDashboard
@@ -14393,11 +14412,6 @@ export default function App() {
                                           icon: Calendar,
                                         },
                                         {
-                                          id: "rekap_gaji",
-                                          label: "Absen & Payroll",
-                                          icon: DollarSign,
-                                        },
-                                        {
                                           id: "database",
                                           label: "Database Absen",
                                           icon: ClipboardList,
@@ -14427,10 +14441,25 @@ export default function App() {
                                           label: "Reporting Brand (Upload)",
                                           icon: LineChart,
                                         },
+                                      ],
+                                    },
+                                    {
+                                      categoryTitle: "FINANCE",
+                                      items: [
+                                        {
+                                          id: "finance_dashboard",
+                                          label: "Finance Dashboard",
+                                          icon: BarChart3,
+                                        },
                                         {
                                           id: "invoice",
-                                          label: "Invoice",
+                                          label: "Billing & Invoice",
                                           icon: FileText,
+                                        },
+                                        {
+                                          id: "rekap_gaji",
+                                          label: "Payroll",
+                                          icon: DollarSign,
                                         },
                                       ],
                                     },
@@ -14620,15 +14649,16 @@ export default function App() {
                                     ad.accessTabs.map((tab) => {
                                       const labelMap: Record<string, string> = {
                                         dashboard_utama: "Dashboard Utama",
+                                        finance_dashboard: "Finance Dashboard",
                                         task_management: "Task Management",
                                         absensi: "Calender Kerja Host",
-                                        rekap_gaji: "Absen & Payroll",
+                                        rekap_gaji: "Payroll",
                                         database: "Database Absen",
                                         credentials: "Kredensial Host",
                                         data_brand: "Data Brand",
                                         brand_resources: "Panduan & Script",
                                         reporting_brand: "Reporting Brand (Upload)",
-                                        invoice: "Invoice",
+                                        invoice: "Billing & Invoice",
                                         settings: "Platform & Shift",
                                         admin_privacy: "Privasi Master Admin",
                                       };

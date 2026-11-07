@@ -2,6 +2,7 @@ import type { AuthSession } from "./session";
 
 export type AdminTab =
   | "dashboard_utama"
+  | "finance_dashboard"
   | "task_management"
   | "absensi"
   | "rekap_gaji"
@@ -19,15 +20,15 @@ export type AdminTab =
 
 export const MODULE_TAB_REQUIREMENTS = {
   adminAccounts: ["admin_privacy"],
-  hosts: ["dashboard_utama", "absensi", "rekap_gaji", "database", "credentials", "settings", "task_management"],
-  logs: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
+  hosts: ["dashboard_utama", "finance_dashboard", "absensi", "rekap_gaji", "database", "credentials", "settings", "task_management"],
+  logs: ["dashboard_utama", "finance_dashboard", "absensi", "rekap_gaji", "database"],
   schedules: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
   alerts: ["dashboard_utama", "copilot"],
-  clientBrands: ["dashboard_utama", "data_brand", "brand_resources", "reporting_brand", "invoice"],
+  clientBrands: ["dashboard_utama", "finance_dashboard", "data_brand", "brand_resources", "reporting_brand", "invoice"],
   clientLeads: ["leads"],
   clientReporting: ["reporting_brand"],
   reportingBrand: ["reporting_brand"],
-  invoice: ["invoice"],
+  invoice: ["invoice", "finance_dashboard"],
   tasks: ["task_management", "dashboard_utama"],
   settings: ["settings", "sheets"],
   chat: ["copilot"],

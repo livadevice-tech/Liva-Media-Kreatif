@@ -1,0 +1,550 @@
+import React, { useMemo } from 'react';
+import {
+  TrendingUp,
+  Wallet,
+  FileText,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Building2,
+  Users,
+  ChevronRight,
+  PieChart,
+  ShieldCheck,
+  Activity,
+  BadgePercent,
+  Calendar,
+} from 'lucide-react';
+import { ClientBrand, BrandInvoice, HostAccount, ActivityLog } from '../../types';
+
+interface FinanceDashboardProps {
+  clientBrands: ClientBrand[];
+  hosts?: HostAccount[];
+  logs?: ActivityLog[];
+  filteredHostReportList?: Array<{
+    id: string;
+    name: string;
+    netSalary: number;
+    baseSalary?: number;
+    overtimePay?: number;
+    totalHours?: number;
+    studio?: string;
+  }>;
+  onNavigateTab: (tab: 'invoice' | 'rekap_gaji') => void;
+}
+
+export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
+  clientBrands,
+  filteredHostReportList = [],
+  onNavigateTab,
+}) => {
+  // Aggregate all invoices from all brands
+  const allInvoices = useMemo(() => {
+    const list: Array<BrandInvoice & { brandName: string; brandId: string }> = [];
+    clientBrands.forEach((b) => {
+      (b.invoices || []).forEach((inv) => {
+        list.push({
+          ...inv,
+          brandName: b.name,
+          brandId: b.id,
+        });
+      });
+    });
+    // Sort descending by date
+    return list.sort((a, b) => {
+      const dateA = a.issueDate || a.dueDate || '';
+      const dateB = b.issueDate || b.dueDate || '';
+      return dateB.localeCompare(dateA);
+    });
+  }, [clientBrands]);
+
+  // Invoice revenue calculations
+  const invoiceStats = useMemo(() => {
+    let paidAmount = 0;
+    let pendingAmount = 0;
+    let overdueAmount = 0;
+    let draftAmount = 0;
+    let totalAmount = 0;
+
+    let paidCount = 0;
+    let pendingCount = 0;
+    let overdueCount = 0;
+    let draftCount = 0;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    allInvoices.forEach((inv) => {
+      const amt = Number(inv.totalAmount) || 0;
+      totalAmount += amt;
+
+      const isOverdue =
+        inv.status !== 'PAID' &&
+        inv.status !== 'CANCELLED' &&
+        inv.dueDate &&
+        inv.dueDate < todayStr;
+
+      if (inv.status === 'PAID') {
+        paidAmount += amt;
+        paidCount++;
+      } else if (isOverdue || inv.status === 'OVERDUE') {
+        overdueAmount += amt;
+        overdueCount++;
+      } else if (inv.status === 'OPEN') {
+        pendingAmount += amt;
+        pendingCount++;
+      } else if (inv.status === 'DRAFT') {
+        draftAmount += amt;
+        draftCount++;
+      }
+    });
+
+    return {
+      totalAmount,
+      totalCount: allInvoices.length,
+      paidAmount,
+      paidCount,
+      pendingAmount,
+      pendingCount,
+      overdueAmount,
+      overdueCount,
+      draftAmount,
+      draftCount,
+      receivablesAmount: pendingAmount + overdueAmount,
+      receivablesCount: pendingCount + overdueCount,
+    };
+  }, [allInvoices]);
+
+  // Payroll expense calculations
+  const payrollStats = useMemo(() => {
+    const totalNetSalary = filteredHostReportList.reduce(
+      (sum, h) => sum + (Number(h.netSalary) || 0),
+      0,
+    );
+    const totalBaseSalary = filteredHostReportList.reduce(
+      (sum, h) => sum + (Number(h.baseSalary) || 0),
+      0,
+    );
+    const totalOvertime = filteredHostReportList.reduce(
+      (sum, h) => sum + (Number(h.overtimePay) || 0),
+      0,
+    );
+    const totalHours = filteredHostReportList.reduce(
+      (sum, h) => sum + (Number(h.totalHours) || 0),
+      0,
+    );
+
+    return {
+      totalNetSalary,
+      totalBaseSalary,
+      totalOvertime,
+      totalHours,
+      hostCount: filteredHostReportList.length,
+    };
+  }, [filteredHostReportList]);
+
+  // Executive net balance & cashflow margin
+  const netCashflow = invoiceStats.paidAmount - payrollStats.totalNetSalary;
+  const netMarginPercent =
+    invoiceStats.paidAmount > 0
+      ? Math.round((netCashflow / invoiceStats.paidAmount) * 100)
+      : 0;
+
+  const formatIDR = (num: number) => {
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(num);
+  };
+
+  return (
+    <div className="space-y-5 animate-fadeIn font-sans pb-12 w-full min-w-0" id="finance_dashboard_view">
+      {/* ─── TOP EXECUTIVE BANNER ─── */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-lg relative overflow-hidden border border-indigo-900/50">
+        <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-40 -top-10 w-40 h-40 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-indigo-300" />
+                Liva Finance Ecosystem
+              </span>
+              <span className="text-xs text-indigo-200/70">• Arus Kas & Manajemen Keuangan</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <span>Finance Dashboard</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              Ringkasan komprehensif pemasukan nota penagihan klien (Billing & Invoice), biaya kompensasi operasional host (Payroll), serta rasio margin laba bersih.
+            </p>
+          </div>
+
+          {/* Quick Action Navigation Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 pt-2 md:pt-0">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('invoice')}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer border border-indigo-400/30"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Buka Billing & Invoice</span>
+              <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('rekap_gaji')}
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all border border-white/15 backdrop-blur-xs flex items-center gap-2 cursor-pointer"
+            >
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Buka Payroll</span>
+              <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 4 EXECUTIVE SUMMARY CARDS ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Card 1: Pendapatan Lunas (Paid) */}
+        <div className="p-4 bg-white rounded-2xl border border-emerald-100 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
+              Pemasukan Lunas (Paid)
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+              <ArrowDownRight className="w-4 h-4 text-emerald-600" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {formatIDR(invoiceStats.paidAmount)}
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 text-[11px]">
+              <span className="text-slate-500 font-medium">Dari {invoiceStats.paidCount} invoice lunas</span>
+              <span className="font-bold text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Masuk Rekening
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Piutang Berjalan (Outstanding) */}
+        <div className="p-4 bg-white rounded-2xl border border-blue-100 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
+              Piutang Tagihan (Outstanding)
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+              <Clock className="w-4 h-4 text-blue-600" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {formatIDR(invoiceStats.receivablesAmount)}
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 text-[11px]">
+              <span className="text-slate-500 font-medium">{invoiceStats.receivablesCount} invoice pending</span>
+              {invoiceStats.overdueCount > 0 ? (
+                <span className="font-bold text-rose-600 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {invoiceStats.overdueCount} Overdue
+                </span>
+              ) : (
+                <span className="font-bold text-blue-600">Jatuh Tempo Aman</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Total Pengeluaran Payroll */}
+        <div className="p-4 bg-white rounded-2xl border border-violet-100 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-violet-600">
+              Biaya Payroll (Host & Ops)
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+              <ArrowUpRight className="w-4 h-4 text-violet-600" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {formatIDR(payrollStats.totalNetSalary)}
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 text-[11px]">
+              <span className="text-slate-500 font-medium">Kompensasi {payrollStats.hostCount} Host</span>
+              <span className="font-bold text-violet-600 flex items-center gap-1">
+                <Users className="w-3 h-3" /> Periode Aktif
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Estimasi Margin Bersih Operasional */}
+        <div className={`p-4 bg-white rounded-2xl border shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden ${
+          netCashflow >= 0 ? 'border-indigo-100' : 'border-rose-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-black uppercase tracking-wider ${
+              netCashflow >= 0 ? 'text-indigo-600' : 'text-rose-600'
+            }`}>
+              Estimasi Margin Kas Bersih
+            </span>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform ${
+              netCashflow >= 0 ? 'bg-indigo-50 border border-indigo-100 text-indigo-600' : 'bg-rose-50 border border-rose-100 text-rose-600'
+            }`}>
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className={`text-xl sm:text-2xl font-black tracking-tight ${
+              netCashflow >= 0 ? 'text-slate-900' : 'text-rose-600'
+            }`}>
+              {formatIDR(netCashflow)}
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 text-[11px]">
+              <span className="text-slate-500 font-medium">Pemasukan - Payroll</span>
+              <span className={`font-black px-1.5 py-0.2 rounded-md ${
+                netCashflow >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+              }`}>
+                {netMarginPercent > 0 ? `+${netMarginPercent}%` : `${netMarginPercent}%`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TWO MAIN PILLARS: BILLING & INVOICE VS PAYROLL ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Pillar 1: Billing & Invoice Overview */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Billing & Invoice</h3>
+                  <p className="text-[11px] text-slate-500">Penagihan resmi klien & brand partner</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('invoice')}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Kelola Invoice</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Invoices Status Progress Distribution */}
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>Distribusi Status Tagihan:</span>
+                <span className="text-slate-500 font-semibold">{invoiceStats.totalCount} Total Nota</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase block">Lunas</span>
+                  <span className="text-base font-black text-emerald-800">{invoiceStats.paidCount}</span>
+                  <span className="text-[10px] text-emerald-600/90 block truncate">{formatIDR(invoiceStats.paidAmount)}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100">
+                  <span className="text-[10px] font-bold text-blue-700 uppercase block">Open (Menunggu)</span>
+                  <span className="text-base font-black text-blue-800">{invoiceStats.pendingCount}</span>
+                  <span className="text-[10px] text-blue-600/90 block truncate">{formatIDR(invoiceStats.pendingAmount)}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-rose-50/60 border border-rose-100">
+                  <span className="text-[10px] font-bold text-rose-700 uppercase block">Jatuh Tempo</span>
+                  <span className="text-base font-black text-rose-800">{invoiceStats.overdueCount}</span>
+                  <span className="text-[10px] text-rose-600/90 block truncate">{formatIDR(invoiceStats.overdueAmount)}</span>
+                </div>
+              </div>
+
+              {/* Progress bar visual */}
+              {invoiceStats.totalAmount > 0 && (
+                <div className="pt-1">
+                  <div className="w-full h-2 rounded-full bg-slate-100 flex overflow-hidden">
+                    <div
+                      style={{ width: `${(invoiceStats.paidAmount / invoiceStats.totalAmount) * 100}%` }}
+                      className="bg-emerald-500 h-full"
+                      title="Lunas"
+                    />
+                    <div
+                      style={{ width: `${(invoiceStats.pendingAmount / invoiceStats.totalAmount) * 100}%` }}
+                      className="bg-blue-500 h-full"
+                      title="Open"
+                    />
+                    <div
+                      style={{ width: `${(invoiceStats.overdueAmount / invoiceStats.totalAmount) * 100}%` }}
+                      className="bg-rose-500 h-full"
+                      title="Overdue"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500 font-medium">Total Akumulasi Tagihan:</span>
+            <span className="font-black text-slate-900">{formatIDR(invoiceStats.totalAmount)}</span>
+          </div>
+        </div>
+
+        {/* Pillar 2: Payroll Overview */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Payroll</h3>
+                  <p className="text-[11px] text-slate-500">Perhitungan gaji & tunjangan host streamer</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('rekap_gaji')}
+                className="text-xs font-bold text-violet-600 hover:text-violet-800 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Kelola Payroll</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Payroll Key Highlights */}
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>Rincian Biaya Kompensasi Host:</span>
+                <span className="text-slate-500 font-semibold">{payrollStats.hostCount} Host Terdaftar</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Gaji Pokok & Hadir</span>
+                  <span className="text-base font-black text-slate-900">{formatIDR(payrollStats.totalBaseSalary)}</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Akumulasi basic salary</span>
+                </div>
+                <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100">
+                  <span className="text-[10px] font-bold text-violet-700 uppercase block">Total Lembur Host</span>
+                  <span className="text-base font-black text-violet-900">{formatIDR(payrollStats.totalOvertime)}</span>
+                  <span className="text-[10px] text-violet-600/90 mt-0.5 block">Kompensasi shift lembur</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-indigo-900 font-semibold">
+                  <Activity className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Total Durasi Live Terhitung:</span>
+                </div>
+                <span className="font-black text-indigo-950 font-mono">
+                  {Math.round(payrollStats.totalHours * 10) / 10} Jam
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500 font-medium">Total Estimasi Beban Payroll:</span>
+            <span className="font-black text-violet-900">{formatIDR(payrollStats.totalNetSalary)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── RECENT INVOICES ACTIVITY PREVIEW ─── */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-xs sm:text-sm font-black text-slate-900">
+              Transaksi & Tagihan Invoice Terkini
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('invoice')}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>Lihat Semua ({allInvoices.length})</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {allInvoices.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 text-xs">
+            Belum ada invoice yang diterbitkan.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th className="py-2.5 px-4">No. Invoice</th>
+                  <th className="py-2.5 px-3">Brand / PT</th>
+                  <th className="py-2.5 px-3">Jatuh Tempo</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-4 text-right">Nominal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {allInvoices.slice(0, 6).map((inv) => {
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const isOverdue =
+                    inv.status !== 'PAID' &&
+                    inv.status !== 'CANCELLED' &&
+                    inv.dueDate &&
+                    inv.dueDate < todayStr;
+
+                  return (
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-2.5 px-4 font-mono font-bold text-indigo-700">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-800">
+                        <div className="truncate max-w-xs">{inv.brandName}</div>
+                        {inv.ptName && (
+                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs">{inv.ptName}</div>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-600 font-medium">
+                        {inv.dueDate || '-'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {inv.status === 'PAID' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> LUNAS
+                          </span>
+                        ) : isOverdue || inv.status === 'OVERDUE' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">
+                            <AlertTriangle className="w-2.5 h-2.5" /> JATUH TEMPO
+                          </span>
+                        ) : inv.status === 'OPEN' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800">
+                            <Clock className="w-2.5 h-2.5" /> OPEN
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
+                            {inv.status || 'DRAFT'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-black text-slate-900 font-mono">
+                        {formatIDR(Number(inv.totalAmount) || 0)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
