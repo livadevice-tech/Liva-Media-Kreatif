@@ -263,28 +263,33 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
 
   // Payroll expense calculations
   const payrollStats = useMemo(() => {
-    const totalNetSalary = filteredHostReportList.reduce(
-      (sum, h) => sum + (Number(h.netSalary) || 0),
-      0,
-    );
-    const totalBaseSalary = filteredHostReportList.reduce(
-      (sum, h) => sum + (Number(h.baseSalary) || 0),
-      0,
-    );
-    const totalOvertime = filteredHostReportList.reduce(
-      (sum, h) => sum + (Number(h.overtimePay) || 0),
-      0,
-    );
-    const totalHours = filteredHostReportList.reduce(
-      (sum, h) => sum + (Number(h.totalHours) || 0),
-      0,
-    );
+    let totalNetSalary = 0;
+    let totalBaseSalary = 0;
+    let totalOvertime = 0;
+    let totalHours = 0;
+
+    filteredHostReportList.forEach((h: any) => {
+      const net = Number(h.netSalary) || 0;
+      const otPay = Number(h.calculatedOvertimePay ?? h.overtimePay ?? 0);
+      // Gaji Pokok & Hadir: Akumulasi basic salary & kehadiran (net dikurangi lembur)
+      const base = Number(h.baseSalary ?? (net - otPay));
+      const hours = Number(
+        h.totalLiveHours ??
+        h.totalHours ??
+        ((Number(h.totalHadir) || 0) * 4 + (Number(h.totalOvertimeHours) || 0))
+      );
+
+      totalNetSalary += net;
+      totalBaseSalary += base;
+      totalOvertime += otPay;
+      totalHours += hours;
+    });
 
     return {
       totalNetSalary,
       totalBaseSalary,
       totalOvertime,
-      totalHours,
+      totalHours: Math.round(totalHours * 10) / 10,
       hostCount: filteredHostReportList.length,
     };
   }, [filteredHostReportList]);

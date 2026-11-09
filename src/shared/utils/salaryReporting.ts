@@ -26,6 +26,7 @@ export type HostReportRow = HostEmployee & {
   calculatedBonus: number;
   totalOvertimeHours: number;
   calculatedOvertimePay: number;
+  totalLiveHours: number;
   basePayRate: number;
   netSalary: number;
   requiredWorkingDays: number;
@@ -113,6 +114,13 @@ export const buildHostReportList = (
     const totalOvertimeHours = hostOvertimes.length > 0 ? recordedOvertimeHours : logOvertimeHours;
     const calculatedOvertimePay = hostOvertimes.length > 0 ? recordedOvertimePay : logOvertimePay;
 
+    const totalLiveHours = records.reduce((sum, r) => {
+      const dur = Number(r.liveDuration);
+      if (!isNaN(dur) && dur > 0) return sum + dur;
+      if (r.status === "Present" || r.status === "Late") return sum + 4;
+      return sum;
+    }, 0);
+
     const isTanggamus = host.studio && host.studio.includes("Tanggamus");
     const hostType = host.hostType || hostAny.host_type || "Reguler";
 
@@ -191,6 +199,7 @@ export const buildHostReportList = (
       calculatedBonus,
       totalOvertimeHours,
       calculatedOvertimePay,
+      totalLiveHours,
       basePayRate,
       netSalary,
       requiredWorkingDays,
