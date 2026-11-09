@@ -50,6 +50,41 @@ interface FinanceDashboardProps {
   onNavigateTab: (tab: 'invoice' | 'rekap_gaji') => void;
 }
 
+// Helper functions for robust, case-insensitive invoice status matching
+const isPaidInvoice = (status?: string | null): boolean => {
+  if (!status) return false;
+  const s = status.trim().toLowerCase();
+  return s === 'paid' || s === 'lunas';
+};
+
+const isCancelledInvoice = (status?: string | null): boolean => {
+  if (!status) return false;
+  const s = status.trim().toLowerCase();
+  return s === 'cancelled' || s === 'canceled' || s === 'dibatalkan';
+};
+
+const isDraftInvoice = (status?: string | null): boolean => {
+  if (!status) return false;
+  const s = status.trim().toLowerCase();
+  return s === 'draft';
+};
+
+const isOpenInvoice = (status?: string | null): boolean => {
+  if (!status) return false;
+  const s = status.trim().toLowerCase();
+  return s === 'open invoice' || s === 'open';
+};
+
+const isOverdueInvoice = (
+  inv: { status?: string | null; dueDate?: string | null },
+  todayStr: string
+): boolean => {
+  if (isPaidInvoice(inv.status) || isCancelledInvoice(inv.status)) return false;
+  const s = inv.status ? inv.status.trim().toLowerCase() : '';
+  if (s === 'overdue' || s === 'jatuh tempo') return true;
+  return Boolean(inv.dueDate && inv.dueDate.slice(0, 10) < todayStr);
+};
+
 export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
   clientBrands,
   filteredHostReportList = [],
@@ -157,12 +192,14 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
     let pendingAmount = 0;
     let overdueAmount = 0;
     let draftAmount = 0;
+    let cancelledAmount = 0;
     let totalAmount = 0;
 
     let paidCount = 0;
-    let pendingCount = 0;
+    let openCount = 0;
     let overdueCount = 0;
     let draftCount = 0;
+    let cancelledCount = 0;
 
     const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -170,26 +207,40 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
       const amt = Number(inv.totalAmount) || 0;
       totalAmount += amt;
 
-      const isOverdue =
-        inv.status !== 'PAID' &&
-        inv.status !== 'CANCELLED' &&
-        inv.dueDate &&
-        inv.dueDate < todayStr;
+      const isPaid = isPaidInvoice(inv.status);
+      const isCancelled = isCancelledInvoice(inv.status);
+      const isDraft = isDraftInvoice(inv.status);
+      const isOpen = isOpenInvoice(inv.status);
+      const isOverdue = isOverdueInvoice(inv, todayStr);
 
-      if (inv.status === 'PAID') {
-        paidAmount += amt;
+      if (isPaid) {
         paidCount++;
-      } else if (isOverdue || inv.status === 'OVERDUE') {
-        overdueAmount += amt;
-        overdueCount++;
-      } else if (inv.status === 'OPEN') {
-        pendingAmount += amt;
-        pendingCount++;
-      } else if (inv.status === 'DRAFT') {
-        draftAmount += amt;
+        paidAmount += amt;
+      } else if (isCancelled) {
+        cancelledCount++;
+        cancelledAmount += amt;
+      } else if (isDraft) {
         draftCount++;
+        draftAmount += amt;
+      }
+
+      if (isOpen) {
+        openCount++;
+        pendingAmount += amt;
+      }
+
+      if (isOverdue) {
+        overdueCount++;
+        overdueAmount += amt;
       }
     });
+
+    // Piutang aktif berjalan (semua tagihan non-paid & non-cancelled yang belum lunas)
+    const unpaidInvoices = filteredInvoices.filter(
+      (inv) => !isPaidInvoice(inv.status) && !isCancelledInvoice(inv.status) && !isDraftInvoice(inv.status)
+    );
+    const receivablesAmount = unpaidInvoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    const receivablesCount = unpaidInvoices.length;
 
     return {
       totalAmount,
@@ -197,13 +248,16 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
       paidAmount,
       paidCount,
       pendingAmount,
-      pendingCount,
+      pendingCount: openCount,
+      openCount,
       overdueAmount,
       overdueCount,
       draftAmount,
       draftCount,
-      receivablesAmount: pendingAmount + overdueAmount,
-      receivablesCount: pendingCount + overdueCount,
+      cancelledAmount,
+      cancelledCount,
+      receivablesAmount,
+      receivablesCount,
     };
   }, [filteredInvoices]);
 
@@ -682,19 +736,31 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
                 <div className="pt-1">
                   <div className="w-full h-2 rounded-full bg-slate-100 flex overflow-hidden">
                     <div
-                      style={{ width: `${(invoiceStats.paidAmount / invoiceStats.totalAmount) * 100}%` }}
-                      className="bg-emerald-500 h-full"
-                      title="Lunas"
+                      style={{ width: `${Math.min(100, (invoiceStats.paidAmount / invoiceStats.totalAmount) * 100)}%` }}
+                      className="bg-emerald-500 h-full transition-all"
+                      title={`Lunas: ${formatIDR(invoiceStats.paidAmount)}`}
                     />
                     <div
-                      style={{ width: `${(invoiceStats.pendingAmount / invoiceStats.totalAmount) * 100}%` }}
-                      className="bg-blue-500 h-full"
-                      title="Open"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (Math.max(0, invoiceStats.pendingAmount - invoiceStats.overdueAmount) /
+                            invoiceStats.totalAmount) *
+                            100
+                        )}%`,
+                      }}
+                      className="bg-blue-500 h-full transition-all"
+                      title={`Open: ${formatIDR(Math.max(0, invoiceStats.pendingAmount - invoiceStats.overdueAmount))}`}
                     />
                     <div
-                      style={{ width: `${(invoiceStats.overdueAmount / invoiceStats.totalAmount) * 100}%` }}
-                      className="bg-rose-500 h-full"
-                      title="Overdue"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (invoiceStats.overdueAmount / invoiceStats.totalAmount) * 100
+                        )}%`,
+                      }}
+                      className="bg-rose-500 h-full transition-all"
+                      title={`Jatuh Tempo: ${formatIDR(invoiceStats.overdueAmount)}`}
                     />
                   </div>
                 </div>
@@ -823,11 +889,11 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {filteredInvoices.slice(0, 8).map((inv) => {
                   const todayStr = new Date().toISOString().slice(0, 10);
-                  const isOverdue =
-                    inv.status !== 'PAID' &&
-                    inv.status !== 'CANCELLED' &&
-                    inv.dueDate &&
-                    inv.dueDate < todayStr;
+                  const isPaid = isPaidInvoice(inv.status);
+                  const isCancelled = isCancelledInvoice(inv.status);
+                  const isDraft = isDraftInvoice(inv.status);
+                  const isOpen = isOpenInvoice(inv.status);
+                  const isOverdue = isOverdueInvoice(inv, todayStr);
 
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
@@ -844,17 +910,21 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
                         {inv.dueDate || '-'}
                       </td>
                       <td className="py-2.5 px-3">
-                        {inv.status === 'PAID' ? (
+                        {isPaid ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
                             <CheckCircle2 className="w-2.5 h-2.5" /> LUNAS
                           </span>
-                        ) : isOverdue || inv.status === 'OVERDUE' ? (
+                        ) : isOverdue ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">
                             <AlertTriangle className="w-2.5 h-2.5" /> JATUH TEMPO
                           </span>
-                        ) : inv.status === 'OPEN' ? (
+                        ) : isOpen ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800">
-                            <Clock className="w-2.5 h-2.5" /> OPEN
+                            <Clock className="w-2.5 h-2.5" /> TERKIRIM (OPEN)
+                          </span>
+                        ) : isCancelled ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600">
+                            DIBATALKAN
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
