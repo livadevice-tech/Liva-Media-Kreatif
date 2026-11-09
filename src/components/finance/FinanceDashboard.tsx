@@ -54,34 +54,34 @@ interface FinanceDashboardProps {
 const isPaidInvoice = (status?: string | null): boolean => {
   if (!status) return false;
   const s = status.trim().toLowerCase();
-  return s === 'paid' || s === 'lunas';
+  return s.includes('paid') || s.includes('lunas') || s.includes('dibayar');
 };
 
 const isCancelledInvoice = (status?: string | null): boolean => {
   if (!status) return false;
   const s = status.trim().toLowerCase();
-  return s === 'cancelled' || s === 'canceled' || s === 'dibatalkan';
+  return s.includes('cancel') || s.includes('batal');
 };
 
 const isDraftInvoice = (status?: string | null): boolean => {
   if (!status) return false;
   const s = status.trim().toLowerCase();
-  return s === 'draft';
+  return s.includes('draft');
 };
 
 const isOpenInvoice = (status?: string | null): boolean => {
-  if (!status) return false;
+  if (!status || isPaidInvoice(status) || isCancelledInvoice(status) || isDraftInvoice(status)) return false;
   const s = status.trim().toLowerCase();
-  return s === 'open invoice' || s === 'open';
+  return s.includes('open') || s.includes('terkirim') || s.includes('menunggu');
 };
 
 const isOverdueInvoice = (
   inv: { status?: string | null; dueDate?: string | null },
   todayStr: string
 ): boolean => {
-  if (isPaidInvoice(inv.status) || isCancelledInvoice(inv.status)) return false;
+  if (isPaidInvoice(inv.status) || isCancelledInvoice(inv.status) || isDraftInvoice(inv.status)) return false;
   const s = inv.status ? inv.status.trim().toLowerCase() : '';
-  if (s === 'overdue' || s === 'jatuh tempo') return true;
+  if (s.includes('overdue') || s.includes('tempo')) return true;
   return Boolean(inv.dueDate && inv.dueDate.slice(0, 10) < todayStr);
 };
 
