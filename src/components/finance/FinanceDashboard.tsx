@@ -92,7 +92,9 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
 }) => {
   // Tutup Buku / Cut-off closing day state
   const [closingDay, setClosingDay] = useState<number>(25);
-  const [filterMonth, setFilterMonth] = useState<string>('ALL');
+  const [filterMonth, setFilterMonth] = useState<string>(() => {
+    return determineClosingMonthForDate(new Date(), 25);
+  });
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
   const periodDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +102,15 @@ export const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
   useEffect(() => {
     settingsApi.get<InvoiceSettings | null>('mcn_invoice_settings').then((saved) => {
       if (saved && Object.keys(saved).length > 0) {
-        setClosingDay(Number(saved.closingDay) || 25);
+        const cDay = Number(saved.closingDay) || 25;
+        setClosingDay(cDay);
+        setFilterMonth((prev) => {
+          const initialDefault = determineClosingMonthForDate(new Date(), 25);
+          if (prev === initialDefault) {
+            return determineClosingMonthForDate(new Date(), cDay);
+          }
+          return prev;
+        });
       }
     }).catch(console.error);
   }, []);
