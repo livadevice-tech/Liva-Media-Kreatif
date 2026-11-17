@@ -1341,7 +1341,32 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: AttendanceLog[]) => AttendanceLog[])(prev)
           : action;
-      return next;
+
+      // Auto deduplicate: pastikan hanya satu data absen untuk host, tanggal, shift, brand, dan platform yang sama
+      const seen = new Set<string>();
+      const deduped: AttendanceLog[] = [];
+      const normalizeShiftStr = (s?: string) => (s || "").replace(/[:.]/g, ":").replace(/\s+/g, " ").trim().toLowerCase();
+      const normalizeStr = (s?: string) => (s || "").trim().toLowerCase();
+      const normalizeDateStr = (d?: string) => {
+        if (!d) return "";
+        return d.includes("T") ? d.split("T")[0] : d.split(" ")[0];
+      };
+
+      for (const item of next) {
+        const hKey = normalizeStr(item.hostName || item.hostId || "");
+        const dKey = normalizeDateStr(item.date);
+        const sKey = normalizeShiftStr(item.shiftHours || (item as any).shift || "");
+        const bKey = normalizeStr(item.brandHandled || (item as any).brand || "");
+        const pKey = normalizeStr(item.platform || "");
+
+        if (hKey && dKey && sKey && bKey && pKey) {
+          const key = `${hKey}|${dKey}|${sKey}|${bKey}|${pKey}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+        }
+        deduped.push(item);
+      }
+      return deduped;
     });
   }, []);
 
@@ -1949,6 +1974,7 @@ export default function App() {
     }
   }, [activeHostObj, studios]);
 
+  const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
   const [hostFormError, setHostFormError] = useState("");
   const [showLateAlert, setShowLateAlert] = useState(false);
   const [lateCheckInDetails, setLateCheckInDetails] = useState<{
@@ -1962,7 +1988,7 @@ export default function App() {
 
   const handleHostAttendanceSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!activeHostObj) return;
+    if (!activeHostObj || isSubmittingAttendance) return;
 
     if (
       !hostForm.brand ||
@@ -1989,18 +2015,33 @@ export default function App() {
     const exactCheckInTime = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
     const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
 
-    // Prevent double check-in for the same schedule
-    const alreadyCheckedIn = logs.find(
-      (log) =>
-        log.hostId === activeHostObj.id &&
-        log.date === todayDateStr &&
-        log.brandHandled === hostForm.brand &&
-        log.shiftHours === hostForm.shift &&
-        log.platform === hostForm.platform
-    );
+    // Prevent double check-in for the same schedule (nama host, tanggal, shift, brand, platform)
+    const normalizeShiftStr = (s?: string) => (s || "").replace(/[:.]/g, ":").replace(/\s+/g, " ").trim().toLowerCase();
+    const normalizeStr = (s?: string) => (s || "").trim().toLowerCase();
+    const normalizeDateStr = (d?: string) => {
+      if (!d) return "";
+      return d.includes("T") ? d.split("T")[0] : d.split(" ")[0];
+    };
+
+    const alreadyCheckedIn = logs.find((log) => {
+      const matchHost =
+        (log.hostId && log.hostId === activeHostObj.id) ||
+        (log.hostName && activeHostObj.name && normalizeStr(log.hostName) === normalizeStr(activeHostObj.name)) ||
+        (log.employeeId && activeHostObj.employeeId && normalizeStr(log.employeeId) === normalizeStr(activeHostObj.employeeId));
+
+      const matchDate = normalizeDateStr(log.date) === todayDateStr;
+      const matchShift = normalizeShiftStr(log.shiftHours) === normalizeShiftStr(hostForm.shift);
+      const matchBrand = normalizeStr(log.brandHandled) === normalizeStr(hostForm.brand);
+      const matchPlatform = normalizeStr(log.platform) === normalizeStr(hostForm.platform);
+
+      return matchHost && matchDate && matchShift && matchBrand && matchPlatform;
+    });
 
     if (alreadyCheckedIn) {
-      setHostFormError(`Kamu sebelumnya sudah absen di jam ${alreadyCheckedIn.checkInTime} untuk brand ${hostForm.brand} di shift ${hostForm.shift}`);
+      const timeInfo = alreadyCheckedIn.checkInTime ? ` pukul ${alreadyCheckedIn.checkInTime}` : "";
+      const msg = `Anda sudah absen! Data kehadiran untuk ${activeHostObj.name} dengan shift ${hostForm.shift}, brand ${hostForm.brand}, dan platform ${hostForm.platform} pada hari ini sudah tercatat${timeInfo}.`;
+      setHostFormError(msg);
+      customAlert(msg);
       return;
     }
 
@@ -2148,6 +2189,7 @@ export default function App() {
       proof_image: proofImageBase64 || hostForm.photo || undefined,
     };
 
+    setIsSubmittingAttendance(true);
     try {
       if (typeof logsApi !== "undefined" && logsApi.create) {
         await logsApi.create(newLog);
@@ -2171,10 +2213,18 @@ export default function App() {
         details: { brand: newLog.brandHandled, shift: newLog.shiftHours, status: newLog.status }
       }).catch(() => {});
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gagal menyimpan log:", error);
-      customAlert("Gagal menyimpan data absensi ke server.");
+      const errMsg = error?.message || "";
+      if (errMsg.toLowerCase().includes("sudah absen")) {
+        setHostFormError(errMsg);
+        customAlert(errMsg);
+      } else {
+        customAlert("Gagal menyimpan data absensi ke server: " + errMsg);
+      }
       return;
+    } finally {
+      setIsSubmittingAttendance(false);
     }
     
     addNotification(
@@ -4557,9 +4607,50 @@ export default function App() {
     customAlert(`Berhasil mengunduh file Excel: ${fileName}`);
   }, [filteredHostReportList, currentActiveCutoff, salaryRecapLocationTab, customAlert]);
 
+  // Deduplicate helper: pastikan jika ada data double dengan nama host, shift, brand, platform, dan tanggal yang sama hanya disimpan/ditampilkan satu
+  const deduplicatedLogs = useMemo(() => {
+    const seen = new Set<string>();
+    const uniqueList: AttendanceLog[] = [];
+
+    // Prioritaskan log yang memiliki foto/bukti kehadiran dan waktu check-in valid
+    const sorted = [...logs].sort((a, b) => {
+      const aPhoto = (a.proofUrl || (a as any).proof_url || a.proofImage || (a as any).proof_image) ? 1 : 0;
+      const bPhoto = (b.proofUrl || (b as any).proof_url || b.proofImage || (b as any).proof_image) ? 1 : 0;
+      if (aPhoto !== bPhoto) return bPhoto - aPhoto;
+      const timeA = a.checkInTime || "";
+      const timeB = b.checkInTime || "";
+      return timeA.localeCompare(timeB);
+    });
+
+    const normalizeShiftStr = (s?: string) => (s || "").replace(/[:.]/g, ":").replace(/\s+/g, " ").trim().toLowerCase();
+    const normalizeStr = (s?: string) => (s || "").trim().toLowerCase();
+    const normalizeDateStr = (d?: string) => {
+      if (!d) return "";
+      return d.includes("T") ? d.split("T")[0] : d.split(" ")[0];
+    };
+
+    for (const item of sorted) {
+      const hName = normalizeStr(item.hostName || item.hostId || "");
+      const dStr = normalizeDateStr(item.date || (typeof (item as any).timestamp === "string" ? (item as any).timestamp : ""));
+      const sStr = normalizeShiftStr(item.shiftHours || (item as any).shift || "");
+      const bStr = normalizeStr(item.brandHandled || (item as any).brand || "");
+      const pStr = normalizeStr(item.platform || "");
+
+      if (hName && dStr && sStr && bStr && pStr) {
+        const key = `${hName}|${dStr}|${sStr}|${bStr}|${pStr}`;
+        if (seen.has(key)) {
+          continue; // Lewati duplikat: hanya simpan satu
+        }
+        seen.add(key);
+      }
+      uniqueList.push(item);
+    }
+    return uniqueList;
+  }, [logs]);
+
   // Filtered logs list excluding status filter to provide proper counts on pills
   const dbActiveBaseLogs = useMemo(() => {
-    return logs.filter((item) => {
+    return deduplicatedLogs.filter((item) => {
       const globalSearchLower = (globalSearch || "").toLowerCase();
       const matchSearch =
         (item.hostName || "").toLowerCase().includes(globalSearchLower) ||
@@ -4571,7 +4662,8 @@ export default function App() {
         item.brandHandled === dbBrandFilter;
       const matchShift = 
         dbShiftFilter === "Semua Shift" ||
-        item.shift === dbShiftFilter;
+        item.shift === dbShiftFilter ||
+        item.shiftHours === dbShiftFilter;
 
       let matchDate = true;
       if (dbTabMode === "today") {
@@ -5883,6 +5975,7 @@ export default function App() {
           hostForm={hostForm}
           setHostForm={setHostForm}
           handleHostAttendanceSubmit={handleHostAttendanceSubmit}
+          isSubmittingAttendance={isSubmittingAttendance}
           hostFormError={hostFormError}
           setHostFormError={setHostFormError}
           showFormSuccess={showFormSuccess}
@@ -12328,7 +12421,7 @@ export default function App() {
                     {/* RAW LOGS LIST TABLE OR CALENDAR FOR OPERATORS */}
                     {dbTabMode === "calendar" ? (
                       <AttendanceCalendarView 
-                        logs={logs} 
+                        logs={deduplicatedLogs} 
                         hosts={hosts} 
                         clientBrands={clientBrands}
                         platforms={platforms}

@@ -314,6 +314,7 @@ interface HostDashboardProps {
   hostForm: any;
   setHostForm: React.Dispatch<React.SetStateAction<any>>;
   handleHostAttendanceSubmit: (e: React.FormEvent) => void;
+  isSubmittingAttendance?: boolean;
   hostFormError: string;
   setHostFormError: React.Dispatch<React.SetStateAction<string>>;
   showFormSuccess: boolean;
@@ -360,6 +361,7 @@ export default function HostDashboard({
   hostForm,
   setHostForm,
   handleHostAttendanceSubmit,
+  isSubmittingAttendance = false,
   hostFormError,
   setHostFormError,
   showFormSuccess,
@@ -3142,11 +3144,11 @@ export default function HostDashboard({
 
                   <button 
                     type="submit"
-                    disabled={isCompressingPhoto}
-                    className="w-full bg-blue-600 text-white font-bold rounded-2xl py-4 mt-6 shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    disabled={isCompressingPhoto || isSubmittingAttendance}
+                    className="w-full bg-blue-600 text-white font-bold rounded-2xl py-4 mt-6 shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Fingerprint className="w-5 h-5" />
-                    <span>Absen Sekarang</span>
+                    <span>{isSubmittingAttendance ? "Menyimpan Absensi..." : "Absen Sekarang"}</span>
                   </button>
                 </form>
               </div>

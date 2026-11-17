@@ -182,9 +182,15 @@ export const logsApi = {
   /** Hapus semua log berdasarkan array ID */
   deleteMany: (ids: string[]) => request<void>('POST', '/logs/delete-many', { ids }),
 
-  /** Helper functions for frontend bulk mutations (using Promise.all on single endpoints) */
+  /** Bersihkan data absensi duplikat di server */
+  deduplicate: () => request<{ success: boolean; deletedCount: number }>('POST', '/logs/deduplicate'),
+
+  /** Helper functions for frontend bulk mutations */
   createMany: async (logs: AttendanceLog[]) => {
-    return Promise.all(logs.map(log => logsApi.create(log)));
+    const results = await Promise.allSettled(logs.map(log => logsApi.create(log)));
+    return results
+      .filter((r): r is PromiseFulfilledResult<{ id: string }> => r.status === 'fulfilled')
+      .map(r => r.value);
   },
   updateMany: async (logs: AttendanceLog[]) => {
     return Promise.all(logs.map(log => logsApi.update(log.id, log)));

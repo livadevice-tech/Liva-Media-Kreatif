@@ -84,12 +84,18 @@ interface KpiAlertRow {
 function mapAttendanceLog(l: AttendanceLogRow) {
   const toNumber = (value: string | number | null | undefined) =>
     Number(value ?? 0);
+  const formatDateOnly = (d: any): string => {
+    if (!d) return '';
+    if (typeof d === 'string') return d.split('T')[0].split(' ')[0];
+    if (d instanceof Date) return d.toISOString().split('T')[0];
+    return String(d);
+  };
   return {
     id: l.id,
     hostId: l.host_id,
     hostName: l.host_name,
     employeeId: l.employee_id,
-    date: l.date,
+    date: formatDateOnly(l.date),
     shiftHours: l.shift_hours,
     platform: l.platform,
     brandHandled: l.brand_handled,
@@ -150,7 +156,65 @@ function mapAlert(a: KpiAlertRow) {
   };
 }
 
+export async function cleanDuplicateAttendanceLogs(): Promise<number> {
+  try {
+    const groups = await queryMany<{
+      host_id: string;
+      host_name: string;
+      date: string;
+      shift_hours: string;
+      brand_handled: string;
+      platform: string;
+      cnt: number;
+    }>(`
+      SELECT 
+        COALESCE(host_id, '') as host_id, 
+        COALESCE(host_name, '') as host_name, 
+        date, 
+        COALESCE(shift_hours, '') as shift_hours, 
+        COALESCE(brand_handled, '') as brand_handled, 
+        COALESCE(platform, '') as platform, 
+        COUNT(*) as cnt
+      FROM attendance_logs
+      WHERE date IS NOT NULL AND shift_hours IS NOT NULL AND brand_handled IS NOT NULL AND platform IS NOT NULL
+      GROUP BY host_id, host_name, date, shift_hours, brand_handled, platform
+      HAVING cnt > 1
+    `);
+
+    let totalDeleted = 0;
+    for (const g of groups) {
+      const rows = await queryMany<{ id: string }>(`
+        SELECT id
+        FROM attendance_logs
+        WHERE (host_id = ? OR (host_name IS NOT NULL AND LOWER(TRIM(host_name)) = LOWER(?)))
+          AND date = ? 
+          AND LOWER(TRIM(shift_hours)) = LOWER(?) 
+          AND LOWER(TRIM(brand_handled)) = LOWER(?) 
+          AND LOWER(TRIM(platform)) = LOWER(?)
+        ORDER BY (CASE WHEN (proof_url IS NOT NULL AND proof_url != '') OR (proof_image IS NOT NULL AND proof_image != '') THEN 0 ELSE 1 END) ASC, created_at ASC, id ASC
+      `, [g.host_id, g.host_name || g.host_id, g.date, g.shift_hours, g.brand_handled, g.platform]);
+
+      if (rows.length > 1) {
+        const removeIds = rows.slice(1).map((r) => r.id);
+        const placeholders = removeIds.map(() => '?').join(',');
+        await execute(`DELETE FROM attendance_logs WHERE id IN (${placeholders})`, removeIds);
+        totalDeleted += removeIds.length;
+      }
+    }
+
+    if (totalDeleted > 0) {
+      console.log(`🧹 [MySQL] Berhasil membersihkan ${totalDeleted} data absensi duplikat.`);
+    }
+    return totalDeleted;
+  } catch (err) {
+    console.error("Gagal melakukan pembersihan log duplikat:", err);
+    return 0;
+  }
+}
+
 export function registerOperationsRoutes(app: Express) {
+  // Jalankan pembersihan duplikasi otomatis di background saat boot
+  cleanDuplicateAttendanceLogs().catch((e) => console.warn("Pembersihan duplikat log gagal:", e));
   app.get("/api/logs", asyncHandler(async (req: Request, res: Response) => {
     const { dateFrom, dateTo } = req.query as Record<string, string>;
     const hostId = req.auth?.role === "host"
@@ -284,6 +348,46 @@ export function registerOperationsRoutes(app: Express) {
     if (req.auth?.role === "host" && l.hostId !== req.auth.subjectId) {
       return res.status(403).json({ error: "Host hanya dapat mengisi absensinya sendiri." });
     }
+
+    const logDate = l.date ? (typeof l.date === 'string' ? l.date.split('T')[0].split(' ')[0] : (l.date instanceof Date ? l.date.toISOString().split('T')[0] : String(l.date))) : null;
+    const shiftHours = (l.shiftHours || '').trim();
+    const brandHandled = (l.brandHandled || '').trim();
+    const platform = (l.platform || '').trim();
+    const hostId = l.hostId || '';
+    const hostName = (l.hostName || '').trim();
+
+    // Deteksi duplikasi absensi: host yang sama, hari/tanggal yang sama, shift, brand, dan platform yang sama
+    if (logDate && shiftHours && brandHandled && platform && (hostId || hostName)) {
+      const existing = await queryOne<AttendanceLogRow>(`
+        SELECT id, check_in_time, shift_hours, brand_handled, platform
+        FROM attendance_logs
+        WHERE (
+          (host_id = ? AND host_id != '') 
+          OR (host_name IS NOT NULL AND LOWER(TRIM(host_name)) = LOWER(?))
+        )
+        AND date = ?
+        AND LOWER(TRIM(shift_hours)) = LOWER(?)
+        AND LOWER(TRIM(brand_handled)) = LOWER(?)
+        AND LOWER(TRIM(platform)) = LOWER(?)
+        LIMIT 1
+      `, [
+        hostId,
+        hostName || hostId,
+        logDate,
+        shiftHours,
+        brandHandled,
+        platform
+      ]);
+
+      if (existing) {
+        return res.status(409).json({
+          error: `Anda sudah absen untuk shift ${shiftHours}, brand ${brandHandled}, platform ${platform} pada tanggal ini. Data kehadiran sudah tercatat.`,
+          alreadyCheckedIn: true,
+          id: existing.id
+        });
+      }
+    }
+
     const id = l.id || genId("log");
 
     let proofUrl = l.proofUrl || l.proof_url || null;
@@ -388,6 +492,11 @@ export function registerOperationsRoutes(app: Express) {
     const placeholders = ids.map(() => "?").join(", ");
     const result = await execute(`DELETE FROM attendance_logs WHERE id IN (${placeholders})`, ids);
     res.json({ success: true, deleted: result.affectedRows });
+  }));
+
+  app.post("/api/logs/deduplicate", asyncHandler(async (req: Request, res: Response) => {
+    const deletedCount = await cleanDuplicateAttendanceLogs();
+    res.json({ success: true, deletedCount });
   }));
 
   app.get("/api/schedules", asyncHandler(async (req: Request, res: Response) => {
