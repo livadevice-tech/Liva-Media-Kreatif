@@ -6008,7 +6008,13 @@ export default function App() {
           setHostCutoffPeriod={setHostCutoffPeriod}
           availableCutoffMonths={availableCutoffMonths}
           computedSchedules={computedSchedules}
-          violations={violations.filter(v => v.host_id === activeHostObj?.id)}
+          violations={violations.filter(
+            (v) =>
+              v.host_id === activeHostObj?.id ||
+              (v.host_name &&
+                activeHostObj?.name &&
+                v.host_name.trim().toLowerCase() === activeHostObj.name.trim().toLowerCase())
+          )}
           brandPerformanceLogs={brandPerformanceLogs}
           salarySettings={salarySettings}
           overtimes={overtimes}

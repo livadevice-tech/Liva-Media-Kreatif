@@ -199,3 +199,4 @@ test('deduplicates multiple duplicate attendance logs keeping only one', () => {
   assert.strictEqual(deduped[0].id, 'log-1'); // Keep first one with photo & earliest checkInTime
   assert.strictEqual(deduped[1].id, 'log-4'); // Shela
 });
+

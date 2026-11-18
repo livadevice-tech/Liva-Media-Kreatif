@@ -28,7 +28,10 @@ const upload = multer({
 export function registerViolationRoutes(app: Express) {
   // Get all violations or filtered by hostId
   app.get("/api/violations", asyncHandler(async (req: Request, res: Response) => {
-    const hostId = req.query.hostId ? String(req.query.hostId) : null;
+    let hostId = req.query.hostId ? String(req.query.hostId) : null;
+    if (req.auth?.role === "host") {
+      hostId = req.auth.subjectId;
+    }
     
     let query = `
       SELECT hv.*, h.name as host_name, cb.name as brand_name
@@ -45,10 +48,10 @@ export function registerViolationRoutes(app: Express) {
         FROM host_violations hv
         LEFT JOIN hosts h ON hv.host_id = h.id
         LEFT JOIN client_brands cb ON hv.brand_id = cb.id
-        WHERE hv.host_id = ?
+        WHERE hv.host_id = ? OR h.id = ?
         ORDER BY hv.created_at DESC
       `;
-      params = [hostId];
+      params = [hostId, hostId];
     }
     
     const rows = await queryMany(query, params);

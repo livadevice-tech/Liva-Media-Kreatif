@@ -14,3 +14,4 @@ INNER JOIN attendance_logs t2 ON t1.id != t2.id
       AND (t1.created_at > t2.created_at OR (t1.created_at = t2.created_at AND t1.id > t2.id))
     )
   );
+

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
-  CheckCircle2, AlertTriangle, ChevronDown, Clock,
+  CheckCircle2, AlertTriangle, AlertOctagon, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
   DollarSign, Package, ShoppingCart, Activity, Search, Check, CheckCheck,
   Smartphone, Sparkles, ShieldCheck, Download, Radio,
@@ -403,6 +403,7 @@ export default function HostDashboard({
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [isSlipGajiOpen, setIsSlipGajiOpen] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isViolationsModalOpen, setIsViolationsModalOpen] = useState(false);
   const [hostPhotoModal, setHostPhotoModal] = useState<{ url: string; brand: string; date: string; shift: string } | null>(null);
   const [hostPhotoImgError, setHostPhotoImgError] = useState(false);
   const [serverNotifications, setServerNotifications] = useState<any[]>([]);
@@ -1413,6 +1414,14 @@ export default function HostDashboard({
     return reports[0] || null;
   }, [activeHostObj, hostLogs, allHostLogs, salarySettings, activeSalaryCutoff, violations, overtimes]);
 
+  const hostViolationsList = useMemo(() => {
+    return (violations || []).slice().sort((a, b) => {
+      const dateA = a.violation_date || a.created_at || '';
+      const dateB = b.violation_date || b.created_at || '';
+      return dateB.localeCompare(dateA);
+    });
+  }, [violations]);
+
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
     const firstDayRaw = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
@@ -2059,7 +2068,7 @@ export default function HostDashboard({
           </div>
 
           {/* Quick Action: Ajukan Izin / Tukar Jadwal */}
-          <div className="mb-4">
+          <div className="mb-3">
             <button
               type="button"
               onClick={() => setIsRequestModalOpen(true)}
@@ -2080,6 +2089,61 @@ export default function HostDashboard({
               </div>
               <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
                 <ChevronRight size={14} className="text-white" />
+              </div>
+            </button>
+          </div>
+
+          {/* Quick Info: Catatan Pelanggaran Host */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setIsViolationsModalOpen(true)}
+              className={`w-full p-3 px-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-left group ${
+                hostViolationsList.length > 0
+                  ? 'bg-rose-50/80 border-rose-200/80 hover:bg-rose-100/70 shadow-xs'
+                  : 'bg-emerald-50/70 border-emerald-200/80 hover:bg-emerald-100/60'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs text-white ${
+                    hostViolationsList.length > 0
+                      ? 'bg-rose-500 shadow-rose-500/20'
+                      : 'bg-emerald-500 shadow-emerald-500/20'
+                  }`}
+                >
+                  {hostViolationsList.length > 0 ? (
+                    <AlertOctagon className="w-4 h-4" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-800">
+                      Catatan Pelanggaran
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                        hostViolationsList.length > 0
+                          ? 'bg-rose-200 text-rose-900'
+                          : 'bg-emerald-200 text-emerald-900'
+                      }`}
+                    >
+                      {hostViolationsList.length > 0
+                        ? `${hostViolationsList.length} Pelanggaran`
+                        : '0 Pelanggaran'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                    {hostViolationsList.length > 0
+                      ? 'Terdapat sanksi/teguran tercatat. Ketuk untuk rincian.'
+                      : 'Akun Anda bersih. Disiplin & kepatuhan sangat baik!'}
+                  </p>
+                </div>
+              </div>
+              <div className="w-7 h-7 rounded-xl bg-white/60 flex items-center justify-center text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all">
+                <ChevronRight size={14} />
               </div>
             </button>
           </div>
@@ -2733,6 +2797,68 @@ export default function HostDashboard({
                       </div>
                     </div>
                   )}
+
+                  {/* Catatan Pelanggaran Host */}
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 ${
+                          hostViolationsList.length > 0 ? 'bg-rose-500 shadow-rose-500/20' : 'bg-emerald-500 shadow-emerald-500/20'
+                        }`}>
+                          {hostViolationsList.length > 0 ? <AlertOctagon size={16} /> : <ShieldCheck size={16} />}
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-slate-800 block">Catatan Pelanggaran</span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {hostViolationsList.length > 0 ? `${hostViolationsList.length} pelanggaran tercatat` : '0 pelanggaran (Akun Bersih)'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsViolationsModalOpen(true)}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
+                      >
+                        Lihat Rincian
+                      </button>
+                    </div>
+
+                    {hostViolationsList.length > 0 ? (
+                      <div className="space-y-2 mt-0.5">
+                        {hostViolationsList.slice(0, 2).map((v: any, vIdx: number) => (
+                          <div key={v.id || vIdx} className="bg-white p-3 rounded-xl border border-rose-100 shadow-xs text-left">
+                            <div className="flex items-center justify-between text-[11px] mb-1">
+                              <span className="font-extrabold text-rose-700 truncate pr-2">{v.violation_type}</span>
+                              <span className="text-slate-400 font-semibold text-[10px] shrink-0">
+                                {v.violation_date || (v.created_at ? v.created_at.slice(0, 10) : '-')}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-medium">
+                              {v.brand_name ? `${v.brand_name} • ` : ''}{v.shift || '-'} • {v.platform || '-'}
+                            </div>
+                            {v.consequence && (
+                              <div className="text-[10px] font-medium text-amber-800 mt-1.5 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg">
+                                Akibat: {v.consequence}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {hostViolationsList.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsViolationsModalOpen(true)}
+                            className="w-full text-center text-[11px] font-bold text-slate-500 py-1 hover:text-blue-600 cursor-pointer"
+                          >
+                            Lihat {hostViolationsList.length - 2} catatan lainnya...
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 px-3 text-[11px] font-semibold text-emerald-700 bg-emerald-50/80 border border-emerald-100 rounded-xl">
+                        Status Disiplin Bersih: Tidak ada catatan pelanggaran.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="w-full max-w-sm flex flex-col gap-2.5">
@@ -3740,6 +3866,165 @@ export default function HostDashboard({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Rincian Catatan Pelanggaran Host */}
+      {isViolationsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
+          <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[88vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0 ${
+                    hostViolationsList.length > 0
+                      ? 'bg-rose-500 shadow-rose-500/20'
+                      : 'bg-emerald-500 shadow-emerald-500/20'
+                  }`}
+                >
+                  {hostViolationsList.length > 0 ? (
+                    <AlertOctagon size={20} />
+                  ) : (
+                    <ShieldCheck size={20} />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-800 leading-tight">
+                    Catatan Pelanggaran Host
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Riwayat sanksi, kedisiplinan & evaluasi live streaming
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsViolationsModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1 divide-y divide-slate-100">
+              {hostViolationsList.length === 0 ? (
+                <div className="text-center py-12 px-4 flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 shadow-xs">
+                    <ShieldCheck size={32} />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-800">
+                    Tidak Ada Catatan Pelanggaran
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-xs mt-1.5 leading-relaxed">
+                    Akun Anda bersih dari catatan pelanggaran, teguran sanksi, maupun penalti. Pertahankan performa live streaming Anda!
+                  </p>
+                </div>
+              ) : (
+                hostViolationsList.map((v: any, idx: number) => {
+                  const dateStr = v.violation_date
+                    ? new Date(v.violation_date).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : v.created_at
+                    ? new Date(v.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : '-';
+
+                  return (
+                    <div key={v.id || idx} className="pt-3.5 first:pt-0 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">
+                              Pelanggaran #{hostViolationsList.length - idx}
+                            </span>
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              {dateStr}
+                            </span>
+                          </div>
+                          <h5 className="text-sm font-extrabold text-slate-800 leading-snug">
+                            {v.violation_type}
+                          </h5>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs border border-slate-100">
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Brand
+                          </span>
+                          <span className="font-bold text-slate-700">
+                            {v.brand_name || v.brand_id || '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Shift & Platform
+                          </span>
+                          <span className="font-bold text-slate-700">
+                            {v.shift || '-'} • {v.platform || '-'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {v.consequence && (
+                        <div className="p-3 bg-amber-50 border border-amber-200/70 rounded-xl text-xs">
+                          <span className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-0.5">
+                            Sanksi / Konsekuensi
+                          </span>
+                          <span className="font-semibold text-amber-900 leading-relaxed block">
+                            {v.consequence}
+                          </span>
+                        </div>
+                      )}
+
+                      {v.proof_url && (
+                        <div className="pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHostPhotoModal({
+                                url: v.proof_url,
+                                brand: v.brand_name || 'Pelanggaran',
+                                date: v.violation_date || v.created_at || '',
+                                shift: v.shift || '',
+                              });
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <Image size={14} />
+                            <span>Lihat Bukti Foto / Tangkapan Layar</span>
+                            <ExternalLink size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500">
+                Total: <strong>{hostViolationsList.length}</strong> catatan pelanggaran
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsViolationsModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
