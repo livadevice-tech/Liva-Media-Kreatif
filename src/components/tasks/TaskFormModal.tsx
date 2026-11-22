@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Plus,
@@ -440,7 +441,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const progressPercent =
     checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[120] overflow-hidden font-sans">
       {/* 1. Backdrop Overlay (click to close) */}
       <div
@@ -1427,6 +1430,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           </div>
         </form>
       </aside>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Plus,
@@ -326,69 +327,78 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[150] bg-slate-50 font-sans flex flex-col w-full h-full overflow-hidden animate-fadeIn">
-      {/* Full Width Top Header */}
-      <div className="px-5 sm:px-8 py-3.5 sm:py-4 border-b border-slate-200/90 bg-white flex items-center justify-between shrink-0 shadow-2xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                Pengaturan Operasional
-              </span>
-              <span className="text-slate-300">•</span>
-              <p className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
-                <Database className="w-3.5 h-3.5 text-indigo-500" />
-                Database MySQL Realtime
-              </p>
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight mt-0.5">
-              Kustomisasi Status, Prioritas & Kategori Task
-            </h3>
-          </div>
-        </div>
+  if (typeof document === 'undefined') return null;
 
-        {/* Actions */}
-        <div className="flex items-center gap-2.5">
-          {savedBadge && (
-            <span className="hidden md:flex text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-fadeIn">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan ke Database
-            </span>
-          )}
-          {isSaving && (
-            <span className="hidden md:flex text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-pulse">
-              Menyimpan...
-            </span>
-          )}
-          {hasUnsavedChanges && !isSaving && (
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 md:p-8 animate-fadeIn font-sans overflow-y-auto"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden relative my-auto animate-scaleUp text-slate-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Top Header */}
+        <div className="px-5 sm:px-7 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                  Pengaturan Operasional
+                </span>
+                <span className="text-slate-300">•</span>
+                <p className="text-[11px] text-slate-500 font-bold flex items-center gap-1">
+                  <Database className="w-3.5 h-3.5 text-indigo-500" />
+                  Database MySQL Realtime
+                </p>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight mt-0.5">
+                Kustomisasi Status, Prioritas & Kategori Task
+              </h3>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {savedBadge && (
+              <span className="hidden sm:flex text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-fadeIn">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan ke Database
+              </span>
+            )}
+            {isSaving && (
+              <span className="hidden sm:flex text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl items-center gap-1.5 animate-pulse">
+                Menyimpan...
+              </span>
+            )}
+            {hasUnsavedChanges && !isSaving && (
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan Perubahan</span>
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={handleSaveAll}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+              onClick={handleClose}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold text-xs transition-all cursor-pointer border border-slate-200/80 bg-white shadow-2xs"
+              title="Tutup (Esc)"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Simpan Perubahan</span>
+              <X className="w-4 h-4 text-slate-500" />
+              <span className="hidden sm:inline">Tutup (Esc)</span>
             </button>
-          )}
-
-          <button
-            type="button"
-            onClick={handleClose}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold text-xs transition-all cursor-pointer border border-slate-200 bg-white shadow-2xs"
-            title="Tutup (Esc)"
-          >
-            <X className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Tutup (Esc)</span>
-          </button>
+          </div>
         </div>
-      </div>
 
-      {/* Tab Navigation (Pinned below header) */}
-      <div className="bg-white border-b border-slate-200/80 px-5 sm:px-8 shrink-0 flex items-center justify-between">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        {/* Tab Navigation (Pinned below header) */}
+        <div className="bg-white border-b border-slate-100 px-5 sm:px-7 shrink-0 flex items-center justify-between">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('status')}
@@ -429,7 +439,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
       </div>
 
       {/* Tab Content Body */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-8 bg-slate-50/60">
+      <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-7 bg-slate-50/60 custom-scrollbar">
         <div className="max-w-4xl mx-auto space-y-6 text-xs">
           {/* ================= TAB 1: STATUS ================= */}
           {activeTab === 'status' && (
@@ -936,8 +946,8 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
         </div>
       </div>
 
-      {/* Full Width Footer */}
-      <div className="px-5 sm:px-8 py-3.5 border-t border-slate-200/90 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs">
+      {/* Modal Footer */}
+      <div className="px-5 sm:px-7 py-3.5 border-t border-slate-100 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -978,5 +988,7 @@ export const TaskSettingsModal: React.FC<TaskSettingsModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>,
+  document.body
+);
 };
