@@ -77,10 +77,20 @@ export interface TaskFileLink {
   platform?: 'drive' | 'figma' | 'canva' | 'sheets' | 'docs' | 'general';
 }
 
+export interface TaskBriefAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  uploadedAt?: string;
+}
+
 export interface TaskItem {
   id: string;
   title: string;
   description?: string; // Detail brief
+  briefImages?: TaskBriefAttachment[]; // Attached images for brief
   status: TaskStatus;
   priority: TaskPriority;
   category?: string; // e.g. "Live Production", "Marketing", "Design", "QA", "Operasional"

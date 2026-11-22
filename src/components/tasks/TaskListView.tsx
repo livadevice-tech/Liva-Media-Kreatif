@@ -10,6 +10,7 @@ import {
   User,
   AlertCircle,
   MoreVertical,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -76,6 +77,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               const doneChecklist = task.checklist?.filter((c) => c.isDone).length || 0;
               const progress = totalChecklist > 0 ? Math.round((doneChecklist / totalChecklist) * 100) : 0;
               const totalFiles = task.fileLinks?.length || 0;
+              const totalBriefImages = task.briefImages?.length || 0;
 
               const isDone = statusMeta.isCompleted || task.status === 'done';
               const isOverdue = task.deadline && task.deadline < todayStr && !isDone;
@@ -198,23 +200,33 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                     )}
                   </td>
 
-                  {/* File Links */}
+                  {/* File & Brief Links */}
                   <td className="py-3 px-4">
-                    {totalFiles > 0 ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {task.fileLinks.slice(0, 2).map((link) => (
-                          <a
-                            key={link.id}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={link.title}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded transition-colors"
+                    {totalFiles > 0 || totalBriefImages > 0 ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {totalBriefImages > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded"
+                            title={`${totalBriefImages} gambar brief terlampir`}
                           >
-                            <Paperclip className="w-2.5 h-2.5" />
-                            <span className="truncate max-w-[70px]">{link.title}</span>
-                          </a>
-                        ))}
+                            <ImageIcon className="w-2.5 h-2.5 text-indigo-500" />
+                            <span>{totalBriefImages} foto</span>
+                          </span>
+                        )}
+                        {totalFiles > 0 &&
+                          task.fileLinks.slice(0, 2).map((link) => (
+                            <a
+                              key={link.id}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={link.title}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded transition-colors"
+                            >
+                              <Paperclip className="w-2.5 h-2.5" />
+                              <span className="truncate max-w-[70px]">{link.title}</span>
+                            </a>
+                          ))}
                         {totalFiles > 2 && (
                           <span className="text-[10px] font-bold text-slate-400">
                             +{totalFiles - 2}

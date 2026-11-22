@@ -27,6 +27,11 @@ import {
   Check,
   ChevronDown,
   UserPlus,
+  Image as ImageIcon,
+  ImagePlus,
+  UploadCloud,
+  Eye,
+  Loader2,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -34,6 +39,7 @@ import {
   TaskPriority,
   TaskChecklistItem,
   TaskFileLink,
+  TaskBriefAttachment,
   TaskCustomSettings,
   TASK_STATUS_CONFIG,
   TASK_PRIORITY_CONFIG,
@@ -108,6 +114,13 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [deadline, setDeadline] = useState('');
   const [selectedPICs, setSelectedPICs] = useState<string[]>([]);
   const [customPICInput, setCustomPICInput] = useState('');
+
+  // Brief Images Attachment States
+  const [briefImages, setBriefImages] = useState<TaskBriefAttachment[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isDraggingOverBrief, setIsDraggingOverBrief] = useState(false);
+  const [previewImageModal, setPreviewImageModal] = useState<{ url: string; name: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Custom Dropdown Open States
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -234,9 +247,18 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setSelectedPICs(initialTask.picNames || []);
       setChecklist(initialTask.checklist || []);
       setFileLinks(initialTask.fileLinks || []);
+      // Load briefImages with backward-compatibility for string URLs
+      const loadedImages: TaskBriefAttachment[] = (initialTask.briefImages || []).map((img, idx) => {
+        if (typeof img === 'string') {
+          return { id: `img-${idx}`, name: `Gambar Brief ${idx + 1}`, url: img };
+        }
+        return img;
+      });
+      setBriefImages(loadedImages);
     } else {
       setTitle('');
       setDescription('');
+      setBriefImages([]);
       setStatus(defaultStatus);
       setPriority('moderate');
       setCategory('Live Production');
@@ -413,6 +435,104 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setCustomPICInput('');
   };
 
+  const handleUploadImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Hanya file gambar (PNG, JPG, JPEG, WEBP, GIF) yang didukung.');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Ukuran file gambar maksimal 15MB.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/tasks/upload-brief-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const newAttachment: TaskBriefAttachment = {
+          id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          name: data.name || file.name,
+          url: data.url,
+          size: data.size || file.size,
+          type: data.type || file.type,
+          uploadedAt: new Date().toISOString(),
+        };
+        setBriefImages((prev) => [...prev, newAttachment]);
+      } else {
+        // Fallback to FileReader Base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64Url = e.target?.result as string;
+          if (base64Url) {
+            const newAttachment: TaskBriefAttachment = {
+              id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              name: file.name,
+              url: base64Url,
+              size: file.size,
+              type: file.type,
+              uploadedAt: new Date().toISOString(),
+            };
+            setBriefImages((prev) => [...prev, newAttachment]);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      // Offline fallback to FileReader Base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Url = e.target?.result as string;
+        if (base64Url) {
+          const newAttachment: TaskBriefAttachment = {
+            id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            name: file.name,
+            url: base64Url,
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString(),
+          };
+          setBriefImages((prev) => [...prev, newAttachment]);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleMultipleFiles = async (files: FileList | File[]) => {
+    for (let i = 0; i < files.length; i++) {
+      await handleUploadImageFile(files[i]);
+    }
+  };
+
+  const handlePasteOnDescription = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleUploadImageFile(file);
+        }
+      }
+    }
+  };
+
+  const handleDeleteBriefImage = (id: string) => {
+    setBriefImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -421,6 +541,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       id: initialTask?.id || `task-${Date.now()}`,
       title: title.trim(),
       description: description.trim(),
+      briefImages,
       status,
       priority,
       category: category.trim() || 'Umum',
@@ -1210,18 +1331,164 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             </div>
           </div>
 
-          {/* Detail Brief / Description */}
-          <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-400" /> Detail Brief & Catatan Task
-            </label>
-            <textarea
-              rows={4}
-              placeholder="Tuliskan instruksi detail, poin-poin brief siaran, target pencapaian, atau catatan teknis di sini..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400 leading-relaxed"
-            />
+          {/* Detail Brief / Description & Gambar Brief */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-400" /> Detail Brief & Catatan Task
+                {briefImages.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">
+                    {briefImages.length} gambar
+                  </span>
+                )}
+              </label>
+
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleMultipleFiles(e.target.files);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingImage}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 transition-colors border border-indigo-200/80 cursor-pointer disabled:opacity-50"
+                  title="Lampirkan tangkapan layar atau file gambar brief"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengunggah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      <span>+ Lampirkan Gambar Brief</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div
+              className={`relative rounded-xl border transition-all ${
+                isDraggingOverBrief
+                  ? 'border-indigo-500 bg-indigo-50/40 ring-2 ring-indigo-200'
+                  : 'border-slate-200 bg-slate-50/50 focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100'
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingOverBrief(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDraggingOverBrief(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingOverBrief(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleMultipleFiles(e.dataTransfer.files);
+                }
+              }}
+            >
+              <textarea
+                rows={4}
+                placeholder="Tuliskan instruksi detail, poin-poin brief siaran, target pencapaian, atau catatan teknis di sini... (Bisa paste gambar langsung dengan Ctrl+V / Cmd+V atau drag & drop)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onPaste={handlePasteOnDescription}
+                className="w-full px-3.5 py-2.5 bg-transparent text-xs font-medium text-slate-800 focus:outline-none placeholder:text-slate-400 leading-relaxed resize-y"
+              />
+
+              {isDraggingOverBrief && (
+                <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[1px] border-2 border-dashed border-indigo-500 rounded-xl flex items-center justify-center pointer-events-none">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white shadow-md text-indigo-700 text-xs font-bold">
+                    <UploadCloud className="w-4 h-4 animate-bounce" />
+                    Lepaskan file gambar di sini untuk melampirkan ke brief
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
+              <span>💡 Tip: Paste gambar langsung (Ctrl+V / Cmd+V), drag-and-drop, atau klik tombol Lampirkan Gambar.</span>
+            </div>
+
+            {/* Attached Brief Images Grid */}
+            {briefImages.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Gambar Brief Terlampir ({briefImages.length})
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {briefImages.map((img, idx) => (
+                    <div
+                      key={img.id || `img-${idx}`}
+                      className="group relative rounded-xl border border-slate-200 overflow-hidden bg-slate-900/5 shadow-sm hover:shadow transition-all"
+                    >
+                      <div
+                        onClick={() => setPreviewImageModal({ url: img.url, name: img.name })}
+                        className="cursor-pointer relative aspect-video w-full overflow-hidden bg-slate-100 flex items-center justify-center"
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.name || `Gambar Brief ${idx + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-white/90 text-slate-800 hover:bg-white shadow">
+                            <Eye className="w-4 h-4" />
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2 bg-white flex items-center justify-between gap-1.5 border-t border-slate-100">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-semibold text-slate-700 truncate" title={img.name}>
+                            {img.name || `Gambar ${idx + 1}`}
+                          </p>
+                          {img.size ? (
+                            <p className="text-[9px] text-slate-400">
+                              {(img.size / 1024).toFixed(0)} KB
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <a
+                            href={img.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                            title="Buka gambar di tab baru"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBriefImage(img.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus gambar brief"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* To-Do List (Subtask Checklist) */}
@@ -1430,6 +1697,54 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           </div>
         </form>
       </aside>
+
+      {/* Lightbox Preview Modal for Brief Image */}
+      {previewImageModal && (
+        <div
+          className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6"
+          onClick={() => setPreviewImageModal(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full flex flex-col bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-900/90 border-b border-white/10 text-white">
+              <div className="flex items-center gap-2 min-w-0">
+                <ImageIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-xs font-bold truncate">{previewImageModal.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewImageModal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors flex items-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Tab Baru</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImageModal(null)}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-rose-600 text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Image display */}
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950/60 min-h-[300px]">
+              <img
+                src={previewImageModal.url}
+                alt={previewImageModal.name}
+                className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );

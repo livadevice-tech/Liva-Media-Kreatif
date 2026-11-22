@@ -25,6 +25,27 @@ const uploadAttendance = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Setup Multer Storage for Task Brief Attachments
+const taskBriefStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), 'uploads', 'tasks');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname || '.jpg') || '.jpg';
+    cb(null, 'brief-' + uniqueSuffix + ext);
+  }
+});
+
+const uploadTaskBrief = multer({
+  storage: taskBriefStorage,
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
+});
+
 interface AttendanceLogRow {
   id: string;
   host_id: string;
@@ -341,6 +362,40 @@ export function registerOperationsRoutes(app: Express) {
     }
 
     return res.status(404).send("File foto bukti absensi tidak ditemukan di server.");
+  }));
+
+  // Upload brief image attachment for task management
+  app.post("/api/tasks/upload-brief-image", uploadTaskBrief.single("image"), asyncHandler(async (req: Request, res: Response) => {
+    if (req.file) {
+      const url = `/uploads/tasks/${req.file.filename}`;
+      return res.json({
+        success: true,
+        url,
+        name: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype,
+      });
+    }
+
+    if (req.body && req.body.imageBase64) {
+      const base64Data = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const dir = path.join(process.cwd(), 'uploads', 'tasks');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const filename = `brief-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
+      fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
+      const url = `/uploads/tasks/${filename}`;
+      return res.json({
+        success: true,
+        url,
+        name: req.body.name || filename,
+        size: Buffer.byteLength(base64Data, 'base64'),
+        type: 'image/jpeg',
+      });
+    }
+
+    return res.status(400).json({ error: "File gambar brief tidak ditemukan." });
   }));
 
   app.post("/api/logs", asyncHandler(async (req: Request, res: Response) => {

@@ -12,6 +12,7 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -144,6 +145,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                   const doneChecklist = task.checklist?.filter((c) => c.isDone).length || 0;
                   const progress = totalChecklist > 0 ? Math.round((doneChecklist / totalChecklist) * 100) : 0;
                   const totalFiles = task.fileLinks?.length || 0;
+                  const totalBriefImages = task.briefImages?.length || 0;
                   const isMenuOpen = activeMenuTaskId === task.id;
 
                   // Deadline check
@@ -243,6 +245,23 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                         );
                       })()}
 
+                      {/* Attached Cover Brief Image */}
+                      {totalBriefImages > 0 && (
+                        <div className="mb-2 relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200/70 h-28">
+                          <img
+                            src={typeof task.briefImages![0] === 'string' ? task.briefImages![0] : task.briefImages![0].url}
+                            alt="Brief Cover"
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {totalBriefImages > 1 && (
+                            <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold">
+                              +{totalBriefImages - 1} foto
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {/* Task Title */}
                       <h4 className="text-xs font-black text-slate-800 leading-snug mb-1.5 line-clamp-2">
                         {task.title}
@@ -303,6 +322,12 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                             <span className="flex items-center gap-1 font-bold text-slate-600" title="File attachment links">
                               <Paperclip className="w-3 h-3 text-slate-400" />
                               {totalFiles}
+                            </span>
+                          )}
+                          {totalBriefImages > 0 && (
+                            <span className="flex items-center gap-1 font-bold text-indigo-600" title="Gambar brief terlampir">
+                              <ImageIcon className="w-3 h-3 text-indigo-500" />
+                              {totalBriefImages}
                             </span>
                           )}
                         </div>
