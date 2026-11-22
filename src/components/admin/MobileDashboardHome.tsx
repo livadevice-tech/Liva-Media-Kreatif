@@ -8,6 +8,8 @@ type MobileDashboardHomeProps = {
   clientBrands: any[];
   schedules: any[];
   studios: any[];
+  logs?: any[];
+  violations?: any[];
   loggedInAdminName?: string;
   avatarUrl?: string; // Optional avatar
   onNavigate?: (tabId: string) => void;
@@ -25,6 +27,8 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
   clientBrands,
   schedules,
   studios,
+  logs = [],
+  violations = [],
   loggedInAdminName,
   avatarUrl,
   onNavigate,

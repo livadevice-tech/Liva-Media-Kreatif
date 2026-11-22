@@ -7173,6 +7173,8 @@ export default function App() {
                         clientBrands={clientBrands}
                         schedules={schedules}
                         studios={studios}
+                        logs={logs}
+                        violations={violations}
                         loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"}
                         adminNavItems={adminNavItems}
                         onNavigate={(tabId) => {
@@ -7185,6 +7187,8 @@ export default function App() {
                         clientBrands={clientBrands}
                         schedules={schedules}
                         studios={studios}
+                        logs={logs}
+                        violations={violations}
                         loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"}
                         onNavigate={(tabId) => {
                           setOperatorTab(tabId);
@@ -10603,9 +10607,7 @@ export default function App() {
                               <th className="py-4 px-6 align-middle text-right w-48">
                                 <div className="flex flex-col gap-1.5 items-end">
                                   <button
-                                    onClick={() =>
-                                      toggleSalarySort("netSalary")
-                                    }
+                                    onClick={() => toggleSalarySort("netSalary")}
                                     className="flex items-center justify-end gap-1.5 hover:text-violet-700 text-right uppercase text-[11px] font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Gaji Bersih</span>

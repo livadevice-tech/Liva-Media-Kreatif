@@ -42,3 +42,4 @@ test('admin plain_password fallback and preservation', () => {
   assert.equal(adminDto.password, 'RahasiaAdmin2026');
   assert.equal(adminDto.hasPassword, true);
 });
+
