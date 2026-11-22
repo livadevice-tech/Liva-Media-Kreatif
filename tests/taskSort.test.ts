@@ -83,3 +83,4 @@ test('task sorting by progress asc and desc works properly', () => {
   assert.equal(sortedDesc[1].id, '1'); // 50%
   assert.equal(sortedDesc[2].id, '3'); // 0%
 });
+

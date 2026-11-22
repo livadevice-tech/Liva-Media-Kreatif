@@ -767,6 +767,14 @@ export default function App() {
     "All" | "Present" | "Late" | "Absent" | "Excused"
   >("All");
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const [hoveredSidebarItem, setHoveredSidebarItem] = useState<{
+    tabId: string;
+    label: string;
+    categoryLabel?: string;
+    badgeCount?: number;
+    isActive: boolean;
+    top: number;
+  } | null>(null);
   const [isClientSidebarVisible, setIsClientSidebarVisible] =
     useState<boolean>(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
@@ -6685,6 +6693,9 @@ export default function App() {
             />
             {/* 1. LEFT VERTICAL SIDEBAR (PREMIUM GLASSMORPHISM & COLLAPSIBLE ICON RAIL) */}
             <aside
+              onMouseLeave={() => {
+                if (!isSidebarVisible) setHoveredSidebarItem(null);
+              }}
               className={`hidden md:flex transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${
                 isSidebarVisible ? "w-[260px] p-5" : "w-[72px] p-3"
               } flex-shrink-0 bg-white/80 backdrop-blur-2xl border-r border-slate-200/80 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-col justify-between sticky top-0 h-screen font-sans z-50`}
@@ -6692,7 +6703,24 @@ export default function App() {
             >
               <div className="flex flex-col flex-1 overflow-hidden pb-4">
                 {/* Logo & Header */}
-                <div className={`py-3 mb-3 border-b border-slate-100 flex items-center ${isSidebarVisible ? "px-2 gap-3" : "justify-center px-0"} flex-shrink-0 transition-all`}>
+                <div
+                  onMouseEnter={(e) => {
+                    if (!isSidebarVisible) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setHoveredSidebarItem({
+                        tabId: "logo",
+                        label: "Liva Agency (Operator)",
+                        categoryLabel: "Aplikasi",
+                        isActive: false,
+                        top: rect.top + rect.height / 2,
+                      });
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (!isSidebarVisible) setHoveredSidebarItem(null);
+                  }}
+                  className={`py-3 mb-3 border-b border-slate-100 flex items-center ${isSidebarVisible ? "px-2 gap-3" : "justify-center px-0 cursor-pointer"} flex-shrink-0 transition-all`}
+                >
                   {agencyLogoUrl ? (
                     <img
                       src={agencyLogoUrl}
@@ -6717,7 +6745,13 @@ export default function App() {
                 </div>
 
                 {/* Nav Items */}
-                <nav className={`space-y-1.5 flex-1 overflow-y-auto ${isSidebarVisible ? "pr-1 custom-scrollbar" : "overflow-x-hidden scrollbar-hide"}`} id="sidebar_nav">
+                <nav
+                  onScroll={() => {
+                    if (hoveredSidebarItem) setHoveredSidebarItem(null);
+                  }}
+                  className={`space-y-1.5 flex-1 overflow-y-auto ${isSidebarVisible ? "pr-1 custom-scrollbar" : "overflow-x-hidden scrollbar-hide"}`}
+                  id="sidebar_nav"
+                >
                   {adminNavItems.map((item, index) => {
                     if (item.type === "header") {
                       if (!isSidebarVisible) {
@@ -6763,8 +6797,29 @@ export default function App() {
                         onClick={() => {
                           if (item.tabId) setOperatorTab(item.tabId);
                           setSelectedLogIds([]);
+                          setHoveredSidebarItem(null);
                         }}
-                        title={!isSidebarVisible ? item.label : undefined}
+                        onMouseEnter={(e) => {
+                          if (!isSidebarVisible) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const parentHeader = adminNavItems.find(
+                              (h) => h.type === "header" && h.key === item.category
+                            );
+                            setHoveredSidebarItem({
+                              tabId: item.tabId || "",
+                              label: item.label,
+                              categoryLabel: parentHeader?.label,
+                              badgeCount: item.badgeCount,
+                              isActive,
+                              top: rect.top + rect.height / 2,
+                            });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (!isSidebarVisible) {
+                            setHoveredSidebarItem(null);
+                          }
+                        }}
                         className={`w-full flex items-center ${
                           isSidebarVisible ? "justify-between px-3.5 py-2.5" : "justify-center p-2.5"
                         } rounded-xl text-xs font-bold transition-all duration-200 relative group cursor-pointer border-0 text-left overflow-hidden ${
@@ -6816,7 +6871,24 @@ export default function App() {
                 className="border-t border-slate-100 pt-3 mt-1 flex-shrink-0"
                 id="sidebar_operator_profile"
               >
-                <div className={`flex items-center ${isSidebarVisible ? "justify-between p-2" : "justify-center p-1.5"} rounded-xl bg-slate-50 border border-slate-200/60`}>
+                <div
+                  onMouseEnter={(e) => {
+                    if (!isSidebarVisible) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setHoveredSidebarItem({
+                        tabId: "profile",
+                        label: "Agency Operator",
+                        categoryLabel: "Profil Aktif",
+                        isActive: false,
+                        top: rect.top + rect.height / 2,
+                      });
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (!isSidebarVisible) setHoveredSidebarItem(null);
+                  }}
+                  className={`flex items-center ${isSidebarVisible ? "justify-between p-2" : "justify-center p-1.5 cursor-pointer"} rounded-xl bg-slate-50 border border-slate-200/60 transition-colors hover:border-indigo-200`}
+                >
                   <div className="flex items-center gap-2">
                     <div className="relative shrink-0">
                       <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center font-black text-indigo-700 text-xs">
@@ -6847,6 +6919,51 @@ export default function App() {
                 </div>
               </div>
             </aside>
+
+            {/* FLOATING ANIMATED MENU NAME COVER WHEN SIDEBAR IS COLLAPSED */}
+            {!isSidebarVisible && hoveredSidebarItem && (
+              <div
+                className="fixed z-[9999] pointer-events-none transition-all duration-150 ease-out"
+                style={{
+                  left: "76px",
+                  top: `${hoveredSidebarItem.top}px`,
+                  transform: "translateY(-50%)",
+                }}
+              >
+                <div className="relative animate-fadeIn flex items-center">
+                  {/* Pointer Triangle Arrow pointing left */}
+                  <div className="w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-slate-700/60 -mr-1 z-20 shrink-0" />
+
+                  {/* Tooltip Content Card */}
+                  <div className="bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-xl shadow-2xl shadow-slate-950/40 border border-slate-700/60 flex items-center gap-2.5 whitespace-nowrap z-10">
+                    <div className="flex flex-col">
+                      {hoveredSidebarItem.categoryLabel && (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 leading-tight">
+                          {hoveredSidebarItem.categoryLabel}
+                        </span>
+                      )}
+                      <span className="text-xs font-black tracking-wide text-white leading-tight mt-0.5">
+                        {hoveredSidebarItem.label}
+                      </span>
+                    </div>
+
+                    {/* Badge count if exists */}
+                    {hoveredSidebarItem.badgeCount !== undefined && hoveredSidebarItem.badgeCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black font-mono shadow-xs shrink-0">
+                        {hoveredSidebarItem.badgeCount}
+                      </span>
+                    )}
+
+                    {/* Active Pill Indicator */}
+                    {hoveredSidebarItem.isActive && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/30 text-indigo-300 border border-indigo-400/30 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                        Aktif
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 2. RIGHT WORKSPACE CONTENT */}
             <div
