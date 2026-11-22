@@ -12,10 +12,18 @@ import {
   Check,
   Building2,
   Book,
+  Search,
+  Bell,
+  TrendingUp,
+  Target,
+  Sparkles,
+  Users,
+  Briefcase,
+  Layers,
 } from "lucide-react";
 import { getCutoffMonthForDate } from "../../shared/utils/appUi";
 import { loadTasksFromStorage } from "../tasks/taskStorage";
-import { TaskItem, TaskPriority } from "../tasks/types";
+import { TaskItem } from "../tasks/types";
 
 interface DesktopDashboardHomeProps {
   hosts: any[];
@@ -101,10 +109,11 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
     };
   }, []);
 
-  // Active sub-tabs
+  // Filter tabs
   const [latePeriodTab, setLatePeriodTab] = useState<"today" | "week" | "cutoff">("today");
   const [taskPeriodTab, setTaskPeriodTab] = useState<"today" | "week">("today");
   const [scheduleFilterTab, setScheduleFilterTab] = useState<"all" | "active">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Date constants
   const todayStr = useMemo(() => {
@@ -136,7 +145,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
   }, [clientBrands]);
 
   // =========================================================================
-  // 1. JADWAL HOST PALING DEKAT DENGAN JAM TERKINI
+  // 1. JADWAL HOST (SORTED NEAREST TO CURRENT TIME)
   // =========================================================================
   const currentMinutesFromMidnight = currentTime.getHours() * 60 + currentTime.getMinutes();
 
@@ -170,11 +179,11 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
         const diff = parsed.startMinutes - currentMinutesFromMidnight;
         sortScore = 1000 + diff;
         if (diff < 60) {
-          remainingText = `Mulai dlm ${diff}m`;
+          remainingText = `Mulai ${diff}m`;
         } else {
           const h = Math.floor(diff / 60);
           const m = diff % 60;
-          remainingText = `Mulai dlm ${h}j ${m > 0 ? `${m}m` : ""}`;
+          remainingText = `Mulai ${h}j ${m > 0 ? `${m}m` : ""}`;
         }
       } else {
         const passed = currentMinutesFromMidnight - parsed.endMinutes;
@@ -204,19 +213,28 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
   }, [schedules, todayStr, currentMinutesFromMidnight, hosts, clientBrands, studios]);
 
   const displayedSchedules = useMemo(() => {
+    let list = sortedNearestSchedules;
     if (scheduleFilterTab === "active") {
-      return sortedNearestSchedules.filter((s) => s.isLive || s.isUpcoming);
+      list = list.filter((s) => s.isLive || s.isUpcoming);
     }
-    return sortedNearestSchedules;
-  }, [sortedNearestSchedules, scheduleFilterTab]);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.hostName?.toLowerCase().includes(q) ||
+          s.brandName?.toLowerCase().includes(q) ||
+          s.studioName?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [sortedNearestSchedules, scheduleFilterTab, searchQuery]);
 
-  // Quick stats for sessions
+  // Session counters
   const liveCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isLive).length, [sortedNearestSchedules]);
   const upcomingCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isUpcoming).length, [sortedNearestSchedules]);
-  const finishedCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isFinished).length, [sortedNearestSchedules]);
 
   // =========================================================================
-  // 2. PERFORMA HOST: KETERLAMBATAN HARI INI, MINGGU INI & CUT-OFF
+  // 2. KETERLAMBATAN & PERFORMA KEHADIRAN (DONUT CHART DATA)
   // =========================================================================
   const { todayLateLogs, weekLateLogs, cutoffLateLogs, todayTotal, weekTotal, cutoffTotal } = useMemo(() => {
     const todayLogs = logs.filter((l) => l.date === todayStr);
@@ -241,8 +259,63 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
     return cutoffLateLogs;
   }, [latePeriodTab, todayLateLogs, weekLateLogs, cutoffLateLogs]);
 
+  const { activePunctualityRate, activeOnTimeCount, activeLateCount, activeTotalCount } = useMemo(() => {
+    const total = latePeriodTab === "today" ? todayTotal : latePeriodTab === "week" ? weekTotal : cutoffTotal;
+    const late = currentLateLogsList.length;
+    const onTime = Math.max(0, total - late);
+    const rate = total === 0 ? 100 : Math.round((onTime / total) * 100);
+    return {
+      activePunctualityRate: rate,
+      activeOnTimeCount: onTime,
+      activeLateCount: late,
+      activeTotalCount: total,
+    };
+  }, [latePeriodTab, todayTotal, weekTotal, cutoffTotal, currentLateLogsList]);
+
+  // Donut chart stroke calculation (radius = 54, circumference ~339.29)
+  const donutRadius = 54;
+  const donutCircumference = 2 * Math.PI * donutRadius;
+  const donutOnTimeOffset = donutCircumference - (donutCircumference * activePunctualityRate) / 100;
+
   // =========================================================================
-  // 3. TASK HARI INI & TASK MINGGU INI
+  // 3. TREN KEHADIRAN 7 HARI MINGGU INI (LINE / SPARKLINE CHART DATA)
+  // =========================================================================
+  const weeklyTrendData = useMemo(() => {
+    const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+    const mon = new Date(currentTime);
+    const day = mon.getDay();
+    const diffToMon = (day === 0 ? -6 : 1) - day;
+    mon.setDate(mon.getDate() + diffToMon);
+
+    return days.map((dayLabel, index) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + index);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+      const dayLogs = logs.filter((l) => l.date === dateStr);
+      const lateCount = dayLogs.filter((l) => l.status === "Late" || String(l.status).toLowerCase() === "late").length;
+      const totalCount = dayLogs.length;
+
+      let punctualityRate = 100;
+      if (totalCount > 0) {
+        punctualityRate = Math.round(((totalCount - lateCount) / totalCount) * 100);
+      } else {
+        punctualityRate = d > currentTime ? 0 : 100;
+      }
+
+      return {
+        day: dayLabel,
+        date: dateStr,
+        total: totalCount,
+        late: lateCount,
+        rate: punctualityRate,
+        isFuture: d > currentTime,
+      };
+    });
+  }, [currentTime, logs]);
+
+  // =========================================================================
+  // 4. TASK OPERASIONAL
   // =========================================================================
   const { todayTasks, weekTasks, activeTasksTotal } = useMemo(() => {
     const todayList = tasks.filter((t) => {
@@ -267,6 +340,13 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
 
   const currentTasksList = taskPeriodTab === "today" ? todayTasks : weekTasks;
 
+  const taskCompletionRate = useMemo(() => {
+    const total = tasks.length;
+    if (total === 0) return 0;
+    const done = tasks.filter((t) => t.status === "done").length;
+    return Math.round((done / total) * 100);
+  }, [tasks]);
+
   const greetingTime =
     currentTime.getHours() < 12
       ? "Selamat Pagi"
@@ -279,45 +359,53 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
   return (
     <div className="hidden md:block bg-[#f8f9fc] min-h-screen pb-16 w-full animate-fadeIn font-sans text-slate-800">
       {/* ========================================================================= */}
-      {/* HEADER SECTION (CLEAN & MINIMALIST) */}
+      {/* HEADER SECTION (CLEAN & MINIMALIST WITHOUT EMOTICONS) */}
       {/* ========================================================================= */}
       <div className="flex justify-between items-center mb-6 pt-2 px-1">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50/80 border border-indigo-100 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live Operator Dashboard
+              Live Operator
             </span>
             <span className="text-xs font-semibold text-slate-400">
               • {currentTime.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            {greetingTime}, {loggedInAdminName || "Master Admin"} <span>👋</span>
+            <span>{greetingTime},</span>
+            <span className="text-indigo-600">{loggedInAdminName || "Master Admin"}</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Monitoring performa siaran host, absensi keterlambatan, dan task operasional tim.
-          </p>
         </div>
 
-        {/* Live Clock Badge */}
-        <div className="flex items-center gap-2.5 bg-white border border-slate-200/80 rounded-2xl px-4 py-2 shadow-2xs">
-          <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            <Clock className="w-3.5 h-3.5" />
+        {/* Right Header Actions */}
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari host, brand, studio..."
+              className="pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all shadow-3xs w-60"
+            />
           </div>
-          <div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block leading-tight">
-              Jam Terkini
-            </span>
-            <span className="text-xs font-black text-slate-800 font-mono leading-none">
+
+          <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-2xl px-3.5 py-2 shadow-3xs">
+            <Clock className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-black text-slate-800 font-mono">
               {currentTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
             </span>
+          </div>
+
+          <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+            {(loggedInAdminName || "M").charAt(0).toUpperCase()}
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 4 TOP KPI CARDS */}
+      {/* 4 TOP KPI CARDS (CLEAN & BALANCED) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-4 gap-4 mb-6 px-1">
         {/* Card 1: Total Host */}
@@ -325,10 +413,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           onClick={() => onNavigate && onNavigate("credentials")}
           className="bg-white rounded-2xl p-4.5 border border-slate-200/70 shadow-2xs flex flex-col justify-between cursor-pointer hover:border-indigo-300 hover:shadow-xs transition-all active:scale-[0.99] group"
         >
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Host</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Host Aktif</h3>
             <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Book className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
@@ -344,10 +432,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           onClick={() => onNavigate && onNavigate("data_brand")}
           className="bg-white rounded-2xl p-4.5 border border-slate-200/70 shadow-2xs flex flex-col justify-between cursor-pointer hover:border-purple-300 hover:shadow-xs transition-all active:scale-[0.99] group"
         >
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Brand Aktif</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Brand</h3>
             <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Calendar className="w-3.5 h-3.5" />
+              <Briefcase className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
@@ -363,10 +451,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           onClick={() => onNavigate && onNavigate("absensi")}
           className="bg-white rounded-2xl p-4.5 border border-slate-200/70 shadow-2xs flex flex-col justify-between cursor-pointer hover:border-orange-300 hover:shadow-xs transition-all active:scale-[0.99] group"
         >
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sesi Hari Ini</h3>
             <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <ClipboardList className="w-3.5 h-3.5" />
+              <Radio className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
@@ -382,8 +470,8 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           onClick={() => onNavigate && onNavigate("settings")}
           className="bg-white rounded-2xl p-4.5 border border-slate-200/70 shadow-2xs flex flex-col justify-between cursor-pointer hover:border-emerald-300 hover:shadow-xs transition-all active:scale-[0.99] group"
         >
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Studio Live</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Studio</h3>
             <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Building2 className="w-3.5 h-3.5" />
             </div>
@@ -391,140 +479,125 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">{studios.length}</div>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              Bandar Lampung & Tanggamus
+              Ruang siaran aktif
             </p>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2-COLUMN BALANCED OPERATIONAL SECTIONS */}
+      {/* 2-COLUMN MAIN SECTION: SCHEDULE (LEFT) & DONUT CHART (RIGHT) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 px-1 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 px-1 mb-6 items-stretch">
         {/* ======================================================================= */}
-        {/* KOLOM KIRI: JADWAL HOST TERDEKAT (COMMAND CENTER) */}
+        {/* KOLOM KIRI: TODAY'S SCHEDULE (MINIMALIST & CLEAN) */}
         {/* ======================================================================= */}
-        <div className="flex flex-col h-full">
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-2xs flex flex-col h-full min-h-[580px]">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[460px]">
+          <div>
             {/* Header */}
-            <div className="flex items-center justify-between mb-3.5 pb-3.5 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Radio className="w-4 h-4" />
+                  <Calendar className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    Jadwal Host Terdekat
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/60 inline-flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                      Jam Terkini
-                    </span>
-                  </h2>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Urutan otomatis prioritas sesi live, sesi terdekat, dan yang telah usai
-                  </p>
+                  <h2 className="text-sm font-bold text-slate-900">Today's Schedule</h2>
                 </div>
               </div>
 
-              {/* Filter Tabs */}
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 text-[10px] font-bold shrink-0">
+              {/* Quick Filter */}
+              <div className="flex items-center gap-2">
+                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilterTab("all")}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      scheduleFilterTab === "all" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Semua ({sortedNearestSchedules.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilterTab("active")}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      scheduleFilterTab === "active" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Live & Terdekat
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setScheduleFilterTab("all")}
-                  className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                    scheduleFilterTab === "all" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
-                  }`}
+                  onClick={() => onNavigate && onNavigate("absensi")}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 cursor-pointer ml-1"
                 >
-                  Semua ({sortedNearestSchedules.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScheduleFilterTab("active")}
-                  className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                    scheduleFilterTab === "active" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Live & Terdekat
+                  <span>View All</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* Quick Session Status Ribbon */}
-            <div className="grid grid-cols-3 gap-2 mb-3.5">
-              <div className="bg-rose-50/50 border border-rose-100/80 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] font-bold text-rose-600 uppercase block">Sedang Live</span>
-                  <span className="text-base font-black text-rose-800 leading-tight">{liveCount} Sesi</span>
-                </div>
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-              </div>
-              <div className="bg-amber-50/50 border border-amber-100/80 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] font-bold text-amber-600 uppercase block">Akan Datang</span>
-                  <span className="text-base font-black text-amber-800 leading-tight">{upcomingCount} Sesi</span>
-                </div>
-                <Clock className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-              <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase block">Selesai</span>
-                  <span className="text-base font-black text-slate-700 leading-tight">{finishedCount} Sesi</span>
-                </div>
-                <Check className="w-3.5 h-3.5 text-slate-400" />
-              </div>
-            </div>
-
-            {/* List Schedules with Scroll */}
-            <div className="space-y-2 flex-1 max-h-[460px] overflow-y-auto pr-1">
+            {/* List Schedules */}
+            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
               {displayedSchedules.length > 0 ? (
                 displayedSchedules.map((session, idx) => (
                   <div
                     key={session.id || idx}
-                    className="p-2.5 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-2xs bg-white transition-all flex items-center justify-between gap-3 group"
+                    className="p-3 rounded-2xl border border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/40 transition-all flex items-center justify-between gap-3 group"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Time pill */}
-                      <div className="text-center w-20 shrink-0 bg-slate-50 border border-slate-200/60 rounded-lg py-1">
-                        <span className="font-mono text-[11px] font-black text-slate-800 block leading-tight">
-                          {session.parsed.startTimeFormatted}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-medium block leading-tight">
-                          {session.parsed.endTimeFormatted}
-                        </span>
-                      </div>
+                    {/* Time Pill */}
+                    <div className="w-16 shrink-0 text-left">
+                      <span className="font-mono text-xs font-black text-slate-900 block leading-tight">
+                        {session.parsed.startTimeFormatted}
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400 font-medium block leading-tight">
+                        {session.parsed.endTimeFormatted}
+                      </span>
+                    </div>
 
-                      {/* Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="font-bold text-xs text-slate-900 truncate">
-                            {session.hostName}
-                          </span>
-                          <span className="text-[9px] font-semibold px-1 py-0.2 rounded bg-slate-100 text-slate-600 shrink-0">
-                            {session.platform}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 truncate">
-                          <span className="font-medium text-slate-700">{session.brandName}</span>
-                          <span className="text-slate-300 mx-1">•</span>
-                          <span className="text-slate-400">{session.studioName}</span>
-                        </p>
+                    {/* Status Circle */}
+                    <div className="shrink-0">
+                      {session.isLive ? (
+                        <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-rose-100 animate-pulse" />
+                      ) : session.isUpcoming ? (
+                        <div className="w-3 h-3 rounded-full border-2 border-amber-400 bg-amber-50" />
+                      ) : (
+                        <div className="w-3 h-3 rounded-full border-2 border-slate-300 bg-slate-100" />
+                      )}
+                    </div>
+
+                    {/* Host & Brand info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-slate-900 truncate">
+                          {session.hostName}
+                        </span>
+                        <span className="text-[10px] text-slate-400">•</span>
+                        <span className="text-xs text-slate-600 truncate">{session.brandName}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate mt-0.5">
+                        <span>{session.platform}</span>
+                        <span>•</span>
+                        <span>{session.studioName}</span>
                       </div>
                     </div>
 
-                    {/* Status badge */}
-                    <div className="shrink-0 text-right">
+                    {/* Right pill */}
+                    <div className="shrink-0">
                       {session.isLive ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-3xs">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200/70">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                          Live • {session.remainingText}
-                        </span>
-                      ) : session.isUpcoming ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/70">
-                          <Clock className="w-3 h-3 text-amber-500" />
                           {session.remainingText}
                         </span>
+                      ) : session.isUpcoming ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                          <span>Sesi Siaran</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-medium bg-slate-100 text-slate-500">
                           <Check className="w-3 h-3 text-slate-400" />
                           Selesai
                         </span>
@@ -533,187 +606,234 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center text-slate-400 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
-                  <Calendar className="w-6 h-6 mx-auto mb-1.5 text-slate-300" />
-                  <p className="text-xs font-semibold text-slate-600">Tidak ada sesi siaran terjadwal untuk hari ini.</p>
+                <div className="py-12 text-center text-slate-400 bg-slate-50/40 rounded-2xl border border-dashed border-slate-200">
+                  <Calendar className="w-6 h-6 mx-auto mb-1 text-slate-300" />
+                  <p className="text-xs font-medium text-slate-600">Tidak ada sesi siaran terjadwal.</p>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="mt-3.5 pt-3 border-t border-slate-100 flex justify-between items-center text-[11px]">
-              <span className="text-slate-400 font-medium">
-                {sortedNearestSchedules.length} total sesi siaran hari ini
-              </span>
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate("absensi")}
-                className="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>Kalender Kerja Host</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>{sortedNearestSchedules.length} Sesi Terjadwal Hari Ini</span>
+            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("absensi")}>
+              Buka Jadwal Kerja &gt;
+            </span>
           </div>
         </div>
 
         {/* ======================================================================= */}
-        {/* KOLOM KANAN: KETERLAMBATAN HOST + TASK OPERASIONAL */}
+        {/* KOLOM KANAN: PERFORMA KEHADIRAN (DONUT / RADIAL PROGRESS CHART) */}
         {/* ======================================================================= */}
-        <div className="flex flex-col gap-5 h-full">
-          {/* CARD 1: KETERLAMBATAN HOST */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-2xs flex flex-col flex-1 min-h-[290px]">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[460px]">
+          <div>
             {/* Header */}
-            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <AlertTriangle className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Target className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    Keterlambatan Host
-                    {currentLateLogsList.length > 0 && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        {currentLateLogsList.length} Terlambat
-                      </span>
-                    )}
-                  </h2>
+                  <h2 className="text-sm font-bold text-slate-900">Performa Kehadiran Host</h2>
                 </div>
               </div>
 
-              {/* Segmented Period Tabs */}
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 text-[10px] font-bold">
+              {/* Period Dropdown / Tabs */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 text-[11px] font-bold">
                 <button
                   type="button"
                   onClick={() => setLatePeriodTab("today")}
-                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     latePeriodTab === "today" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  Hari Ini ({todayLateLogs.length})
+                  Hari Ini
                 </button>
                 <button
                   type="button"
                   onClick={() => setLatePeriodTab("week")}
-                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     latePeriodTab === "week" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  Minggu Ini ({weekLateLogs.length})
+                  Minggu Ini
                 </button>
                 <button
                   type="button"
                   onClick={() => setLatePeriodTab("cutoff")}
-                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     latePeriodTab === "cutoff" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  Cut-Off ({cutoffLateLogs.length})
+                  Cut-Off
                 </button>
               </div>
             </div>
 
-            {/* Quick Summary Grid */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-2 text-center">
-                <span className="text-[9px] font-bold text-amber-700 uppercase block">Terlambat</span>
-                <span className="text-base font-black text-amber-800">{currentLateLogsList.length}</span>
+            {/* DONUT CHART & LEGEND */}
+            <div className="flex items-center justify-center gap-8 py-3">
+              {/* Radial Donut SVG */}
+              <div className="relative w-40 h-40 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 140 140">
+                  {/* Track circle */}
+                  <circle
+                    cx="70"
+                    cy="70"
+                    r={donutRadius}
+                    fill="transparent"
+                    stroke="#f1f5f9"
+                    strokeWidth="14"
+                  />
+                  {/* On-Time Circle (Indigo) */}
+                  <circle
+                    cx="70"
+                    cy="70"
+                    r={donutRadius}
+                    fill="transparent"
+                    stroke="#6366f1"
+                    strokeWidth="14"
+                    strokeDasharray={donutCircumference}
+                    strokeDashoffset={donutOnTimeOffset}
+                    strokeLinecap="round"
+                    className="transition-all duration-700 ease-out"
+                  />
+                  {/* Late Circle (Amber, if late exists) */}
+                  {activeLateCount > 0 && activeTotalCount > 0 && (
+                    <circle
+                      cx="70"
+                      cy="70"
+                      r={donutRadius}
+                      fill="transparent"
+                      stroke="#f59e0b"
+                      strokeWidth="14"
+                      strokeDasharray={donutCircumference}
+                      strokeDashoffset={
+                        donutCircumference - (donutCircumference * (activeLateCount / activeTotalCount))
+                      }
+                      strokeLinecap="round"
+                      className="transition-all duration-700 ease-out"
+                    />
+                  )}
+                </svg>
+
+                {/* Center Percentage Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                    {activePunctualityRate}%
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    TEPAT WAKTU
+                  </span>
+                </div>
               </div>
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-2 text-center">
-                <span className="text-[9px] font-bold text-emerald-700 uppercase block">Total Absen</span>
-                <span className="text-base font-black text-emerald-800">
-                  {latePeriodTab === "today" ? todayTotal : latePeriodTab === "week" ? weekTotal : cutoffTotal}
-                </span>
-              </div>
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-2 text-center">
-                <span className="text-[9px] font-bold text-indigo-700 uppercase block">Ketepatan</span>
-                <span className="text-base font-black text-indigo-800">
-                  {(() => {
-                    const total = latePeriodTab === "today" ? todayTotal : latePeriodTab === "week" ? weekTotal : cutoffTotal;
-                    if (total === 0) return "100%";
-                    const onTime = total - currentLateLogsList.length;
-                    return `${Math.max(0, Math.round((onTime / total) * 100))}%`;
-                  })()}
-                </span>
+
+              {/* Legend with Metrics */}
+              <div className="space-y-3 min-w-[170px]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0" />
+                    <span className="text-xs font-medium text-slate-600">Tepat Waktu</span>
+                  </div>
+                  <span className="text-xs font-black text-slate-900">{activePunctualityRate}%</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-xs font-medium text-slate-600">Terlambat</span>
+                  </div>
+                  <span className="text-xs font-black text-amber-600">{100 - activePunctualityRate}%</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
+                    <span className="text-xs font-medium text-slate-400">Total Absen</span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-700">{activeTotalCount} Sesi</span>
+                </div>
               </div>
             </div>
 
-            {/* List Keterlambatan */}
-            <div className="space-y-1.5 flex-1 max-h-[175px] overflow-y-auto pr-1">
-              {currentLateLogsList.length > 0 ? (
-                currentLateLogsList.map((log, idx) => (
-                  <div
-                    key={log.id || idx}
-                    className="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:border-amber-200 bg-white transition-all text-xs"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                        {log.hostName ? log.hostName.charAt(0).toUpperCase() : "H"}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-bold text-slate-800 truncate block text-xs leading-tight">
-                          {log.hostName}
-                        </span>
-                        <p className="text-[10px] text-slate-400 truncate">
-                          {log.date} • {log.shiftHours || log.shift || "Live"} • {log.brandHandled}
-                        </p>
-                      </div>
-                    </div>
+            {/* List Keterlambatan if any, or Success State */}
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Log Keterlambatan
+                </span>
+                <span className="text-[11px] font-black text-amber-600">
+                  {activeLateCount} Host Terlambat
+                </span>
+              </div>
 
-                    <div className="shrink-0 text-right">
-                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200/60 px-1.5 py-0.5 rounded">
-                        {log.checkInTime ? `Absen ${log.checkInTime.substring(0, 5)}` : "Terlambat"}
+              <div className="space-y-1.5 max-h-[110px] overflow-y-auto pr-1">
+                {currentLateLogsList.length > 0 ? (
+                  currentLateLogsList.slice(0, 3).map((log, idx) => (
+                    <div
+                      key={log.id || idx}
+                      className="p-2 rounded-xl bg-slate-50/60 border border-slate-100 flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {log.hostName ? log.hostName.charAt(0).toUpperCase() : "H"}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-800 truncate block text-xs leading-none">
+                            {log.hostName}
+                          </span>
+                          <span className="text-[10px] text-slate-400 truncate mt-0.5 block">
+                            {log.date} • {log.brandHandled}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-lg shrink-0">
+                        {log.checkInTime ? `Absen ${log.checkInTime.substring(0, 5)}` : "Late"}
                       </span>
                     </div>
+                  ))
+                ) : (
+                  <div className="py-3 text-center text-emerald-600 flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-50/40 rounded-xl border border-emerald-100/60">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>Semua host hadir tepat waktu pada periode ini</span>
                   </div>
-                ))
-              ) : (
-                <div className="py-6 text-center text-slate-400 bg-emerald-50/30 rounded-xl border border-dashed border-emerald-200">
-                  <CheckCircle2 className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
-                  <p className="text-xs font-bold text-emerald-800">Semua host hadir tepat waktu!</p>
-                  <p className="text-[10px] text-emerald-600 mt-0.5">Tidak ada data keterlambatan pada periode ini.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-[11px]">
-              <span className="text-slate-400 font-medium">Cut-off berjalan: {activeCutoffMonth}</span>
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate("database")}
-                className="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>Database Absensi</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* CARD 2: TASK OPERASIONAL */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-2xs flex flex-col flex-1 min-h-[290px]">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <CheckSquare className="w-3.5 h-3.5" />
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>Cut-off: {activeCutoffMonth}</span>
+            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("database")}>
+              Database Absensi &gt;
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* BOTTOM ROW: TARGET & TASKS (LEFT) & PERFORMANCE TREND LINE CHART (RIGHT) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 px-1 items-stretch">
+        {/* TASK OPERASIONAL (COL-SPAN-5) */}
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[380px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <CheckSquare className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    Task Operasional
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                      {activeTasksTotal} Aktif
-                    </span>
-                  </h2>
+                  <h2 className="text-sm font-bold text-slate-900">Task Operasional Tim</h2>
                 </div>
               </div>
 
-              {/* Segmented Filter */}
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 text-[10px] font-bold">
+              {/* Tabs */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 text-[11px] font-bold">
                 <button
                   type="button"
                   onClick={() => setTaskPeriodTab("today")}
-                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     taskPeriodTab === "today" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -722,7 +842,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
                 <button
                   type="button"
                   onClick={() => setTaskPeriodTab("week")}
-                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     taskPeriodTab === "week" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -731,103 +851,226 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
               </div>
             </div>
 
+            {/* Task Completion Progress Bar */}
+            <div className="mb-4 bg-slate-50/60 border border-slate-100 rounded-2xl p-3">
+              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                <span className="text-slate-600">Progress Penyelesaian</span>
+                <span className="text-indigo-600 font-black">{taskCompletionRate}%</span>
+              </div>
+              <div className="w-full bg-slate-200/70 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${taskCompletionRate}%` }}
+                />
+              </div>
+            </div>
+
             {/* List Tasks */}
-            <div className="space-y-1.5 flex-1 max-h-[185px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1">
               {currentTasksList.length > 0 ? (
-                currentTasksList.map((task) => {
+                currentTasksList.slice(0, 4).map((task) => {
                   const checklistTotal = task.checklist?.length || 0;
                   const checklistDone = task.checklist?.filter((c) => c.isDone).length || 0;
                   const briefImagesCount = task.briefImages?.length || 0;
-
                   const isUrgent = task.priority === "urgent";
-                  const isHigh = task.priority === "high";
 
                   return (
                     <div
                       key={task.id}
                       onClick={() => onNavigate && onNavigate("task_management")}
-                      className="p-2.5 rounded-xl border border-slate-100 hover:border-indigo-300 hover:shadow-2xs bg-white transition-all cursor-pointer group"
+                      className="p-2.5 rounded-xl border border-slate-100 hover:border-indigo-300 hover:shadow-2xs bg-white transition-all cursor-pointer group flex items-center justify-between gap-3"
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-                            <span
-                              className={`text-[8px] font-black uppercase px-1 py-0.2 rounded border ${
-                                isUrgent
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : isHigh
-                                  ? "bg-orange-50 text-orange-700 border-orange-200"
-                                  : "bg-slate-100 text-slate-600 border-slate-200"
-                              }`}
-                            >
-                              {task.priority}
-                            </span>
-                            <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-indigo-50 text-indigo-700">
-                              {task.category || "General"}
-                            </span>
-                            {briefImagesCount > 0 && (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded">
-                                <ImageIcon className="w-2.5 h-2.5" />
-                                {briefImagesCount}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          {isUrgent && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                          )}
+                          <h4 className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
                             {task.title}
                           </h4>
+                          {briefImagesCount > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-slate-400">
+                              <ImageIcon className="w-3 h-3 text-slate-400" />
+                              {briefImagesCount}
+                            </span>
+                          )}
                         </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                          <span>{task.category || "General"}</span>
+                          {checklistTotal > 0 && (
+                            <span>• Checklist {checklistDone}/{checklistTotal}</span>
+                          )}
+                        </div>
+                      </div>
 
-                        <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                      <div className="shrink-0 text-right">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono">
                           {task.deadline === todayStr ? (
-                            <span className="text-amber-600 font-extrabold">Hari Ini</span>
-                          ) : task.deadline && task.deadline < todayStr ? (
-                            <span className="text-rose-600 font-extrabold">Overdue</span>
+                            <span className="text-amber-600">Hari Ini</span>
                           ) : (
-                            task.deadline
+                            task.deadline || "No date"
                           )}
                         </span>
                       </div>
-
-                      {checklistTotal > 0 && (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <div className="flex-1 bg-slate-100 rounded-full h-1 overflow-hidden">
-                            <div
-                              className="bg-indigo-600 h-1 rounded-full transition-all"
-                              style={{ width: `${Math.round((checklistDone / checklistTotal) * 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-[9px] font-bold text-slate-400 shrink-0">
-                            {checklistDone}/{checklistTotal}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   );
                 })
               ) : (
                 <div className="py-6 text-center text-slate-400 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
                   <CheckSquare className="w-5 h-5 mx-auto mb-1 text-slate-300" />
-                  <p className="text-xs font-semibold text-slate-600">
-                    Tidak ada task operasional pada periode {taskPeriodTab === "today" ? "hari ini" : "minggu ini"}.
-                  </p>
+                  <p className="text-xs font-medium text-slate-600">Semua task selesai.</p>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-[11px]">
-              <span className="text-slate-400 font-medium">
-                {activeTasksTotal} task aktif
-              </span>
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate("task_management")}
-                className="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>Task Management</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>{activeTasksTotal} Task Aktif</span>
+            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("task_management")}>
+              Buka Task Management &gt;
+            </span>
+          </div>
+        </div>
+
+        {/* PERFORMANCE OVERVIEW (LINE / TREND CHART - COL-SPAN-7) */}
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[380px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Performance Overview</h2>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Tren ketepatan kehadiran host 7 hari terakhir (Minggu Ini)</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                  This Week
+                </span>
+              </div>
             </div>
+
+            {/* SMOOTH SVG LINE CHART */}
+            <div className="py-2">
+              <div className="w-full h-44 relative">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 160">
+                  <defs>
+                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizontal grid lines */}
+                  {[0, 40, 80, 120].map((y, idx) => (
+                    <line
+                      key={idx}
+                      x1="35"
+                      y1={y + 10}
+                      x2="480"
+                      y2={y + 10}
+                      stroke="#f1f5f9"
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  {/* Y Axis labels */}
+                  <text x="5" y="14" fill="#94a3b8" fontSize="9" fontWeight="600">100</text>
+                  <text x="12" y="54" fill="#94a3b8" fontSize="9" fontWeight="600">75</text>
+                  <text x="12" y="94" fill="#94a3b8" fontSize="9" fontWeight="600">50</text>
+                  <text x="12" y="134" fill="#94a3b8" fontSize="9" fontWeight="600">25</text>
+
+                  {/* Path coordinates calculation */}
+                  {(() => {
+                    const points = weeklyTrendData.map((d, i) => {
+                      const x = 50 + i * ((470 - 50) / 6);
+                      // Map rate (0 to 100) to y (130 to 10)
+                      const clampedRate = Math.max(0, Math.min(100, d.rate));
+                      const y = 130 - (clampedRate / 100) * 120;
+                      return { x, y, ...d };
+                    });
+
+                    // Build smooth curve path
+                    let pathD = `M ${points[0].x} ${points[0].y}`;
+                    for (let i = 0; i < points.length - 1; i++) {
+                      const curr = points[i];
+                      const next = points[i + 1];
+                      const cp1x = curr.x + (next.x - curr.x) / 2;
+                      const cp1y = curr.y;
+                      const cp2x = curr.x + (next.x - curr.x) / 2;
+                      const cp2y = next.y;
+                      pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+                    }
+
+                    const areaD = `${pathD} L ${points[points.length - 1].x} 130 L ${points[0].x} 130 Z`;
+
+                    return (
+                      <>
+                        {/* Area fill */}
+                        <path d={areaD} fill="url(#trendGradient)" />
+
+                        {/* Stroke line */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke="#6366f1"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+
+                        {/* Points */}
+                        {points.map((pt, idx) => (
+                          <g key={idx} className="group cursor-pointer">
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="4.5"
+                              fill="#ffffff"
+                              stroke="#6366f1"
+                              strokeWidth="2.5"
+                              className="group-hover:r-6 transition-all"
+                            />
+                            {/* Hover tooltip text */}
+                            <text
+                              x={pt.x}
+                              y={pt.y - 10}
+                              textAnchor="middle"
+                              fill="#4338ca"
+                              fontSize="10"
+                              fontWeight="800"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              {pt.rate}%
+                            </text>
+                            {/* X Axis Day Label */}
+                            <text
+                              x={pt.x}
+                              y="152"
+                              textAnchor="middle"
+                              fill={pt.date === todayStr ? "#4f46e5" : "#64748b"}
+                              fontSize="10"
+                              fontWeight={pt.date === todayStr ? "800" : "600"}
+                            >
+                              {pt.day}
+                            </text>
+                          </g>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>Rata-rata ketepatan minggu ini: {Math.round(weeklyTrendData.reduce((acc, d) => acc + d.rate, 0) / 7)}%</span>
+            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("absensi")}>
+              Laporan Siaran &gt;
+            </span>
           </div>
         </div>
       </div>
