@@ -72,13 +72,12 @@ test('late logs are properly categorized for today, week, and cutoff periods', (
   const todayStr = '2026-11-22';
   const mondayStr = '2026-11-16';
   const sundayStr = '2026-11-22';
-  const cutoff = '2026-12'; // Cutoff for 16 Nov - 15 Dec 2026
 
   const mockLogs = [
     { id: '1', date: '2026-11-22', status: 'Late', hostName: 'Host A' },
     { id: '2', date: '2026-11-22', status: 'Present', hostName: 'Host B' },
     { id: '3', date: '2026-11-18', status: 'Late', hostName: 'Host C' },
-    { id: '4', date: '2026-11-05', status: 'Late', hostName: 'Host D' }, // Previous cutoff
+    { id: '4', date: '2026-11-05', status: 'Late', hostName: 'Host D' },
   ];
 
   const todayLate = mockLogs.filter(l => l.date === todayStr && l.status === 'Late');
@@ -89,21 +88,22 @@ test('late logs are properly categorized for today, week, and cutoff periods', (
   assert.equal(weekLate.length, 2);
 });
 
-test('invoices identify overdue and due soon correctly', () => {
+test('operational tasks are filtered correctly for today vs this week', () => {
   const todayStr = '2026-11-22';
+  const mondayStr = '2026-11-16';
+  const sundayStr = '2026-11-22';
 
-  const mockInvoices = [
-    { invoiceNumber: 'INV-1', dueDate: '2026-11-20', status: 'Open Invoice', totalAmount: 10000000 }, // Overdue 2 days
-    { invoiceNumber: 'INV-2', dueDate: '2026-11-22', status: 'Open Invoice', totalAmount: 5000000 }, // Due today
-    { invoiceNumber: 'INV-3', dueDate: '2026-11-25', status: 'Open Invoice', totalAmount: 8000000 }, // Due soon (in 3 days)
-    { invoiceNumber: 'INV-4', dueDate: '2026-11-20', status: 'Paid', totalAmount: 7000000 }, // Paid (ignored)
+  const mockTasks = [
+    { id: 't1', title: 'Task 1', deadline: '2026-11-22', status: 'todo' },
+    { id: 't2', title: 'Task 2', deadline: '2026-11-20', status: 'in-progress' },
+    { id: 't3', title: 'Task 3', deadline: '2026-11-22', status: 'done' }, // Done is excluded
+    { id: 't4', title: 'Task 4', deadline: '2026-11-30', status: 'todo' }, // Next week
   ];
 
-  const overdue = mockInvoices.filter(i => i.status !== 'Paid' && i.dueDate < todayStr);
-  const dueToday = mockInvoices.filter(i => i.status !== 'Paid' && i.dueDate === todayStr);
+  const todayTasks = mockTasks.filter(t => t.status !== 'done' && t.deadline === todayStr);
+  const weekTasks = mockTasks.filter(t => t.status !== 'done' && t.deadline && t.deadline >= mondayStr && t.deadline <= sundayStr);
 
-  assert.equal(overdue.length, 1);
-  assert.equal(overdue[0].invoiceNumber, 'INV-1');
-  assert.equal(dueToday.length, 1);
-  assert.equal(dueToday[0].invoiceNumber, 'INV-2');
+  assert.equal(todayTasks.length, 1);
+  assert.equal(todayTasks[0].id, 't1');
+  assert.equal(weekTasks.length, 2);
 });
