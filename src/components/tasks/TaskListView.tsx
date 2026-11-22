@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Clock,
   Calendar,
@@ -11,6 +11,9 @@ import {
   AlertCircle,
   MoreVertical,
   Image as ImageIcon,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -26,6 +29,9 @@ import {
   DEFAULT_TASK_SETTINGS,
 } from './taskTheme';
 
+export type TaskSortField = 'status' | 'title' | 'priority' | 'pic' | 'deadline' | 'progress' | 'files';
+export type TaskSortDirection = 'asc' | 'desc';
+
 interface TaskListViewProps {
   tasks: TaskItem[];
   onEditTask: (task: TaskItem) => void;
@@ -33,6 +39,15 @@ interface TaskListViewProps {
   onDeleteTask: (taskId: string) => void;
   taskSettings?: TaskCustomSettings;
 }
+
+const priorityWeight: Record<string, number> = {
+  urgent: 4,
+  high: 3,
+  moderate: 2,
+  normal: 2,
+  medium: 2,
+  low: 1,
+};
 
 export const TaskListView: React.FC<TaskListViewProps> = ({
   tasks,
@@ -42,6 +57,98 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   taskSettings,
 }) => {
   const todayStr = new Date().toISOString().substring(0, 10);
+
+  // Sorting state: default by deadline ascending
+  const [sortField, setSortField] = useState<TaskSortField>('deadline');
+  const [sortDirection, setSortDirection] = useState<TaskSortDirection>('asc');
+
+  // Map status index from custom settings
+  const statusIndexMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    const statuses = taskSettings?.statuses || DEFAULT_TASK_SETTINGS.statuses;
+    statuses.forEach((st, idx) => {
+      map[st.id] = idx;
+    });
+    return map;
+  }, [taskSettings]);
+
+  // Toggle or change sort
+  const handleSort = (field: TaskSortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sorted tasks list
+  const sortedTasks = useMemo(() => {
+    const list = [...tasks];
+    list.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'status': {
+          const idxA = statusIndexMap[a.status] ?? 999;
+          const idxB = statusIndexMap[b.status] ?? 999;
+          comparison = idxA - idxB;
+          if (comparison === 0) {
+            comparison = (a.status || '').localeCompare(b.status || '');
+          }
+          break;
+        }
+        case 'title': {
+          comparison = (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+          break;
+        }
+        case 'priority': {
+          const wA = priorityWeight[a.priority] || 0;
+          const wB = priorityWeight[b.priority] || 0;
+          comparison = wA - wB;
+          break;
+        }
+        case 'pic': {
+          const picA = (a.picNames?.[0] || '').toLowerCase();
+          const picB = (b.picNames?.[0] || '').toLowerCase();
+          comparison = picA.localeCompare(picB);
+          break;
+        }
+        case 'deadline': {
+          const dateA = a.deadline || '';
+          const dateB = b.deadline || '';
+          if (!dateA && !dateB) comparison = 0;
+          else if (!dateA) comparison = 1;
+          else if (!dateB) comparison = -1;
+          else comparison = dateA.localeCompare(dateB);
+          break;
+        }
+        case 'progress': {
+          const totalA = a.checklist?.length || 0;
+          const doneA = a.checklist?.filter((c) => c.isDone).length || 0;
+          const progA = totalA > 0 ? (doneA / totalA) * 100 : 0;
+
+          const totalB = b.checklist?.length || 0;
+          const doneB = b.checklist?.filter((c) => c.isDone).length || 0;
+          const progB = totalB > 0 ? (doneB / totalB) * 100 : 0;
+
+          comparison = progA - progB;
+          break;
+        }
+        case 'files': {
+          const countA = (a.fileLinks?.length || 0) + (a.briefImages?.length || 0);
+          const countB = (b.fileLinks?.length || 0) + (b.briefImages?.length || 0);
+          comparison = countA - countB;
+          break;
+        }
+        default:
+          comparison = 0;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [tasks, sortField, sortDirection, statusIndexMap]);
 
   if (tasks.length === 0) {
     return (
@@ -53,24 +160,124 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
     );
   }
 
+  const renderSortTh = (field: TaskSortField, label: string, widthClass = '') => {
+    const isActive = sortField === field;
+    return (
+      <th className={`py-3 px-4 ${widthClass}`}>
+        <button
+          type="button"
+          onClick={() => handleSort(field)}
+          className={`flex items-center gap-1.5 uppercase text-[11px] font-black tracking-wider transition-colors cursor-pointer select-none group ${
+            isActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-800'
+          }`}
+          title={`Urutkan berdasarkan ${label} (${isActive && sortDirection === 'asc' ? 'Klik untuk Desc' : 'Klik untuk Asc'})`}
+        >
+          <span>{label}</span>
+          <span className="shrink-0">
+            {isActive ? (
+              sortDirection === 'asc' ? (
+                <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+              ) : (
+                <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+              )
+            ) : (
+              <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+            )}
+          </span>
+        </button>
+      </th>
+    );
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+      {/* Top Bar Sort Controls (Di Atas Table) */}
+      <div className="px-4 py-2.5 bg-slate-50/90 border-b border-slate-200/80 flex items-center justify-between gap-3 text-xs flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600" />
+            Urutan:
+          </span>
+          <div className="flex items-center gap-1 flex-wrap">
+            {[
+              { id: 'deadline', label: 'Deadline' },
+              { id: 'priority', label: 'Prioritas' },
+              { id: 'title', label: 'Nama Task' },
+              { id: 'status', label: 'Status' },
+              { id: 'progress', label: 'Progress' },
+              { id: 'pic', label: 'PIC' },
+            ].map((col) => (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => handleSort(col.id as TaskSortField)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  sortField === col.id
+                    ? 'bg-indigo-600 text-white shadow-3xs'
+                    : 'bg-white border border-slate-200/80 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                }`}
+              >
+                <span>{col.label}</span>
+                {sortField === col.id && (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="w-3 h-3 text-white" />
+                  ) : (
+                    <ArrowDown className="w-3 h-3 text-white" />
+                  )
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Direction Switcher Pill (ASC / DESC) */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSortDirection('asc')}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 border ${
+              sortDirection === 'asc'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-3xs'
+                : 'bg-white border-slate-200/80 text-slate-500 hover:text-slate-800'
+            }`}
+            title="Ascending (A-Z / Terlama ke Terbaru / Terendah ke Tertinggi)"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+            <span>ASC</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortDirection('desc')}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 border ${
+              sortDirection === 'desc'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-3xs'
+                : 'bg-white border-slate-200/80 text-slate-500 hover:text-slate-800'
+            }`}
+            title="Descending (Z-A / Terbaru ke Terlama / Tertinggi ke Terendah)"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span>DESC</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Table Area */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-              <th className="py-3 px-4 w-36">Status</th>
-              <th className="py-3 px-4">Nama Task & Kategori</th>
-              <th className="py-3 px-4 w-36">Prioritas</th>
-              <th className="py-3 px-4 w-44">PIC</th>
-              <th className="py-3 px-4 w-36">Deadline</th>
-              <th className="py-3 px-4 w-32">Progress</th>
-              <th className="py-3 px-4 w-32">File Links</th>
-              <th className="py-3 px-4 text-center w-24">Aksi</th>
+            <tr className="bg-slate-50/60 border-b border-slate-200/80 text-[11px]">
+              {renderSortTh('status', 'Status', 'w-36')}
+              {renderSortTh('title', 'Nama Task & Kategori')}
+              {renderSortTh('priority', 'Prioritas', 'w-36')}
+              {renderSortTh('pic', 'PIC', 'w-44')}
+              {renderSortTh('deadline', 'Deadline', 'w-36')}
+              {renderSortTh('progress', 'Progress', 'w-32')}
+              {renderSortTh('files', 'File Links', 'w-32')}
+              <th className="py-3 px-4 text-center w-24 text-[11px] font-black text-slate-500 uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {tasks.map((task) => {
+            {sortedTasks.map((task) => {
               const statusMeta = getStatusMeta(task.status, taskSettings);
               const priorityMeta = getPriorityMeta(task.priority, taskSettings);
               const totalChecklist = task.checklist?.length || 0;
