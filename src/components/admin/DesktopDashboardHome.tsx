@@ -405,7 +405,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 4 TOP KPI CARDS (CLEAN & BALANCED) */}
+      {/* 4 TOP KPI CARDS (ANGKA) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-4 gap-4 mb-6 px-1">
         {/* Card 1: Total Host */}
@@ -486,13 +486,128 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2-COLUMN MAIN SECTION: SCHEDULE (LEFT) & DONUT CHART (RIGHT) */}
+      {/* ROW 1: TASK OPERASIONAL (DI ATAS DI BAWAH ANGKA) & TODAY'S SCHEDULE */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 px-1 mb-6 items-stretch">
-        {/* ======================================================================= */}
-        {/* KOLOM KIRI: TODAY'S SCHEDULE (MINIMALIST & CLEAN) */}
-        {/* ======================================================================= */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[460px]">
+        {/* TASK OPERASIONAL TIM (TARUH DI ATAS DI BAWAH ANGKA) */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[440px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <CheckSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Task Operasional Tim</h2>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setTaskPeriodTab("today")}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    taskPeriodTab === "today" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Hari Ini ({todayTasks.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTaskPeriodTab("week")}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    taskPeriodTab === "week" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Minggu Ini ({weekTasks.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Task Completion Progress Bar */}
+            <div className="mb-4 bg-slate-50/60 border border-slate-100 rounded-2xl p-3">
+              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                <span className="text-slate-600">Progress Penyelesaian</span>
+                <span className="text-indigo-600 font-black">{taskCompletionRate}%</span>
+              </div>
+              <div className="w-full bg-slate-200/70 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${taskCompletionRate}%` }}
+                />
+              </div>
+            </div>
+
+            {/* List Tasks */}
+            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+              {currentTasksList.length > 0 ? (
+                currentTasksList.map((task) => {
+                  const checklistTotal = task.checklist?.length || 0;
+                  const checklistDone = task.checklist?.filter((c) => c.isDone).length || 0;
+                  const briefImagesCount = task.briefImages?.length || 0;
+                  const isUrgent = task.priority === "urgent";
+
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => onNavigate && onNavigate("task_management")}
+                      className="p-3 rounded-2xl border border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/40 transition-all cursor-pointer group flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          {isUrgent && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                          )}
+                          <h4 className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
+                            {task.title}
+                          </h4>
+                          {briefImagesCount > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-slate-400">
+                              <ImageIcon className="w-3 h-3 text-slate-400" />
+                              {briefImagesCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                          <span>{task.category || "General"}</span>
+                          {checklistTotal > 0 && (
+                            <span>• Checklist {checklistDone}/{checklistTotal}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono">
+                          {task.deadline === todayStr ? (
+                            <span className="text-amber-600 font-bold">Hari Ini</span>
+                          ) : (
+                            task.deadline || "No date"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-10 text-center text-slate-400 bg-slate-50/40 rounded-2xl border border-dashed border-slate-200">
+                  <CheckSquare className="w-6 h-6 mx-auto mb-1.5 text-slate-300" />
+                  <p className="text-xs font-medium text-slate-600">Semua task selesai.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>{activeTasksTotal} Task Aktif</span>
+            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("task_management")}>
+              Buka Task Management &gt;
+            </span>
+          </div>
+        </div>
+
+        {/* TODAY'S SCHEDULE */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[440px]">
           <div>
             {/* Header */}
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
@@ -540,7 +655,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
             </div>
 
             {/* List Schedules */}
-            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
               {displayedSchedules.length > 0 ? (
                 displayedSchedules.map((session, idx) => (
                   <div
@@ -606,7 +721,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center text-slate-400 bg-slate-50/40 rounded-2xl border border-dashed border-slate-200">
+                <div className="py-10 text-center text-slate-400 bg-slate-50/40 rounded-2xl border border-dashed border-slate-200">
                   <Calendar className="w-6 h-6 mx-auto mb-1 text-slate-300" />
                   <p className="text-xs font-medium text-slate-600">Tidak ada sesi siaran terjadwal.</p>
                 </div>
@@ -621,11 +736,14 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
             </span>
           </div>
         </div>
+      </div>
 
-        {/* ======================================================================= */}
-        {/* KOLOM KANAN: PERFORMA KEHADIRAN (DONUT / RADIAL PROGRESS CHART) */}
-        {/* ======================================================================= */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[460px]">
+      {/* ========================================================================= */}
+      {/* ROW 2: PERFORMA KEHADIRAN (DONUT CHART) & PERFORMANCE TREND (LINE CHART) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 px-1 items-stretch">
+        {/* PERFORMA KEHADIRAN HOST (DONUT CHART - COL-SPAN-5) */}
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[440px]">
           <div>
             {/* Header */}
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
@@ -809,131 +927,9 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
             </span>
           </div>
         </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* BOTTOM ROW: TARGET & TASKS (LEFT) & PERFORMANCE TREND LINE CHART (RIGHT) */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 px-1 items-stretch">
-        {/* TASK OPERASIONAL (COL-SPAN-5) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[380px]">
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <CheckSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">Task Operasional Tim</h2>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 text-[11px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setTaskPeriodTab("today")}
-                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    taskPeriodTab === "today" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Hari Ini ({todayTasks.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaskPeriodTab("week")}
-                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    taskPeriodTab === "week" ? "bg-white text-indigo-600 shadow-3xs" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Minggu Ini ({weekTasks.length})
-                </button>
-              </div>
-            </div>
-
-            {/* Task Completion Progress Bar */}
-            <div className="mb-4 bg-slate-50/60 border border-slate-100 rounded-2xl p-3">
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                <span className="text-slate-600">Progress Penyelesaian</span>
-                <span className="text-indigo-600 font-black">{taskCompletionRate}%</span>
-              </div>
-              <div className="w-full bg-slate-200/70 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${taskCompletionRate}%` }}
-                />
-              </div>
-            </div>
-
-            {/* List Tasks */}
-            <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1">
-              {currentTasksList.length > 0 ? (
-                currentTasksList.slice(0, 4).map((task) => {
-                  const checklistTotal = task.checklist?.length || 0;
-                  const checklistDone = task.checklist?.filter((c) => c.isDone).length || 0;
-                  const briefImagesCount = task.briefImages?.length || 0;
-                  const isUrgent = task.priority === "urgent";
-
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => onNavigate && onNavigate("task_management")}
-                      className="p-2.5 rounded-xl border border-slate-100 hover:border-indigo-300 hover:shadow-2xs bg-white transition-all cursor-pointer group flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          {isUrgent && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                          )}
-                          <h4 className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
-                            {task.title}
-                          </h4>
-                          {briefImagesCount > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-slate-400">
-                              <ImageIcon className="w-3 h-3 text-slate-400" />
-                              {briefImagesCount}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                          <span>{task.category || "General"}</span>
-                          {checklistTotal > 0 && (
-                            <span>• Checklist {checklistDone}/{checklistTotal}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 text-right">
-                        <span className="text-[10px] font-bold text-slate-400 font-mono">
-                          {task.deadline === todayStr ? (
-                            <span className="text-amber-600">Hari Ini</span>
-                          ) : (
-                            task.deadline || "No date"
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="py-6 text-center text-slate-400 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
-                  <CheckSquare className="w-5 h-5 mx-auto mb-1 text-slate-300" />
-                  <p className="text-xs font-medium text-slate-600">Semua task selesai.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-            <span>{activeTasksTotal} Task Aktif</span>
-            <span className="font-bold text-indigo-600 cursor-pointer" onClick={() => onNavigate && onNavigate("task_management")}>
-              Buka Task Management &gt;
-            </span>
-          </div>
-        </div>
 
         {/* PERFORMANCE OVERVIEW (LINE / TREND CHART - COL-SPAN-7) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[380px]">
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs flex flex-col justify-between h-full min-h-[440px]">
           <div>
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -955,7 +951,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
 
             {/* SMOOTH SVG LINE CHART */}
             <div className="py-2">
-              <div className="w-full h-44 relative">
+              <div className="w-full h-48 relative">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 500 160">
                   <defs>
                     <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
