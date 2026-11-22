@@ -7,6 +7,8 @@ import {
   CheckSquare,
   AlertCircle,
   Calendar as CalendarIcon,
+  User,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -41,19 +43,28 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   taskSettings,
 }) => {
   const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [hoveredTaskInfo, setHoveredTaskInfo] = useState<{
+    task: TaskItem;
+    x: number;
+    y: number;
+    bottom: number;
+  } | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
   const handlePrevMonth = () => {
+    setHoveredTaskInfo(null);
     setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const handleNextMonth = () => {
+    setHoveredTaskInfo(null);
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
   const handleToday = () => {
+    setHoveredTaskInfo(null);
     setCurrentDate(new Date());
   };
 
@@ -104,7 +115,10 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden font-sans">
+    <div
+      onMouseLeave={() => setHoveredTaskInfo(null)}
+      className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden font-sans relative"
+    >
       {/* Calendar Header Controls */}
       <div className="p-4 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
         <div className="flex items-center gap-3">
@@ -216,9 +230,21 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
                       key={t.id}
                       onClick={(e) => {
                         e.stopPropagation();
+                        setHoveredTaskInfo(null);
                         onEditTask(t);
                       }}
-                      title={`${t.title} (${statusMeta.label})`}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setHoveredTaskInfo({
+                          task: t,
+                          x: rect.left + rect.width / 2,
+                          y: rect.top,
+                          bottom: rect.bottom,
+                        });
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredTaskInfo(null);
+                      }}
                       className={`px-1.5 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer truncate flex items-center gap-1 ${
                         isDone
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200 line-through opacity-75'
@@ -271,6 +297,90 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
           Klik pada tanggal untuk membuat task baru dengan deadline tersebut
         </div>
       </div>
+
+      {/* FLOATING HOVER CARD WITH FULL UNTRUNCATED TASK NAME */}
+      {hoveredTaskInfo && (() => {
+        const t = hoveredTaskInfo.task;
+        const statusMeta = getStatusMeta(t.status, taskSettings);
+        const priorityMeta = getPriorityMeta(t.priority, taskSettings);
+        const isDone = statusMeta.isCompleted || t.status === 'done';
+        const showBelow = hoveredTaskInfo.y < 140;
+
+        return (
+          <div
+            className="fixed z-[9999] pointer-events-none transition-all duration-150 ease-out"
+            style={{
+              left: `${Math.min(Math.max(hoveredTaskInfo.x, 150), window.innerWidth - 170)}px`,
+              top: showBelow ? `${hoveredTaskInfo.bottom + 8}px` : `${hoveredTaskInfo.y - 8}px`,
+              transform: showBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+            }}
+          >
+            <div className="relative animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl shadow-slate-950/40 border border-slate-700/60 w-72 max-w-[90vw] flex flex-col gap-1.5">
+                {/* Header: Category & Status & Priority */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {t.category && (
+                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                      {t.category}
+                    </span>
+                  )}
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                      isDone
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                    }`}
+                  >
+                    {statusMeta.label}
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    {priorityMeta.label}
+                  </span>
+                </div>
+
+                {/* FULL UNTRUNCATED TASK NAME */}
+                <h4 className="text-xs font-black text-white leading-snug break-words">
+                  {t.title}
+                </h4>
+
+                {/* Description if any */}
+                {t.description && (
+                  <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
+                    {t.description}
+                  </p>
+                )}
+
+                {/* PICs & Deadline */}
+                <div className="flex items-center justify-between gap-2 pt-1.5 mt-0.5 border-t border-slate-800 text-[10px] text-slate-400">
+                  <span className="truncate">
+                    {t.picNames && t.picNames.length > 0 ? (
+                      <span className="text-slate-300 font-bold">
+                        PIC: {t.picNames.join(', ')}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 italic">Tanpa PIC</span>
+                    )}
+                  </span>
+                  {t.deadline && (
+                    <span className="font-mono text-slate-400 shrink-0">
+                      {t.deadline}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Pointer triangle arrow */}
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900 rotate-45 border-slate-700/60 ${
+                  showBelow
+                    ? '-top-1 border-l border-t'
+                    : '-bottom-1 border-r border-b'
+                }`}
+              />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
