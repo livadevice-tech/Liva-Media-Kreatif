@@ -232,6 +232,7 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
   // Session counters
   const liveCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isLive).length, [sortedNearestSchedules]);
   const upcomingCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isUpcoming).length, [sortedNearestSchedules]);
+  const finishedCount = useMemo(() => sortedNearestSchedules.filter((s) => s.isFinished).length, [sortedNearestSchedules]);
 
   // =========================================================================
   // 2. KETERLAMBATAN & PERFORMA KEHADIRAN (DONUT CHART DATA)
@@ -459,8 +460,12 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">{sortedNearestSchedules.length}</div>
-            <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              <span className="text-rose-600 font-bold">{liveCount} Live</span> • <span className="text-indigo-600 font-bold">{upcomingCount} Segera</span>
+            <p className="text-[11px] font-medium text-slate-400 mt-0.5 flex flex-wrap items-center gap-1">
+              <span className="text-rose-600 font-bold">{liveCount} Live</span>
+              <span>•</span>
+              <span className="text-indigo-600 font-bold">{upcomingCount} Segera</span>
+              <span>•</span>
+              <span className="text-emerald-600 font-bold">{finishedCount} Selesai</span>
             </p>
           </div>
         </div>
