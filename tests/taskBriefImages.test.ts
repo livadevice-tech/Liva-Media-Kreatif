@@ -52,3 +52,4 @@ test('TaskItem stores and preserves structured briefImages with metadata', () =>
   assert.equal(task.briefImages[0].name, 'brief_shopee_flash_sale.png');
   assert.equal(task.briefImages[0].size, 204800);
 });
+

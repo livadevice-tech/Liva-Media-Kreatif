@@ -7,7 +7,8 @@ export interface AdminAccount {
   id: string;
   name: string;
   username: string;
-  password: string;
+  password?: string;
+  hasPassword?: boolean;
   accessTabs: string[];
 }
 

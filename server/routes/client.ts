@@ -113,9 +113,11 @@ interface AdminAccountRow {
   name: string;
   username: string;
   password_hash?: string | null;
+  plain_password?: string | null;
   created_at?: string;
   accessTabs?: string[];
   password?: string;
+  hasPassword?: boolean;
 }
 
 interface AdminAccessTabRow {
@@ -392,11 +394,13 @@ export function registerClientRoutes(app: Express) {
 
 
   app.get("/api/admin-accounts", asyncHandler(async (req: Request, res: Response) => {
-    const admins = await queryMany<AdminAccountRow>(`SELECT id, name, username, password_hash, created_at FROM admin_accounts`);
+    const admins = await queryMany<AdminAccountRow>(`SELECT id, name, username, password_hash, plain_password, created_at FROM admin_accounts`);
     for (const admin of admins) {
       const tabs = await queryMany<AdminAccessTabRow>(`SELECT tab_name FROM admin_access_tabs WHERE admin_id = ?`, [admin.id]);
       admin.accessTabs = tabs.map((t) => t.tab_name);
-      admin.password = "";
+      admin.password = admin.plain_password || "";
+      admin.hasPassword = Boolean(admin.password_hash || admin.plain_password);
+      delete admin.plain_password;
       delete admin.password_hash;
     }
     res.json(admins);
@@ -405,8 +409,10 @@ export function registerClientRoutes(app: Express) {
   app.post("/api/admin-accounts", asyncHandler(async (req: Request, res: Response) => {
     const a = req.body;
     const id = a.id || genId("admin");
-    await execute(`INSERT INTO admin_accounts (id, name, username, password_hash) VALUES (?,?,?,?)`,
-      [id, a.name, a.username, hashPasswordForStorage(a.password || a.passwordHash || "")]);
+    const plainPassword = String(a.password || a.plainPassword || "").trim();
+    const passwordHash = plainPassword ? hashPasswordForStorage(plainPassword) : (a.passwordHash || "");
+    await execute(`INSERT INTO admin_accounts (id, name, username, password_hash, plain_password) VALUES (?,?,?,?,?)`,
+      [id, a.name, a.username, passwordHash, plainPassword || null]);
     if (Array.isArray(a.accessTabs)) {
       for (const tab of a.accessTabs) {
         await execute(`INSERT INTO admin_access_tabs (admin_id, tab_name) VALUES (?,?)`, [id, tab]);
@@ -417,10 +423,11 @@ export function registerClientRoutes(app: Express) {
 
   app.put("/api/admin-accounts/:id", asyncHandler(async (req: Request, res: Response) => {
     const a = req.body;
-    if (a.password || a.passwordHash) {
+    const plainPassword = typeof a.password === "string" ? a.password.trim() : "";
+    if (plainPassword) {
       await execute(
-        `UPDATE admin_accounts SET name=?, username=?, password_hash=? WHERE id=?`,
-        [a.name, a.username, hashPasswordForStorage(a.password || a.passwordHash), req.params.id],
+        `UPDATE admin_accounts SET name=?, username=?, password_hash=?, plain_password=? WHERE id=?`,
+        [a.name, a.username, hashPasswordForStorage(plainPassword), plainPassword, req.params.id],
       );
     } else {
       await execute(

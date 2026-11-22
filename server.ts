@@ -96,10 +96,21 @@ app.post("/api/auth/login", asyncHandler(async (req, res) => {
       session = { role: "master", subjectId: "master", expiresAt: 0 };
     } else {
       const admin = await queryOne(
-        `SELECT id, password_hash FROM admin_accounts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
+        `SELECT id, password_hash, plain_password FROM admin_accounts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
         [username],
       );
-      if (admin && isStoredPasswordValid(password, admin.password_hash || "")) {
+      if (
+        admin &&
+        (
+          (admin.plain_password && admin.plain_password === password) ||
+          (admin.password_hash && isStoredPasswordValid(password, admin.password_hash || ""))
+        )
+      ) {
+        if (!admin.plain_password) {
+          try {
+            await execute(`UPDATE admin_accounts SET plain_password = ? WHERE id = ?`, [password, admin.id]);
+          } catch (e) {}
+        }
         const tabs = await queryMany(
           `SELECT tab_name FROM admin_access_tabs WHERE admin_id = ?`,
           [admin.id],
