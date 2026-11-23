@@ -27,6 +27,7 @@ import {
   getCategoryMeta,
   DEFAULT_TASK_SETTINGS,
 } from './taskTheme';
+import { normalizeTaskImageUrl } from './taskStorage';
 
 interface TaskKanbanViewProps {
   tasks: TaskItem[];
@@ -246,21 +247,35 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                       })()}
 
                       {/* Attached Cover Brief Image */}
-                      {totalBriefImages > 0 && (
-                        <div className="mb-2 relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200/70 h-28">
-                          <img
-                            src={typeof task.briefImages![0] === 'string' ? task.briefImages![0] : task.briefImages![0].url}
-                            alt="Brief Cover"
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                          {totalBriefImages > 1 && (
-                            <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold">
-                              +{totalBriefImages - 1} foto
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {totalBriefImages > 0 && (() => {
+                        const rawCover = typeof task.briefImages![0] === 'string' ? task.briefImages![0] : task.briefImages![0].url;
+                        const coverUrl = normalizeTaskImageUrl(rawCover);
+                        return (
+                          <div className="mb-2 relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200/70 h-28">
+                            <img
+                              src={coverUrl}
+                              alt="Brief Cover"
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                if (!target.dataset.fallbackTried && rawCover) {
+                                  target.dataset.fallbackTried = 'true';
+                                  const filename = rawCover.split('/').pop()?.split('?')[0];
+                                  if (filename) {
+                                    target.src = `/uploads/tasks/${filename}`;
+                                  }
+                                }
+                              }}
+                            />
+                            {totalBriefImages > 1 && (
+                              <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold">
+                                +{totalBriefImages - 1} foto
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Task Title */}
                       <h4 className="text-xs font-black text-slate-800 leading-snug mb-1.5 line-clamp-2">

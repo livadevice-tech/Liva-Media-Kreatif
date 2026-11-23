@@ -181,6 +181,8 @@ app.use("/api", (req, res, next) => {
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
   if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
   if (req.method === "GET" && req.path.match(/^\/logs\/[^/]+\/proof$/)) return next();
+  if (req.method === "GET" && req.path.match(/^\/tasks\/brief-image/)) return next();
+  if (req.method === "GET" && req.path.match(/^\/uploads\//)) return next();
 
   const session = getRequestSession(req);
   if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });
@@ -1481,7 +1483,29 @@ async function backfillHostPlainPasswords() {
   }
 }
 
+function ensureUploadDirs() {
+  const dirs = [
+    path.join(process.cwd(), 'uploads'),
+    path.join(process.cwd(), 'uploads', 'tasks'),
+    path.join(process.cwd(), 'uploads', 'attendance'),
+  ];
+  const publicHtml = path.join(process.cwd(), 'public_html');
+  if (fs.existsSync(publicHtml)) {
+    dirs.push(path.join(publicHtml, 'uploads'));
+    dirs.push(path.join(publicHtml, 'uploads', 'tasks'));
+    dirs.push(path.join(publicHtml, 'uploads', 'attendance'));
+  }
+  for (const d of dirs) {
+    if (!fs.existsSync(d)) {
+      try {
+        fs.mkdirSync(d, { recursive: true });
+      } catch {}
+    }
+  }
+}
+
 async function bootstrap() {
+  ensureUploadDirs();
   getSessionSecret();
   await runMigrations();
   await backfillProofImages();
@@ -1497,7 +1521,7 @@ async function bootstrap() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      if (req.path.startsWith("/assets/") || req.path.startsWith("/api/")) {
+      if (req.path.startsWith("/assets/") || req.path.startsWith("/api/") || req.path.startsWith("/uploads/")) {
         return res.status(404).send("Not found");
       }
       res.sendFile(path.join(distPath, "index.html"));

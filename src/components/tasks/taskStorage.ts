@@ -18,6 +18,38 @@ export function detectLinkPlatform(url: string): TaskFileLink['platform'] {
   return 'general';
 }
 
+/**
+ * Normalizes task image URLs to ensure cross-environment compatibility
+ * (handles legacy /uploads/tasks/..., /api/uploads/..., Base64 data URLs, and external links).
+ */
+export function normalizeTaskImageUrl(url: string | undefined | null): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  // Inline Base64, blob, or absolute external HTTP(S) URLs
+  if (
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+
+  // Extract filename from legacy upload patterns
+  const match = trimmed.match(/(?:uploads\/tasks|tasks\/brief-images?)\/([^/?#]+)/i);
+  if (match && match[1]) {
+    return `/api/tasks/brief-images/${match[1]}`;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  return `/${trimmed}`;
+}
+
 const INITIAL_SEED_TASKS: TaskItem[] = [
   {
     id: 'task-seed-1',

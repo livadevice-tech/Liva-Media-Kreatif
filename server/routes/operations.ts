@@ -30,7 +30,15 @@ const taskBriefStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(process.cwd(), 'uploads', 'tasks');
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch {}
+    }
+    const publicHtmlDir = path.join(process.cwd(), 'public_html', 'uploads', 'tasks');
+    if (fs.existsSync(path.join(process.cwd(), 'public_html')) && !fs.existsSync(publicHtmlDir)) {
+      try {
+        fs.mkdirSync(publicHtmlDir, { recursive: true });
+      } catch {}
     }
     cb(null, dir);
   },
@@ -364,13 +372,69 @@ export function registerOperationsRoutes(app: Express) {
     return res.status(404).send("File foto bukti absensi tidak ditemukan di server.");
   }));
 
+  // Helper to serve brief image file from various disk locations safely
+  const serveBriefImage = (filename: string, res: Response) => {
+    const safeFilename = path.basename(filename);
+    const searchDirs = [
+      path.join(process.cwd(), 'uploads', 'tasks', safeFilename),
+      path.join(process.cwd(), 'public_html', 'uploads', 'tasks', safeFilename),
+      path.join(process.cwd(), '..', 'uploads', 'tasks', safeFilename),
+      path.join(process.cwd(), '..', 'public_html', 'uploads', 'tasks', safeFilename),
+    ];
+    for (const p of searchDirs) {
+      if (fs.existsSync(p)) {
+        const ext = path.extname(p).toLowerCase();
+        let mime = 'image/jpeg';
+        if (ext === '.png') mime = 'image/png';
+        else if (ext === '.webp') mime = 'image/webp';
+        else if (ext === '.gif') mime = 'image/gif';
+        else if (ext === '.svg') mime = 'image/svg+xml';
+
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+        return res.sendFile(path.resolve(p));
+      }
+    }
+    return res.status(404).json({ error: "File gambar task tidak ditemukan di server." });
+  };
+
+  // Dedicated public endpoints for brief images with multi-path resolution
+  app.get("/api/tasks/brief-images/:filename", (req: Request, res: Response) => {
+    serveBriefImage(req.params.filename, res);
+  });
+  app.get("/api/tasks/brief-image/:filename", (req: Request, res: Response) => {
+    serveBriefImage(req.params.filename, res);
+  });
+  app.get("/api/uploads/tasks/:filename", (req: Request, res: Response) => {
+    serveBriefImage(req.params.filename, res);
+  });
+  app.get("/uploads/tasks/:filename", (req: Request, res: Response) => {
+    serveBriefImage(req.params.filename, res);
+  });
+
   // Upload brief image attachment for task management
   app.post("/api/tasks/upload-brief-image", uploadTaskBrief.single("image"), asyncHandler(async (req: Request, res: Response) => {
     if (req.file) {
-      const url = `/uploads/tasks/${req.file.filename}`;
+      // Mirror file to public_html/uploads/tasks if public_html directory exists
+      const publicHtmlTaskDir = path.join(process.cwd(), 'public_html', 'uploads', 'tasks');
+      if (fs.existsSync(path.join(process.cwd(), 'public_html'))) {
+        try {
+          if (!fs.existsSync(publicHtmlTaskDir)) {
+            fs.mkdirSync(publicHtmlTaskDir, { recursive: true });
+          }
+          fs.copyFileSync(req.file.path, path.join(publicHtmlTaskDir, req.file.filename));
+        } catch (copyErr) {
+          console.warn("Could not copy brief image to public_html:", copyErr);
+        }
+      }
+
+      // Return both /api/ URL (which works through all reverse proxies) and raw /uploads/ URL
+      const url = `/api/tasks/brief-images/${req.file.filename}`;
       return res.json({
         success: true,
         url,
+        rawUrl: `/uploads/tasks/${req.file.filename}`,
         name: req.file.originalname,
         size: req.file.size,
         type: req.file.mimetype,
@@ -384,11 +448,25 @@ export function registerOperationsRoutes(app: Express) {
         fs.mkdirSync(dir, { recursive: true });
       }
       const filename = `brief-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
-      fs.writeFileSync(path.join(dir, filename), Buffer.from(base64Data, 'base64'));
-      const url = `/uploads/tasks/${filename}`;
+      const filePath = path.join(dir, filename);
+      fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+
+      // Also mirror to public_html if exists
+      const publicHtmlTaskDir = path.join(process.cwd(), 'public_html', 'uploads', 'tasks');
+      if (fs.existsSync(path.join(process.cwd(), 'public_html'))) {
+        try {
+          if (!fs.existsSync(publicHtmlTaskDir)) {
+            fs.mkdirSync(publicHtmlTaskDir, { recursive: true });
+          }
+          fs.writeFileSync(path.join(publicHtmlTaskDir, filename), Buffer.from(base64Data, 'base64'));
+        } catch {}
+      }
+
+      const url = `/api/tasks/brief-images/${filename}`;
       return res.json({
         success: true,
         url,
+        rawUrl: `/uploads/tasks/${filename}`,
         name: req.body.name || filename,
         size: Buffer.byteLength(base64Data, 'base64'),
         type: 'image/jpeg',

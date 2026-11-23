@@ -32,6 +32,7 @@ import {
   UploadCloud,
   Eye,
   Loader2,
+  Download,
 } from 'lucide-react';
 import {
   TaskItem,
@@ -50,7 +51,7 @@ import {
   getCategoryMeta,
   DEFAULT_TASK_SETTINGS,
 } from './taskTheme';
-import { detectLinkPlatform } from './taskStorage';
+import { detectLinkPlatform, normalizeTaskImageUrl } from './taskStorage';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 
 interface PICCandidate {
@@ -247,12 +248,15 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setSelectedPICs(initialTask.picNames || []);
       setChecklist(initialTask.checklist || []);
       setFileLinks(initialTask.fileLinks || []);
-      // Load briefImages with backward-compatibility for string URLs
+      // Load briefImages with backward-compatibility for string URLs & normalize URL path
       const loadedImages: TaskBriefAttachment[] = (initialTask.briefImages || []).map((img, idx) => {
         if (typeof img === 'string') {
-          return { id: `img-${idx}`, name: `Gambar Brief ${idx + 1}`, url: img };
+          return { id: `img-${idx}`, name: `Gambar Brief ${idx + 1}`, url: normalizeTaskImageUrl(img) };
         }
-        return img;
+        return {
+          ...img,
+          url: normalizeTaskImageUrl(img.url),
+        };
       });
       setBriefImages(loadedImages);
     } else {
@@ -461,7 +465,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         const newAttachment: TaskBriefAttachment = {
           id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           name: data.name || file.name,
-          url: data.url,
+          url: normalizeTaskImageUrl(data.url),
           size: data.size || file.size,
           type: data.type || file.type,
           uploadedAt: new Date().toISOString(),
@@ -1431,61 +1435,74 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                   Gambar Brief Terlampir ({briefImages.length})
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {briefImages.map((img, idx) => (
-                    <div
-                      key={img.id || `img-${idx}`}
-                      className="group relative rounded-xl border border-slate-200 overflow-hidden bg-slate-900/5 shadow-sm hover:shadow transition-all"
-                    >
+                  {briefImages.map((img, idx) => {
+                    const resolvedUrl = normalizeTaskImageUrl(img.url);
+                    return (
                       <div
-                        onClick={() => setPreviewImageModal({ url: img.url, name: img.name })}
-                        className="cursor-pointer relative aspect-video w-full overflow-hidden bg-slate-100 flex items-center justify-center"
+                        key={img.id || `img-${idx}`}
+                        className="group relative rounded-xl border border-slate-200 overflow-hidden bg-slate-900/5 shadow-sm hover:shadow transition-all"
                       >
-                        <img
-                          src={img.url}
-                          alt={img.name || `Gambar Brief ${idx + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <span className="p-1.5 rounded-lg bg-white/90 text-slate-800 hover:bg-white shadow">
-                            <Eye className="w-4 h-4" />
-                          </span>
+                        <div
+                          onClick={() => setPreviewImageModal({ url: resolvedUrl, name: img.name })}
+                          className="cursor-pointer relative aspect-video w-full overflow-hidden bg-slate-100 flex items-center justify-center group/thumb"
+                        >
+                          <img
+                            src={resolvedUrl}
+                            alt={img.name || `Gambar Brief ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (!target.dataset.fallbackTried && img.url) {
+                                target.dataset.fallbackTried = 'true';
+                                const filename = img.url.split('/').pop()?.split('?')[0];
+                                if (filename) {
+                                  target.src = `/uploads/tasks/${filename}`;
+                                }
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <span className="p-1.5 rounded-lg bg-white/90 text-slate-800 hover:bg-white shadow">
+                              <Eye className="w-4 h-4" />
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="p-2 bg-white flex items-center justify-between gap-1.5 border-t border-slate-100">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-semibold text-slate-700 truncate" title={img.name}>
-                            {img.name || `Gambar ${idx + 1}`}
-                          </p>
-                          {img.size ? (
-                            <p className="text-[9px] text-slate-400">
-                              {(img.size / 1024).toFixed(0)} KB
+                        <div className="p-2 bg-white flex items-center justify-between gap-1.5 border-t border-slate-100">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-semibold text-slate-700 truncate" title={img.name}>
+                              {img.name || `Gambar ${idx + 1}`}
                             </p>
-                          ) : null}
-                        </div>
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <a
-                            href={img.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                            title="Buka gambar di tab baru"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBriefImage(img.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title="Hapus gambar brief"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            {img.size ? (
+                              <p className="text-[9px] text-slate-400">
+                                {(img.size / 1024).toFixed(0)} KB
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <a
+                              href={resolvedUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                              title="Buka gambar di tab baru"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBriefImage(img.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                              title="Hapus gambar brief"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1701,25 +1718,35 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       {/* Lightbox Preview Modal for Brief Image */}
       {previewImageModal && (
         <div
-          className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6"
           onClick={() => setPreviewImageModal(null)}
         >
           <div
-            className="relative max-w-5xl max-h-[90vh] w-full flex flex-col bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            className="relative max-w-5xl max-h-[92vh] w-full flex flex-col bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-900/90 border-b border-white/10 text-white">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-900/95 border-b border-white/10 text-white">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
                 <ImageIcon className="w-4 h-4 text-indigo-400 shrink-0" />
                 <span className="text-xs font-bold truncate">{previewImageModal.name}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <a
-                  href={previewImageModal.url}
+                  href={normalizeTaskImageUrl(previewImageModal.url)}
+                  download={previewImageModal.name || 'task-brief-image.jpg'}
+                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Unduh file gambar"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Unduh</span>
+                </a>
+                <a
+                  href={normalizeTaskImageUrl(previewImageModal.url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors flex items-center gap-1.5"
+                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white transition-colors flex items-center gap-1.5 cursor-pointer shadow"
+                  title="Buka gambar di tab baru browser"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Buka Tab Baru</span>
@@ -1728,18 +1755,29 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                   type="button"
                   onClick={() => setPreviewImageModal(null)}
                   className="p-1.5 rounded-lg bg-white/10 hover:bg-rose-600 text-white transition-colors cursor-pointer"
+                  title="Tutup preview"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Image display */}
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950/60 min-h-[300px]">
+            {/* Image display with fallback and auto-centering */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center bg-slate-950/70 min-h-[320px]">
               <img
-                src={previewImageModal.url}
+                src={normalizeTaskImageUrl(previewImageModal.url)}
                 alt={previewImageModal.name}
-                className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-lg"
+                className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-2xl transition-all"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.fallbackTried && previewImageModal.url) {
+                    target.dataset.fallbackTried = 'true';
+                    const filename = previewImageModal.url.split('/').pop()?.split('?')[0];
+                    if (filename) {
+                      target.src = `/uploads/tasks/${filename}`;
+                    }
+                  }
+                }}
               />
             </div>
           </div>
