@@ -35,3 +35,4 @@ test('normalizeTaskImageUrl handles empty or undefined inputs gracefully', () =>
   assert.equal(normalizeTaskImageUrl(undefined), '');
   assert.equal(normalizeTaskImageUrl(null), '');
 });
+

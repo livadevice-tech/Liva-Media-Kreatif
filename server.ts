@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import express, { Request, Response, NextFunction } from "express";
 import path from "path";
+import fs from "fs";
 import dns from "dns";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
